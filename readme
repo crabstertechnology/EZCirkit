@@ -1,0 +1,227 @@
+Absolutely — here is a **professional, complete GitHub README.md** for your EZCirkit E-Commerce project.
+It covers:
+
+✔ What we built so far
+✔ Tech stack
+✔ Features completed
+✔ Features in-progress / upcoming
+✔ Setup steps
+✔ Folder structure
+✔ Commands
+✔ Deployment steps
+✔ Future roadmap
+
+You can copy-paste this directly into your repo’s **README.md**.
+
+---
+
+# 📄 **README.md**
+
+```md
+# 🛒 EZCirkit Store — Full E-Commerce Platform (Next.js + Supabase + Razorpay)
+
+A complete full-stack e-commerce application built for **EZCirkit** — an electronics STEM learning kit store by Crabster Technology.  
+This project is built using modern, scalable tools:
+
+- **Next.js 16 (App Router + Server Components + Turbopack)**
+- **Supabase (Database + Auth)**
+- **Zustand (Global Cart Store)**
+- **Razorpay (Payments)**
+- **TailwindCSS**
+- **TypeScript**
+
+---
+
+# 🚀 Current Status (Completed ✔)
+
+### ✅ Phase 1: Supabase Setup  
+- Products table created  
+- Orders table created  
+- Row Level Security configured  
+- Database connection working  
+
+### ✅ Phase 2: Next.js Project Setup  
+- Next.js 16 with App Router  
+- Supabase client connected  
+- Environment variables configured  
+- Dynamic route params fix (`await props.params` for Next 16)  
+
+### ✅ Phase 3: Product Flow  
+- Product List Page `/products`  
+- Product Detail Page `/products/[id]`  
+- Client-side Add to Cart Button  
+- Zustand Cart Store with persistence  
+- Cart Page `/cart` (quantity update + remove + total)  
+- Checkout Page `/checkout` (name, email, phone, address)  
+
+### ✅ Phase 4: Payment Flow  
+- Razorpay integration (sandbox/test mode)  
+- Create order API  
+- Verify payment API  
+- Save order to Supabase  
+- Clear cart after success  
+- Success page  
+
+---
+
+# 🔥 Upcoming Features (To Be Built)
+
+### ⏳ Phase 5 — Admin Panel  
+- Admin login  
+- Add/edit products  
+- View pending orders  
+- Update order status: *paid → shipped → delivered*  
+- Dashboard charts  
+
+### ⏳ Phase 6 — Product Images  
+- Supabase storage  
+- Multiple images per product  
+- Image uploader for admin panel  
+
+### ⏳ Phase 7 — Order Tracking  
+- User can track order by ID  
+- `/track/<order-id>` page  
+
+### ⏳ Phase 8 — Deployment  
+- Deploy to **Vercel**  
+- Setup domain: `ezcirkit.crabstertech.in`  
+- Add CI/CD  
+
+---
+
+# 🧱 Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 16, React, TailwindCSS |
+| Backend | Next.js API Routes |
+| Database | Supabase Postgres |
+| Auth | Supabase Auth (optional) |
+| State Management | Zustand |
+| Payments | Razorpay |
+| Deployment | Vercel |
+
+---
+
+# 📂 Folder Structure
+
+```
+
+ezcirkit-store/
+│
+├── app/
+│   ├── products/
+│   │   ├── page.tsx                 ← Product list
+│   │   └── [id]/
+│   │       ├── page.tsx             ← Product detail
+│   │       └── AddToCartButton.tsx  ← Client component
+│   │
+│   ├── cart/
+│   │    └── page.tsx                ← Cart page
+│   │
+│   ├── checkout/
+│   │    └── page.tsx                ← Checkout form
+│   │
+│   ├── payment/
+│   │    └── page.tsx                ← Razorpay popup
+│   │
+│   ├── success/
+│   │    └── page.tsx                ← Payment success
+│   │
+│   └── api/
+│        ├── create-order/
+│        │     └── route.ts          ← Razorpay order API
+│        └── verify-payment/
+│              └── route.ts          ← Verify payment & save order
+│
+├── store/
+│   └── cartStore.ts                 ← Zustand cart storage
+│
+├── lib/
+│   └── supabaseClient.ts
+│
+├── public/
+├── .env.local
+└── next.config.js
+
+````
+
+---
+
+# 🛠️ How to Run Locally
+
+### 1. Clone the repository
+```sh
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+cd ezcirkit-store
+````
+
+### 2. Install dependencies
+
+```sh
+npm install
+```
+
+### 3. Add environment variables
+
+Create a `.env.local` file:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+
+RAZORPAY_KEY_ID=<your-razorpay-key>
+RAZORPAY_KEY_SECRET=<your-razorpay-secret>
+```
+
+### 4. Run the project
+
+```sh
+npm run dev
+```
+
+---
+
+# 💰 Payments (Razorpay Flow)
+
+1. User fills checkout form
+2. `/payment` loads total
+3. Creates Razorpay order ID
+4. Opens Razorpay widget
+5. On success → verify signature
+6. Save order in Supabase
+7. Redirect to `/success`
+
+---
+
+# 🚀 Deployment
+
+During deployment:
+
+1. Push to GitHub
+2. Connect repo to Vercel
+3. Add same `.env.local` values in Vercel Environment Variables
+4. Deploy
+5. Add domain: `ezcirkit.crabstertech.in`
+
+---
+
+# 📧 Support / Contact
+
+Built by **Crabster Technology**
+If you need more features or want admin panel/analytics built, contact anytime.
+
+---
+
+# 🎉 Final Notes
+
+This repo is structured to scale into a full production store:
+
+* Multi-product support
+* Admin system
+* Order tracking
+* SEO product pages
+* Mobile-friendly UI
+* High speed (Next.js App Router)
+
+More features can be added easily.
