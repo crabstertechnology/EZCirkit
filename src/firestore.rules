@@ -1,0 +1,98 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Function to check if the signed-in user has an 'isAdmin' flag set to true
+    // in their user document.
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    function isChangingOrderStatus() {
+      // Allows changing only the 'status' field.
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+
+    //-------------------------------------------------------------------------
+    // Collection Rules
+    //-------------------------------------------------------------------------
+
+    match /users/{userId} {
+      // Admins can read/write any user document.
+      // Regular users can only read/write their own document.
+      allow read, write: if isAdmin() || isOwner(userId);
+
+      match /addresses/{addressId} {
+        // Admins can manage all addresses, users can manage their own.
+        allow read, write: if isAdmin() || isOwner(userId);
+      }
+      
+      match /cart/{cartItemId} {
+        allow read, list, create, update, delete: if isOwner(userId);
+      }
+
+      match /orders/{orderId} {
+        // Admins can read all orders. Users can create and read their own.
+        allow get, list, create: if isAdmin() || isOwner(userId);
+        // Admins can update the status, but other fields are immutable.
+        allow update: if isAdmin() && isChangingOrderStatus();
+        allow delete: if false; // Orders are immutable
+
+        match /items/{orderItemId} {
+          // Admins can read all order items. Users can create and read their own.
+          allow get, list, create: if isAdmin() || isOwner(userId);
+          allow update, delete: if false; // Order items are immutable
+        }
+      }
+    }
+    
+    match /products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+      // Only admins can create, update, or delete products
+      allow write: if isAdmin();
+    }
+
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true;
+      // Any signed-in user can create a review, as long as they own it.
+      allow create: if isSignedIn() 
+                      && request.resource.data.userId == request.auth.uid;
+      // Admins or the review owner can delete a review.
+      allow delete: if isAdmin() || request.auth.uid == get(/databases/$(database)/documents/products/$(productId)/reviews/$(reviewId)).data.userId;
+      allow update: if false; // Reviews are immutable
+    }
+
+    match /contactMessages/{contactMessageId} {
+      // Anyone can submit a message
+      allow create: if true;
+      // Only admins can read, update (e.g. to mark as read), or delete messages
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /tutorialChapters/{chapterId} {
+      // Anyone can read chapters and tutorials
+      allow read: if true;
+      // Only admins can create, update, or delete chapters and tutorials
+      allow write: if isAdmin();
+
+      match /tutorials/{tutorialId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-image",
+      "description": "Main EZCirkit electronics kit displayed attractively.",
+      "imageUrl": "/1.jpg",
+      "imageHint": "electronics kit"
+    },
+    {
+      "id": "product-slide-1",
+      "description": "EZCirkit box and components.",
+      "imageUrl": "/1.jpg",
+      "imageHint": "product box"
+    },
+    {
+      "id": "product-slide-2",
+      "description": "Close-up of various electronic components from the kit.",
+      "imageUrl": "/2.jpg",
+      "imageHint": "electronic components"
+    },
+    {
+      "id": "product-video-thumb",
+      "description": "Thumbnail for a video showing the kit in action.",
+      "imageUrl": "/2.jpg",
+      "imageHint": "play button"
+    },
+    {
+      "id": "avatar1",
+      "description": "Avatar for a testimonial from Anjali Sharma.",
+      "imageUrl": "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY0MzI2NjU1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar2",
+      "description": "Avatar for a testimonial from Rohan Mehta.",
+      "imageUrl": "https://images.unsplash.com/photo-1522556189639-b150ed9c4330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjQzNTkwNDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar3",
+      "description": "Avatar for a testimonial from Priya Desai.",
+      "imageUrl": "https://images.unsplash.com/photo-1573497019236-17f8177b81e8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHByb2Zlc3Npb25hbHxlbnwwfHx8fDE3NjQyODg5NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman professional"
+    },
+    {
+      "id": "tutorial-1",
+      "description": "A person unboxing a product.",
+      "imageUrl": "https://images.unsplash.com/photo-1670341445838-57d1bc01340e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx1bmJveGluZyUyMHByb2R1Y3R8ZW58MHx8fHwxNzY0NjE3NjE5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "unboxing product"
+    },
+    {
+      "id": "tutorial-2",
+      "description": "A glowing LED light.",
+      "imageUrl": "https://images.unsplash.com/photo-1625810057809-9f596a69b975?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxnbG93aW5nJTIwbGVkfGVufDB8fHx8MTc2NDYxNzYxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "glowing led"
+    },
+    {
+      "id": "tutorial-3",
+      "description": "Rainbow colored lights.",
+      "imageUrl": "https://images.unsplash.com/photo-1651592361814-7e3501fda591?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxyYWluYm93JTIwbGlnaHRzfGVufDB8fHx8MTc2NDYxNzYxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rainbow lights"
+    },
+    {
+      "id": "tutorial-4",
+      "description": "A digital thermometer display.",
+      "imageUrl": "https://images.unsplash.com/photo-1615486511369-31ff08672204?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkaWdpdGFsJTIwdGhlcm1vbWV0ZXJ8ZW58MHx8fHwxNzY0NTg2MjIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "digital thermometer"
+    },
+    {
+      "id": "tutorial-5",
+      "description": "Radar or sonar waves.",
+      "imageUrl": "https://images.unsplash.com/photo-1525883342279-22cbaed1186f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzb25hciUyMHdhdmVzfGVufDB8fHx8MTc2NDYxNzYxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sonar waves"
+    },
+    {
+      "id": "tutorial-6",
+      "description": "An LCD screen with text.",
+      "imageUrl": "https://images.unsplash.com/photo-1629148769165-069e8a9e8a30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxMQ0QlMjBzY3JlZW58ZW58MHx8fHwxNzY0NjE3NjE5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "LCD screen"
+    }
+  ]
+}

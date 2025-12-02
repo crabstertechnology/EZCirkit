@@ -1,0 +1,347 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the EZCirkit e-commerce platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "User's phone number."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile photo.",
+          "format": "uri"
+        },
+        "addresses": {
+          "type": "array",
+          "description": "An array of address IDs associated with the user. (Relationship: User 1:N Address)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the user account was created.",
+          "format": "date-time"
+        },
+        "wishlist": {
+          "type": "array",
+          "description": "An array of product IDs in the user's wishlist. (Relationship: User 1:N Product)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Address": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Address",
+      "type": "object",
+      "description": "Represents a shipping address associated with a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the address."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Address)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the address."
+        },
+        "addressLine1": {
+          "type": "string",
+          "description": "First line of the address."
+        },
+        "addressLine2": {
+          "type": "string",
+          "description": "Second line of the address."
+        },
+        "city": {
+          "type": "string",
+          "description": "City of the address."
+        },
+        "state": {
+          "type": "string",
+          "description": "State of the address."
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "Postal code of the address."
+        },
+        "country": {
+          "type": "string",
+          "description": "Country of the address."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "addressLine1",
+        "city",
+        "state",
+        "postalCode",
+        "country"
+      ]
+    },
+    "CartItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cart Item",
+      "type": "object",
+      "description": "Represents an item in a user's shopping cart.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the cart item, often the product ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this cart."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the product at the time of adding to cart."
+        },
+        "image": {
+          "type": "string",
+          "description": "URL of the product image."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of the product in the cart."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "price",
+        "quantity"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents a customer's order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who placed the order."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the order was placed."
+        },
+        "total": {
+          "type": "number",
+          "description": "The total amount of the order."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the order.",
+          "enum": [
+            "pending",
+            "paid",
+            "shipped",
+            "delivered",
+            "cancelled"
+          ]
+        },
+        "paymentId": {
+          "type": "string",
+          "description": "The payment identifier from the payment gateway (e.g., Razorpay)."
+        },
+        "shippingAddress": {
+          "type": "object",
+          "description": "A snapshot of the shipping address used for this order.",
+          "properties": {
+            "name": { "type": "string" },
+            "addressLine1": { "type": "string" },
+            "addressLine2": { "type": "string" },
+            "city": { "type": "string" },
+            "state": { "type": "string" },
+            "postalCode": { "type": "string" },
+            "country": { "type": "string" }
+          },
+          "required": ["name", "addressLine1", "city", "state", "postalCode", "country"]
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "createdAt",
+        "total",
+        "status",
+        "shippingAddress"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order Item",
+      "type": "object",
+      "description": "Represents a single item within an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order item."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "The ID of the parent order."
+        },
+        "productId": {
+          "type": "string",
+          "description": "The ID of the product."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product at the time of purchase."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the product ordered."
+        },
+        "image": {
+          "type": "string",
+          "description": "URL of the product image."
+        }
+      },
+      "required": ["id", "orderId", "productId", "name", "price", "quantity"]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a user review for a product.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the review." },
+        "userId": { "type": "string", "description": "The ID of the user who wrote the review." },
+        "productId": { "type": "string", "description": "The ID of the product being reviewed." },
+        "userName": { "type": "string", "description": "Display name of the user." },
+        "userPhotoURL": { "type": "string", "description": "URL of the user's profile photo.", "format": "uri" },
+        "rating": { "type": "number", "description": "The star rating from 1 to 5." },
+        "comment": { "type": "string", "description": "The text content of the review." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the review was created." }
+      },
+      "required": ["id", "userId", "productId", "userName", "rating", "comment", "createdAt"]
+    },
+     "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product in the EZCirkit store.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the product." },
+        "name": { "type": "string", "description": "The name of the product." },
+        "description": { "type": "string", "description": "A short description of the product." },
+        "price": { "type": "number", "description": "The current selling price of the product." },
+        "originalPrice": { "type": "number", "description": "The original price, used to show discounts." },
+        "image": { "type": "string", "description": "URL of the main product image." },
+        "stock": { "type": "number", "description": "The current stock quantity available." }
+      },
+      "required": ["id", "name", "price", "image", "stock"]
+    },
+    "ContactMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact Message",
+      "type": "object",
+      "description": "Represents a message submitted through the contact form.",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the person sending the message." },
+        "email": { "type": "string", "format": "email", "description": "The email of the person." },
+        "message": { "type": "string", "description": "The content of the message." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the message was sent." },
+        "read": { "type": "boolean", "description": "Whether the message has been read by an admin." }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/User"
+      },
+      "description": "Stores user profile information. The 'userId' parameter corresponds to the Firebase Auth UID. Enables path-based ownership for user-specific data."
+    },
+    "/users/{userId}/addresses/{addressId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Address"
+      },
+      "description": "Stores addresses associated with a user. The 'userId' parameter corresponds to the Firebase Auth UID. This structure enables path-based ownership and avoids 'get()' calls for authorization."
+    },
+    "/users/{userId}/cart/{cartItemId}": {
+      "schema": {
+        "$ref": "#/backend/entities/CartItem"
+      },
+      "description": "Stores items in a user's shopping cart. The 'userId' ensures that users can only access their own cart items."
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Order"
+      },
+      "description": "Stores user order information."
+    },
+    "/users/{userId}/orders/{orderId}/items/{orderItemId}": {
+      "schema": {
+        "$ref": "#/backend/entities/OrderItem"
+      },
+      "description": "Stores the individual items that are part of an order."
+    },
+    "/products/{productId}/reviews/{reviewId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Review"
+      },
+      "description": "Stores user reviews for a specific product."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/backend/entities/Product" },
+      "description": "Stores all product information, including inventory."
+    },
+    "/contactMessages/{contactMessageId}": {
+      "schema": { "$ref": "#/backend/entities/ContactMessage"},
+      "description": "Stores messages submitted through the contact form."
+    }
+  }
+}
