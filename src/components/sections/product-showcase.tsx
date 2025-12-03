@@ -52,7 +52,13 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
     [firestore]
   );
   const { data: products, isLoading: isLoadingProduct } = useCollection<Product>(productsQuery);
-  const product = products?.[0];
+  let product = products?.[0];
+
+  // Temporary override for testing
+  if (product) {
+    product.price = 1;
+    product.originalPrice = 10;
+  }
   
   const logicalProductId = product?.id;
   
@@ -143,7 +149,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselNext className="right-4" />
             </Carousel>
             <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-[hsl(var(--color-green))] text-white border-none">
-              Save 25%
+              Save 50%
             </Badge>
              {isOutOfStock && (
               <Badge variant="destructive" className="absolute top-4 right-4 py-1.5 px-3 text-base font-bold border-none">
