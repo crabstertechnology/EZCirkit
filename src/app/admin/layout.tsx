@@ -7,7 +7,6 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import AdminSidebar from '@/components/admin/admin-sidebar';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 interface AdminLayoutProps {
@@ -54,15 +53,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
       />
-      <ScrollArea className="flex-1">
+       <div className="flex-1 overflow-y-auto">
         <main
           className={cn(
-            "p-8 transition-all duration-300 ease-in-out",
+            "p-4 sm:p-6 lg:p-8",
           )}
         >
           {children}
         </main>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

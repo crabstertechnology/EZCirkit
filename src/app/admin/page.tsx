@@ -172,19 +172,19 @@ const AdminDashboardPage = () => {
             {!isLoading && recentOrders.map((order) => (
               <Card key={order.id}>
                 <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle className="text-base">{order.userName}</CardTitle>
-                            <CardDescription>{order.userEmail}</CardDescription>
-                        </div>
-                        <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
+                    <div>
+                        <CardTitle className="text-base">{order.userName}</CardTitle>
+                        <CardDescription>{order.userEmail}</CardDescription>
                     </div>
                 </CardHeader>
-                <CardContent className="flex justify-between items-center text-sm">
+                <CardContent className="flex flex-wrap justify-between items-center gap-y-2 text-sm">
                     <div className="text-muted-foreground">
                         {order.createdAt ? format(order.createdAt.toDate(), 'PPP') : 'N/A'}
                     </div>
-                    <div className="font-bold">₹{order.total.toLocaleString()}</div>
+                    <div className="flex items-center gap-x-4 gap-y-2">
+                        <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
+                        <div className="font-bold">₹{order.total.toLocaleString()}</div>
+                    </div>
                 </CardContent>
               </Card>
             ))}

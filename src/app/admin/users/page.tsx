@@ -185,22 +185,22 @@ const UsersPage = () => {
             {!isLoading && filteredAndSortedUsers.map((user) => (
               <Card key={user.id} onClick={() => handleRowClick(user.id)}>
                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={user.photoURL} />
-                          <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                           <CardTitle className="text-base">{user.displayName}</CardTitle>
-                           <CardDescription>{user.email}</CardDescription>
+                    <div className="flex items-start gap-4">
+                       <Avatar>
+                        <AvatarImage src={user.photoURL} />
+                        <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-2">
+                         <div className="min-w-0">
+                           <CardTitle className="text-base truncate">{user.displayName}</CardTitle>
+                           <CardDescription className="truncate">{user.email}</CardDescription>
                         </div>
-                      </div>
-                       {user.isAdmin ? (
+                         {user.isAdmin ? (
                           <Badge>Admin</Badge>
                         ) : (
                           <Badge variant="secondary">Customer</Badge>
                         )}
+                      </div>
                     </div>
                  </CardHeader>
                  <CardContent className="text-xs text-muted-foreground">
@@ -216,5 +216,3 @@ const UsersPage = () => {
 };
 
 export default UsersPage;
-
-    
