@@ -178,12 +178,7 @@ const CheckoutPage = () => {
     // 4. Clear the cart (this is a client-side operation)
     clearCart();
   
-    // 5. Show toast and redirect
-    toast({
-      title: 'Order Placed!',
-      description: 'Your order has been placed successfully. Redirecting...',
-    });
-  
+    // 5. Redirect to confirmation page
     router.push(`/order-confirmation/${orderRef.id}`);
   
     setIsProcessingPayment(false);

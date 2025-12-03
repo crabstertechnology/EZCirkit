@@ -18,7 +18,8 @@ service cloud.firestore {
     // Function to check if the signed-in user has an 'isAdmin' flag set to true
     // in their user document.
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      // Use exists() to prevent errors if the user doc or field is missing.
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
     function isChangingOrderStatus() {
@@ -26,71 +27,94 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
 
+    function isUpdatingStock() {
+      // Allow signed-in users to only update the 'stock' field of a product.
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']);
+    }
+
     //-------------------------------------------------------------------------
     // Collection Rules
     //-------------------------------------------------------------------------
 
     match /users/{userId} {
-      // Admins can read any user document. Regular users can only read their own.
-      allow read: if isAdmin() || isOwner(userId);
-      // Admins can write to any user document. Users can only update their own.
-      // Create and delete are implicitly denied for the base user doc unless specified.
-      allow update: if isAdmin() || isOwner(userId);
-      allow create: if isOwner(userId); // A user can be created
-      allow delete: if false; // Users should not be deletable this way
+      // A user can read, update, and create their own document. Admins can read/update any.
+      allow read, update: if isAdmin() || isOwner(userId);
+      allow create: if isOwner(userId);
+      allow delete: if false; // Users should not be deletable this way.
 
       match /addresses/{addressId} {
-        // Admins can manage all addresses, users can manage their own.
+        // Users can manage their own addresses. Admins can manage any.
         allow read, write: if isAdmin() || isOwner(userId);
       }
       
       match /cart/{cartItemId} {
+        // Users can fully control their own cart.
         allow read, list, create, update, delete: if isOwner(userId);
       }
 
       match /orders/{orderId} {
-        // Admins can read all orders. Users can create and read their own.
-        allow get, list, create: if isAdmin() || isOwner(userId);
-        // Admins can update the status, but other fields are immutable.
+        // Admins can read all orders. Users can only read their own.
+        allow get, list: if isAdmin() || isOwner(userId);
+        
+        // A user can create their own order, ensuring the userId in the document matches THEIR OWN auth uid.
+        // This is the primary rule for the order document part of the batch write.
+        allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+        
+        // Admins can update the status, but other fields are immutable for others.
         allow update: if isAdmin() && isChangingOrderStatus();
-        allow delete: if false; // Orders are immutable
+        
+        allow delete: if false; // Orders are immutable and should not be deleted by users.
 
         match /items/{orderItemId} {
-          // Admins can read all order items. Users can create and read their own.
-          allow get, list, create: if isAdmin() || isOwner(userId);
-          allow update, delete: if false; // Order items are immutable
+          // Admins can read all order items. Users can only read items in their own orders.
+          allow get, list: if isAdmin() || isOwner(userId);
+          
+          // Users can create items as part of the initial order transaction.
+          // This rule is critical for the batch write to succeed.
+          allow create: if isOwner(userId);
+          
+          // Order items are immutable once created.
+          allow update, delete: if false;
         }
       }
     }
     
     match /products/{productId} {
-      // Anyone can read products
+      // Anyone can read products.
       allow read: if true;
-      // Only admins can create, update, or delete products
-      allow write: if isAdmin();
+      
+      // Admins can create and delete products.
+      allow create, delete: if isAdmin();
+      
+      // Admins can update any field. Signed-in users can ONLY update the stock (as part of an order).
+      allow update: if isAdmin() || (isSignedIn() && isUpdatingStock());
     }
 
     match /products/{productId}/reviews/{reviewId} {
+      // Anyone can read reviews.
       allow read: if true;
+      
       // Any signed-in user can create a review, as long as they own it.
-      allow create: if isSignedIn() 
-                      && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
       // Admins or the review owner can delete a review.
-      allow delete: if isAdmin() || request.auth.uid == get(/databases/$(database)/documents/products/$(productId)/reviews/$(reviewId)).data.userId;
-      allow update: if false; // Reviews are immutable
+      allow delete: if isAdmin() || (exists(/databases/$(database)/documents/products/$(productId)/reviews/$(reviewId)) && request.auth.uid == resource.data.userId);
+      
+      // Reviews cannot be updated.
+      allow update: if false;
     }
 
     match /contactMessages/{contactMessageId} {
-      // Anyone can submit a message
+      // Anyone can submit a message.
       allow create: if true;
-      // Only admins can read, update (e.g. to mark as read), or delete messages
+      // Only admins can read, update, or delete messages.
       allow read, update, delete: if isAdmin();
     }
 
     match /tutorialChapters/{chapterId} {
-      // Anyone can read chapters and tutorials
+      // Anyone can read chapters and tutorials.
       allow read: if true;
-      // Only admins can create, update, or delete chapters and tutorials
+      // Only admins can create, update, or delete chapters and their tutorials.
       allow write: if isAdmin();
 
       match /tutorials/{tutorialId} {

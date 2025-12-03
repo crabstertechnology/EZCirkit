@@ -72,6 +72,10 @@
           "type": "string",
           "description": "Name of the address."
         },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number for this address."
+        },
         "addressLine1": {
           "type": "string",
           "description": "First line of the address."
@@ -100,6 +104,8 @@
       "required": [
         "id",
         "userId",
+        "name",
+        "phone",
         "addressLine1",
         "city",
         "state",
@@ -189,6 +195,7 @@
           "description": "A snapshot of the shipping address used for this order.",
           "properties": {
             "name": { "type": "string" },
+            "phone": { "type": "string" },
             "addressLine1": { "type": "string" },
             "addressLine2": { "type": "string" },
             "city": { "type": "string" },
@@ -196,7 +203,7 @@
             "postalCode": { "type": "string" },
             "country": { "type": "string" }
           },
-          "required": ["name", "addressLine1", "city", "state", "postalCode", "country"]
+          "required": ["name", "phone", "addressLine1", "city", "state", "postalCode", "country"]
         }
       },
       "required": [
@@ -291,6 +298,36 @@
         "read": { "type": "boolean", "description": "Whether the message has been read by an admin." }
       },
       "required": ["name", "email", "message", "createdAt"]
+    },
+    "TutorialChapter": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Tutorial Chapter",
+      "type": "object",
+      "description": "Represents a chapter in the tutorial section.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the chapter." },
+        "title": { "type": "string", "description": "The title of the chapter." },
+        "order": { "type": "number", "description": "The display order of the chapter." }
+      },
+      "required": ["id", "title", "order"]
+    },
+    "Tutorial": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Tutorial",
+      "type": "object",
+      "description": "Represents a single tutorial video or lesson within a chapter.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the tutorial." },
+        "chapterId": { "type": "string", "description": "The ID of the parent chapter." },
+        "title": { "type": "string", "description": "The title of the tutorial." },
+        "description": { "type": "string", "description": "A brief description of the tutorial." },
+        "level": { "type": "string", "enum": ["Beginner", "Intermediate", "Advanced"], "description": "The difficulty level of the tutorial." },
+        "duration": { "type": "string", "description": "The estimated time to complete the tutorial." },
+        "imageId": { "type": "string", "description": "The ID of the placeholder image for this tutorial." },
+        "videoId": { "type": "string", "description": "The ID of the video for this tutorial (e.g., a YouTube video ID)." },
+        "order": { "type": "number", "description": "The display order of the tutorial within the chapter." }
+      },
+      "required": ["id", "chapterId", "title", "description", "level", "duration", "imageId", "order"]
     }
   },
   "auth": {
@@ -342,6 +379,14 @@
     "/contactMessages/{contactMessageId}": {
       "schema": { "$ref": "#/backend/entities/ContactMessage"},
       "description": "Stores messages submitted through the contact form."
+    },
+    "/tutorialChapters/{chapterId}": {
+      "schema": { "$ref": "#/backend/entities/TutorialChapter" },
+      "description": "Stores the tutorial chapters. Anyone can read, only admins can write."
+    },
+    "/tutorialChapters/{chapterId}/tutorials/{tutorialId}": {
+      "schema": { "$ref": "#/backend/entities/Tutorial" },
+      "description": "Stores the individual tutorials within a chapter. Anyone can read, only admins can write."
     }
   }
 }

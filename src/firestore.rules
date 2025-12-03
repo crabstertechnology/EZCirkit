@@ -31,9 +31,13 @@ service cloud.firestore {
     //-------------------------------------------------------------------------
 
     match /users/{userId} {
-      // Admins can read/write any user document.
-      // Regular users can only read/write their own document.
-      allow read, write: if isAdmin() || isOwner(userId);
+      // Admins can read any user document. Regular users can only read their own.
+      allow read: if isAdmin() || isOwner(userId);
+      // Admins can write to any user document. Users can only update their own.
+      // Create and delete are implicitly denied for the base user doc unless specified.
+      allow update: if isAdmin() || isOwner(userId);
+      allow create: if isOwner(userId); // A user can be created
+      allow delete: if false; // Users should not be deletable this way
 
       match /addresses/{addressId} {
         // Admins can manage all addresses, users can manage their own.
@@ -45,15 +49,19 @@ service cloud.firestore {
       }
 
       match /orders/{orderId} {
-        // Admins can read all orders. Users can create and read their own.
-        allow get, list, create: if isAdmin() || isOwner(userId);
+        // Admins can read all orders. Users can read their own.
+        allow get, list: if isAdmin() || isOwner(userId);
+        // A user can create their own order, ensuring the userId in the document matches THEIR OWN auth uid.
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
         // Admins can update the status, but other fields are immutable.
         allow update: if isAdmin() && isChangingOrderStatus();
         allow delete: if false; // Orders are immutable
 
         match /items/{orderItemId} {
-          // Admins can read all order items. Users can create and read their own.
-          allow get, list, create: if isAdmin() || isOwner(userId);
+          // Admins can read all order items. Users can read their own.
+          allow get, list: if isAdmin() || isOwner(userId);
+          // Users can create items as part of the initial order transaction (batch write).
+          allow create: if isSignedIn() && request.auth.uid == userId;
           allow update, delete: if false; // Order items are immutable
         }
       }
