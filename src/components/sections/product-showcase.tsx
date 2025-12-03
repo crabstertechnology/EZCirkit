@@ -16,7 +16,7 @@ import { Check, Minus, Plus, Truck, PackageX } from 'lucide-react';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { PRODUCT_FEATURES } from '@/lib/constants';
 import { useCart } from '@/context/cart-context';
-import type { CartItem as CartProduct } from '@/context/cart-context';
+import type { CartItem, Product as CartProduct } from '@/context/cart-context';
 import ClientOnly from '../shared/client-only';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, limit, where } from 'firebase/firestore';
@@ -41,7 +41,7 @@ interface ProductShowcaseProps {
   isLoadingReviews: boolean;
 }
 
-const PRODUCT_ID = 'pro1';
+const PRODUCT_ID = 'pP2ohIXBTTLUCUPRk0Z8';
 
 const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRating, reviewCount, isLoadingReviews }) => {
   const { addToCart, decrementItem, cartItems } = useCart();
@@ -74,7 +74,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
   
   const handleAddToCart = () => {
     if (!product || product.stock <= 0) return;
-    addToCart(product as CartProduct);
+    addToCart(product);
   };
   
   const handleDecrement = () => {
@@ -103,7 +103,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
     return (
       <section id="products" className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center text-red-500">Product not found. Please add it in the admin panel with id 'pro1'.</div>
+          <div className="text-center text-red-500">Product not found. Please add it in the admin panel with id 'pP2ohIXBTTLUCUPRk0Z8'.</div>
         </div>
       </section>
     );
