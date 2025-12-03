@@ -54,6 +54,14 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
   const { data: products, isLoading: isLoadingProduct } = useCollection<Product>(productsQuery);
   let product = products?.[0];
 
+  // Temporary override for testing
+  if (product) {
+    product = {
+      ...product,
+      price: 1,
+      originalPrice: 2499, // Keep original price for display
+    };
+  }
   
   const logicalProductId = product?.id;
   
