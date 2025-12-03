@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -20,20 +21,22 @@ export default function ForgotPasswordPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !email) return;
+
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
+      setIsSent(true);
       toast({
         title: 'Password Reset Email Sent',
-        description: 'Check your inbox for instructions to reset your password.',
+        description: `Check your inbox at ${email} for instructions.`,
       });
-      setIsSent(true);
     } catch (error: any) {
+      console.error("Password Reset Error:", error);
       toast({
         variant: 'destructive',
         title: 'Error Sending Email',
-        description: error.message || 'Could not send reset email. Please try again.',
+        description: 'Could not send reset email. Please ensure the email address is correct and try again.',
       });
     } finally {
       setIsLoading(false);
@@ -60,14 +63,14 @@ export default function ForgotPasswordPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="you@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !email}>
                 {isLoading ? 'Sending...' : 'Send Reset Link'}
               </Button>
             </form>
@@ -82,7 +85,7 @@ export default function ForgotPasswordPage() {
            <div className="mt-4 text-center text-sm">
              {!isSent && (
                 <Link href="/login" className="underline">
-                  Back to Login
+                  Nevermind, I remember!
                 </Link>
              )}
           </div>

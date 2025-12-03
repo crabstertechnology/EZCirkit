@@ -42,7 +42,6 @@ const CheckoutPage = () => {
   const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-
   const addressesQuery = useMemoFirebase(
     () => (!isUserLoading && user ? collection(firestore, 'users', user.uid, 'addresses') : null),
     [firestore, user, isUserLoading]
@@ -61,74 +60,74 @@ const CheckoutPage = () => {
       toast({ variant: 'destructive', title: 'You must be logged in to place an order.' });
       return;
     }
-    
+
     if (cartTotal <= 0) return;
 
     if (!selectedAddress) {
-       toast({
+      toast({
         variant: 'destructive',
         title: 'No Address Selected',
         description: 'Please select or add a shipping address.',
       });
       return;
     }
-    
+
     setIsProcessingPayment(true);
 
     // TODO: Replace this with the public URL of your logo from the Razorpay dashboard.
     const logoUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-2519724075-3b571.appspot.com/o/logo.png?alt=media&token=467c6999-031c-4824-b5a1-d7f879685a97';
 
     const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_your_key_here', // Use environment variable
-        amount: cartTotal * 100, // Amount in paise
-        currency: 'INR',
-        name: 'crabster',
-        description: 'E-Commerce Transaction',
-        image: logoUrl,
-        handler: function (response: any) {
-            // This function is called on successful payment
-            saveOrderToFirestore(response.razorpay_payment_id);
-        },
-        prefill: {
-            name: user.displayName || selectedAddress.name,
-            email: user.email,
-            contact: selectedAddress.phone,
-        },
-        notes: {
-            address: `${selectedAddress.addressLine1}, ${selectedAddress.city}`,
-        },
-        theme: {
-            color: '#FF6600',
-        },
-        modal: {
-            ondismiss: function() {
-                setIsProcessingPayment(false);
-                toast({
-                    variant: 'destructive',
-                    title: 'Payment Cancelled',
-                    description: 'Your payment was not completed.',
-                });
-            }
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_your_key_here', // Use environment variable
+      amount: cartTotal * 100, // Amount in paise
+      currency: 'INR',
+      name: 'crabster',
+      description: 'E-Commerce Transaction',
+      image: logoUrl,
+      handler: function (response: any) {
+        // This function is called on successful payment
+        saveOrderToFirestore(response.razorpay_payment_id);
+      },
+      prefill: {
+        name: user.displayName || selectedAddress.name,
+        email: user.email,
+        contact: selectedAddress.phone,
+      },
+      notes: {
+        address: `${selectedAddress.addressLine1}, ${selectedAddress.city}`,
+      },
+      theme: {
+        color: '#FF6600',
+      },
+      modal: {
+        ondismiss: function() {
+          setIsProcessingPayment(false);
+          toast({
+            variant: 'destructive',
+            title: 'Payment Cancelled',
+            description: 'Your payment was not completed.',
+          });
         }
+      }
     };
 
     if (typeof window.Razorpay === 'undefined') {
-        toast({ variant: 'destructive', title: 'Payment Gateway Error', description: 'Razorpay script not loaded.'});
-        setIsProcessingPayment(false);
-        return;
+      toast({ variant: 'destructive', title: 'Payment Gateway Error', description: 'Razorpay script not loaded.'});
+      setIsProcessingPayment(false);
+      return;
     }
 
     const rzp = new window.Razorpay(options);
     rzp.open();
   };
-  
+
   const saveOrderToFirestore = (paymentId: string) => {
     if (!user || !firestore || !selectedAddress) return;
-  
+
     const orderRef = doc(collection(firestore, 'users', user.uid, 'orders'));
-  
+
     const batch: WriteBatch = writeBatch(firestore);
-  
+
     // 1. Set the main order document
     batch.set(orderRef, {
       id: orderRef.id,
@@ -148,7 +147,7 @@ const CheckoutPage = () => {
         country: selectedAddress.country,
       },
     });
-  
+
     // 2. Add each cart item to the 'items' subcollection of the order AND update product stock
     const itemsRef = collection(orderRef, 'items');
     cartItems.forEach((item) => {
@@ -168,22 +167,22 @@ const CheckoutPage = () => {
       // Decrement the stock of that product
       batch.update(productRef, { stock: increment(-item.quantity) });
     });
-  
+
     // 3. Commit the batch
     commitBatchNonBlocking(batch, {
       path: `users/${user.uid}/orders/${orderRef.id}`,
       operation: 'create',
     });
-  
+
     // 4. Clear the cart (this is a client-side operation)
     clearCart();
-  
+
     // 5. Redirect to confirmation page
     router.push(`/order-confirmation/${orderRef.id}`);
-  
+
     setIsProcessingPayment(false);
   };
-  
+
   if (cartCount === 0 && !isLoadingAddresses && !isUserLoading) {
     return (
       <div className="container mx-auto px-4 md:px-6 py-24 md:py-32 text-center">
@@ -223,8 +222,8 @@ const CheckoutPage = () => {
                   <>
                     {addresses?.map(address => (
                       <div key={address.id} onClick={() => setSelectedAddress(address)} className="cursor-pointer">
-                        <AddressCard 
-                          address={address} 
+                        <AddressCard
+                          address={address}
                           isSelected={selectedAddress?.id === address.id}
                         />
                       </div>
@@ -234,19 +233,19 @@ const CheckoutPage = () => {
                     )}
                   </>
                 )}
-                 <Dialog open={isAddressFormOpen} onOpenChange={setIsAddressFormOpen}>
-                    <DialogTrigger asChild>
-                       <Button variant="outline" className="w-full mt-4">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add New Address
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add a new address</DialogTitle>
-                      </DialogHeader>
-                      <AddressForm onSave={() => setIsAddressFormOpen(false)} />
-                    </DialogContent>
-                  </Dialog>
+                <Dialog open={isAddressFormOpen} onOpenChange={setIsAddressFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full mt-4">
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add New Address
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add a new address</DialogTitle>
+                    </DialogHeader>
+                    <AddressForm onSave={() => setIsAddressFormOpen(false)} />
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>
