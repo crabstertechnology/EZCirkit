@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -55,7 +54,7 @@ const CheckoutPage = () => {
     }
   }, [addresses, selectedAddress]);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!user || !firestore) {
       toast({ variant: 'destructive', title: 'You must be logged in to place an order.' });
       return;
@@ -74,61 +73,83 @@ const CheckoutPage = () => {
 
     setIsProcessingPayment(true);
 
-    // TODO: Replace this with the public URL of your logo from the Razorpay dashboard.
-    const logoUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-2519724075-3b571.appspot.com/o/logo.png?alt=media&token=467c6999-031c-4824-b5a1-d7f879685a97';
+    try {
+      // Step 1: Create an order on the server
+      const orderResponse = await fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: cartTotal * 100, // Amount in paise
+          currency: 'INR',
+        }),
+      });
 
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_your_key_here', // Use environment variable
-      amount: cartTotal * 100, // Amount in paise
-      currency: 'INR',
-      name: 'crabster',
-      description: 'E-Commerce Transaction',
-      image: logoUrl,
-      handler: function (response: any) {
-        // This function is called on successful payment
-        saveOrderToFirestore(response.razorpay_payment_id);
-      },
-      prefill: {
-        name: user.displayName || selectedAddress.name,
-        email: user.email,
-        contact: selectedAddress.phone,
-      },
-      notes: {
-        address: `${selectedAddress.addressLine1}, ${selectedAddress.city}`,
-      },
-      theme: {
-        color: '#FF6600',
-      },
-      modal: {
-        ondismiss: function() {
-          setIsProcessingPayment(false);
-          toast({
-            variant: 'destructive',
-            title: 'Payment Cancelled',
-            description: 'Your payment was not completed.',
-          });
-        }
+      if (!orderResponse.ok) {
+        throw new Error('Failed to create Razorpay order.');
       }
-    };
 
-    if (typeof window.Razorpay === 'undefined') {
-      toast({ variant: 'destructive', title: 'Payment Gateway Error', description: 'Razorpay script not loaded.'});
+      const orderData = await orderResponse.json();
+      const { id: order_id } = orderData;
+      
+      const logoUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-2519724075-3b571.appspot.com/o/logo.png?alt=media&token=467c6999-031c-4824-b5a1-d7f879685a97';
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_your_key_here',
+        amount: cartTotal * 100,
+        currency: 'INR',
+        name: 'crabster',
+        description: 'E-Commerce Transaction',
+        image: logoUrl,
+        order_id: order_id, // Pass the order_id here
+        handler: function (response: any) {
+          saveOrderToFirestore(response.razorpay_payment_id, response.razorpay_order_id);
+        },
+        prefill: {
+          name: user.displayName || selectedAddress.name,
+          email: user.email,
+          contact: selectedAddress.phone,
+        },
+        notes: {
+          address: `${selectedAddress.addressLine1}, ${selectedAddress.city}`,
+        },
+        theme: {
+          color: '#FF6600',
+        },
+        modal: {
+          ondismiss: function() {
+            setIsProcessingPayment(false);
+            toast({
+              variant: 'destructive',
+              title: 'Payment Cancelled',
+              description: 'Your payment was not completed.',
+            });
+          }
+        }
+      };
+
+      if (typeof window.Razorpay === 'undefined') {
+        throw new Error('Razorpay script not loaded.');
+      }
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (error) {
+      console.error('Payment Error:', error);
+      toast({ variant: 'destructive', title: 'Payment Error', description: 'Could not initiate payment. Please try again.' });
       setIsProcessingPayment(false);
-      return;
     }
-
-    const rzp = new window.Razorpay(options);
-    rzp.open();
   };
 
-  const saveOrderToFirestore = (paymentId: string) => {
+  const saveOrderToFirestore = (paymentId: string, orderId: string) => {
     if (!user || !firestore || !selectedAddress) return;
 
     const orderRef = doc(collection(firestore, 'users', user.uid, 'orders'));
 
     const batch: WriteBatch = writeBatch(firestore);
 
-    // 1. Set the main order document
     batch.set(orderRef, {
       id: orderRef.id,
       userId: user.uid,
@@ -136,6 +157,7 @@ const CheckoutPage = () => {
       total: cartTotal,
       status: 'paid',
       paymentId: paymentId,
+      razorpayOrderId: orderId, // Store Razorpay order ID for reference
       shippingAddress: {
         name: selectedAddress.name,
         phone: selectedAddress.phone,
@@ -148,36 +170,29 @@ const CheckoutPage = () => {
       },
     });
 
-    // 2. Add each cart item to the 'items' subcollection of the order AND update product stock
     const itemsRef = collection(orderRef, 'items');
     cartItems.forEach((item) => {
-      // Create a reference for the new order item
       const orderItemRef = doc(itemsRef);
-      const { id, ...rest } = item; // `id` here is the productId
+      const { id, ...rest } = item;
       const orderItemData = {
         ...rest,
-        id: orderItemRef.id, // Store the unique ID in the document
+        id: orderItemRef.id,
         orderId: orderRef.id,
-        productId: id, // The original product ID
+        productId: id,
       };
       batch.set(orderItemRef, orderItemData);
 
-      // Create a reference to the product in the main `products` collection
-      const productRef = doc(firestore, 'products', id); // `id` from cartItem is the productId
-      // Decrement the stock of that product
+      const productRef = doc(firestore, 'products', id);
       batch.update(productRef, { stock: increment(-item.quantity) });
     });
 
-    // 3. Commit the batch
     commitBatchNonBlocking(batch, {
       path: `users/${user.uid}/orders/${orderRef.id}`,
       operation: 'create',
     });
 
-    // 4. Clear the cart (this is a client-side operation)
     clearCart();
 
-    // 5. Redirect to confirmation page
     router.push(`/order-confirmation/${orderRef.id}`);
 
     setIsProcessingPayment(false);
