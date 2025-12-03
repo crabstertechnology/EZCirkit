@@ -54,11 +54,6 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
   const { data: products, isLoading: isLoadingProduct } = useCollection<Product>(productsQuery);
   let product = products?.[0];
 
-  // Temporary override for testing
-  if (product) {
-    product.price = 1;
-    product.originalPrice = 10;
-  }
   
   const logicalProductId = product?.id;
   
@@ -219,7 +214,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
                       {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                     </Button>
                 </div>
-                 {!isOutOfStock && product.stock <= 10 && (
+                 {!isOutOfStock && product.stock > 0 && product.stock <= 10 && (
                   <p className="text-sm text-destructive font-medium">
                     Only {product.stock - quantity} left in stock! Order soon.
                   </p>
