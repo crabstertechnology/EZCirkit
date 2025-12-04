@@ -325,7 +325,10 @@
         "duration": { "type": "string", "description": "The estimated time to complete the tutorial." },
         "imageId": { "type": "string", "description": "The ID of the placeholder image for this tutorial." },
         "videoId": { "type": "string", "description": "The ID of the video for this tutorial (e.g., a YouTube video ID)." },
-        "order": { "type": "number", "description": "The display order of the tutorial within the chapter." }
+        "order": { "type": "number", "description": "The display order of the tutorial within the chapter." },
+        "code": { "type": "string", "description": "An optional code snippet for the tutorial." },
+        "transcript": { "type": "string", "description": "An optional transcript for the tutorial video." },
+        "notes": { "type": "string", "description": "Optional supplementary notes for the tutorial." }
       },
       "required": ["id", "chapterId", "title", "description", "level", "duration", "imageId", "order"]
     }

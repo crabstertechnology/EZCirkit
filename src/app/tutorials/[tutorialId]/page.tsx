@@ -7,13 +7,15 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs, doc, collectionGroup, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
-import { Lock, FileText, Download, NotebookText } from 'lucide-react';
+import { Lock, FileText, Download, NotebookText, Code, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import TutorialSidebar from '@/components/tutorials/tutorial-sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const LockedOverlay = () => (
@@ -35,6 +37,7 @@ const LockedOverlay = () => (
 const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [chaptersWithTutorials, setChaptersWithTutorials] = useState<TutorialChapter[]>([]);
@@ -134,10 +137,17 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
 
   const isLoading = isUserLoading || isVerifying || isLoadingTutorial || isLoadingCourseData;
 
+    const handleCopyCode = () => {
+        if (tutorial?.code) {
+            navigator.clipboard.writeText(tutorial.code);
+            toast({ title: 'Code copied to clipboard!' });
+        }
+    }
+
     const VideoPlayer = React.memo(({ videoId }: { videoId: string }) => {
         if (!videoId) {
             return (
-              <div className="relative aspect-video w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
+              <div className="aspect-square w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
                 <p>Video coming soon!</p>
               </div>
             );
@@ -154,7 +164,7 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
-                    className="absolute top-0 left-0 w-full h-full"
+                    className="aspect-square w-full rounded-lg bg-black shadow-lg"
                 ></iframe>
             );
         }
@@ -171,12 +181,12 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     sandbox="allow-scripts allow-same-origin"
-                    className="absolute top-0 left-0 w-full h-full"
+                    className="aspect-square w-full rounded-lg bg-black shadow-lg"
                 ></iframe>
             );
         }
         
-        return <video src={videoId} controls className="absolute top-0 left-0 w-full h-full rounded-lg bg-black shadow-lg" />;
+        return <video src={videoId} controls className="aspect-square w-full rounded-lg bg-black shadow-lg" />;
     });
     VideoPlayer.displayName = 'VideoPlayer';
 
@@ -186,7 +196,7 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                <div className="lg:col-span-2">
                  <Skeleton className="h-12 w-full mb-4" />
-                 <Skeleton className="aspect-video w-full" />
+                 <Skeleton className="aspect-square w-full" />
                </div>
                <div className="lg:col-span-1">
                  <Skeleton className="h-96 w-full" />
@@ -226,25 +236,54 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                     </Card>
 
                     {/* Video Player */}
-                    <div className="relative aspect-video w-full bg-black rounded-lg shadow-lg">
-                        <VideoPlayer videoId={tutorial.videoId || ''} />
-                    </div>
+                    <VideoPlayer videoId={tutorial.videoId || ''} />
 
                      {/* Tabs Section */}
-                    <Tabs defaultValue="transcript" className="w-full">
+                    <Tabs defaultValue="code" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="code"><Code className="mr-2" /> Code</TabsTrigger>
                             <TabsTrigger value="transcript"><FileText className="mr-2" /> Transcript</TabsTrigger>
                             <TabsTrigger value="notes"><NotebookText className="mr-2" /> Notes</TabsTrigger>
-                            <TabsTrigger value="downloads"><Download className="mr-2" /> Downloads</TabsTrigger>
                         </TabsList>
+                         <TabsContent value="code" asChild>
+                            <Card>
+                                <CardContent className="p-6 relative">
+                                     {tutorial.code ? (
+                                        <div className="relative">
+                                            <ScrollArea className="h-64">
+                                                <pre className="bg-muted p-4 rounded-md text-sm"><code className="font-mono">{tutorial.code}</code></pre>
+                                            </ScrollArea>
+                                            <Button size="icon" variant="ghost" className="absolute top-2 right-2 h-8 w-8" onClick={handleCopyCode}>
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">No code snippet available for this tutorial.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                         <TabsContent value="transcript" asChild>
-                            <Card><CardContent className="p-6 text-sm text-muted-foreground">Transcript functionality is coming soon.</CardContent></Card>
+                           <Card>
+                                <CardContent className="p-6">
+                                    {tutorial.transcript ? (
+                                        <p className="text-sm whitespace-pre-wrap">{tutorial.transcript}</p>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">No transcript available for this tutorial.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
                         </TabsContent>
                         <TabsContent value="notes" asChild>
-                             <Card><CardContent className="p-6 text-sm text-muted-foreground">Notes functionality is coming soon.</CardContent></Card>
-                        </TabsContent>
-                        <TabsContent value="downloads" asChild>
-                            <Card><CardContent className="p-6 text-sm text-muted-foreground">Downloads functionality is coming soon.</CardContent></Card>
+                            <Card>
+                                <CardContent className="p-6">
+                                    {tutorial.notes ? (
+                                        <p className="text-sm whitespace-pre-wrap">{tutorial.notes}</p>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">No notes available for this tutorial.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
                         </TabsContent>
                     </Tabs>
                 </div>
@@ -259,7 +298,6 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                  isLoading={isLoading}
                  isAdmin={isAdmin}
                  activeTutorialId={tutorial.id}
-                 // Admin functions are not needed here, can be disabled or hidden
                  onAddChapter={() => {}}
                  onAddTutorial={() => {}}
                  onEditChapter={() => {}}

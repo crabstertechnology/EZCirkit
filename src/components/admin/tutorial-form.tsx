@@ -26,6 +26,9 @@ const tutorialSchema = z.object({
   imageId: z.string().min(1, 'Image ID is required.'),
   videoId: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
   order: z.coerce.number().int().min(0, 'Order must be positive.'),
+  code: z.string().optional(),
+  transcript: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 type TutorialFormValues = z.infer<typeof tutorialSchema>;
@@ -53,6 +56,9 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       imageId: '',
       videoId: '',
       order: 0,
+      code: '',
+      transcript: '',
+      notes: '',
     },
   });
 
@@ -61,6 +67,9 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       form.reset({
         ...tutorial,
         level: tutorial.level || 'Beginner',
+        code: tutorial.code || '',
+        transcript: tutorial.transcript || '',
+        notes: tutorial.notes || '',
       });
     } else {
       form.reset({
@@ -71,6 +80,9 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         imageId: '',
         videoId: '',
         order: 0,
+        code: '',
+        transcript: '',
+        notes: '',
       });
     }
   }, [tutorial, form.reset]);
@@ -95,7 +107,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     try {
       await setDoc(docRef, tutorialData, { merge: isEditing });
       toast({ title: tutorial ? 'Tutorial updated!' : 'Tutorial created!' });
-      onSave(); // This now correctly waits for setDoc to finish
+      onSave();
     } catch(error: any) {
         toast({
             variant: 'destructive',
@@ -160,6 +172,36 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                 <FormLabel>Video URL (YouTube, Google Drive, etc.)</FormLabel>
                 <FormControl>
                     <Input placeholder="https://www.youtube.com/embed/your_video_id" {...field} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+        )}/>
+
+         <FormField name="code" control={form.control} render={({ field }) => (
+            <FormItem>
+                <FormLabel>Code Snippet (Optional)</FormLabel>
+                <FormControl>
+                    <Textarea placeholder="Paste your code here..." {...field} rows={8} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+        )}/>
+
+        <FormField name="transcript" control={form.control} render={({ field }) => (
+            <FormItem>
+                <FormLabel>Transcript (Optional)</FormLabel>
+                <FormControl>
+                    <Textarea placeholder="Paste the video transcript here..." {...field} rows={8} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+        )}/>
+
+        <FormField name="notes" control={form.control} render={({ field }) => (
+            <FormItem>
+                <FormLabel>Notes (Optional)</FormLabel>
+                <FormControl>
+                    <Textarea placeholder="Add any supplementary notes here..." {...field} rows={8} />
                 </FormControl>
                 <FormMessage />
             </FormItem>

@@ -13,6 +13,9 @@ export interface Tutorial {
     imageId: string;
     videoId?: string;
     order: number;
+    code?: string;
+    transcript?: string;
+    notes?: string;
 }
 
 export interface TutorialChapter {

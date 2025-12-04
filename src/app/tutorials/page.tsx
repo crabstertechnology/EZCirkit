@@ -4,11 +4,11 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, getDocs, orderBy, doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, onSnapshot, Unsubscribe, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Lock, ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen, PlusCircle, Edit, Trash2, Clock, BarChart, Code, FileText, Download, Copy } from 'lucide-react';
+import { Lock, ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen, PlusCircle, Edit, Trash2, Clock, BarChart, Code, FileText, Download, Copy, NotebookText } from 'lucide-react';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import Link from 'next/link';
 import TutorialSidebar from '@/components/tutorials/tutorial-sidebar';
@@ -46,11 +46,18 @@ const LockedOverlay = () => (
 const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNext: () => void, onPrev: () => void }) => {
     
     const { toast } = useToast();
+    
+    const handleCopyCode = () => {
+        if (tutorial.code) {
+            navigator.clipboard.writeText(tutorial.code);
+            toast({ title: 'Code copied to clipboard!' });
+        }
+    }
 
     const VideoPlayer = React.memo(({ videoId }: { videoId: string }) => {
       if (!videoId) {
           return (
-              <div className="aspect-video w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
+              <div className="aspect-square w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
                   <p>Video coming soon!</p>
               </div>
           );
@@ -67,7 +74,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
-                  className="aspect-video absolute top-0 left-0 w-full h-full rounded-lg bg-black shadow-lg"
+                  className="aspect-square w-full rounded-lg bg-black shadow-lg"
               ></iframe>
           );
       }
@@ -84,47 +91,92 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   sandbox="allow-scripts allow-same-origin"
-                  className="aspect-video absolute top-0 left-0 w-full h-full rounded-lg bg-black shadow-lg"
+                  className="aspect-square w-full rounded-lg bg-black shadow-lg"
               ></iframe>
           );
       }
       
-      return <video src={videoId} controls className="aspect-video absolute top-0 left-0 w-full h-full rounded-lg bg-black shadow-lg" />;
+      return <video src={videoId} controls className="aspect-square w-full rounded-lg bg-black shadow-lg" />;
     });
     VideoPlayer.displayName = 'VideoPlayer';
 
 
     return (
      <div className="h-full flex flex-col overflow-hidden">
-        {/* Video Player takes up available space */}
-        <div className="flex-grow relative">
-            <VideoPlayer videoId={tutorial.videoId || ''} />
-        </div>
-        {/* Controls are at the bottom */}
-        <div className="flex-shrink-0 pt-6 flex flex-col h-1/2">
-            <div className="flex-grow overflow-y-auto pr-4">
-                <h2 className="text-3xl font-bold">{tutorial.title}</h2>
-                <div className="flex items-center gap-4 text-muted-foreground mt-2">
+        {/* Video Player */}
+        <VideoPlayer videoId={tutorial.videoId || ''} />
+
+        <ScrollArea className="flex-grow min-h-0 mt-6">
+            <div className="space-y-6">
+                <div className="flex-shrink-0">
+                    <h2 className="text-3xl font-bold">{tutorial.title}</h2>
+                    <div className="flex items-center gap-4 text-muted-foreground mt-2">
                         <Badge variant={
-                           tutorial.level === 'Beginner' ? 'secondary' :
-                           tutorial.level === 'Intermediate' ? 'default' :
-                           'destructive'
+                            tutorial.level === 'Beginner' ? 'secondary' :
+                            tutorial.level === 'Intermediate' ? 'default' :
+                            'destructive'
                         }>{tutorial.level}</Badge>
                         <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4" />
                             <span>{tutorial.duration}</span>
                         </div>
                     </div>
-                 <p className="text-muted-foreground mt-2">{tutorial.description}</p>
+                    <p className="text-muted-foreground mt-2">{tutorial.description}</p>
+                </div>
+
+                <Tabs defaultValue="code" className="w-full mt-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="code"><Code className="mr-2" /> Code</TabsTrigger>
+                        <TabsTrigger value="transcript"><FileText className="mr-2" /> Transcript</TabsTrigger>
+                        <TabsTrigger value="notes"><NotebookText className="mr-2" /> Notes</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="code" asChild>
+                        <Card><CardContent className="p-6 relative">
+                            {tutorial.code ? (
+                                <div className="relative">
+                                    <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto"><code className="font-mono">{tutorial.code}</code></pre>
+                                    <Button size="icon" variant="ghost" className="absolute top-2 right-2 h-8 w-8" onClick={handleCopyCode}>
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No code snippet available for this tutorial.</p>
+                            )}
+                        </CardContent></Card>
+                    </TabsContent>
+                    <TabsContent value="transcript" asChild>
+                        <Card>
+                            <CardContent className="p-6">
+                                {tutorial.transcript ? (
+                                    <p className="text-sm whitespace-pre-wrap">{tutorial.transcript}</p>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No transcript available for this tutorial.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="notes" asChild>
+                         <Card>
+                            <CardContent className="p-6">
+                                {tutorial.notes ? (
+                                    <p className="text-sm whitespace-pre-wrap">{tutorial.notes}</p>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No notes available for this tutorial.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             </div>
-            <div className="flex justify-end items-center gap-2 flex-shrink-0 pt-4">
-                <Button onClick={onPrev} variant="outline">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-                </Button>
-                <Button onClick={onNext} variant="outline">
-                  Next <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </div>
+        </ScrollArea>
+        
+        <div className="flex justify-end items-center gap-2 flex-shrink-0 pt-4">
+            <Button onClick={onPrev} variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+            </Button>
+            <Button onClick={onNext} variant="outline">
+              Next <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
         </div>
       </div>
     )
@@ -148,10 +200,6 @@ export default function TutorialsPage() {
   const [editingChapter, setEditingChapter] = useState<TutorialChapter | null>(null);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [chapterForNewTutorial, setChapterForNewTutorial] = useState<TutorialChapter | null>(null);
-  
-  // State to trigger re-fetch is no longer needed
-  // const [dataVersion, setDataVersion] = useState(0);
-  // const refreshData = useCallback(() => setDataVersion(v => v + 1), []);
 
   const userDocRef = useMemo(
     () => (user && !isUserLoading ? doc(firestore, 'users', user.uid) : null),
@@ -165,65 +213,73 @@ export default function TutorialsPage() {
       setIsLoadingData(false);
       return;
     }
-    
-    setIsLoadingData(true);
-    const chaptersRef = collection(firestore, 'tutorialChapters');
-    const chaptersQuery = query(chaptersRef, orderBy('order'));
-    
-    // Set up a real-time listener for the chapters collection
-    const unsubscribeChapters = onSnapshot(chaptersQuery, async (chaptersSnapshot) => {
-      const fetchedChapters = chaptersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Omit<TutorialChapter, 'tutorials'>));
-      const chapterMap = new Map(fetchedChapters.map(c => [c.id, { ...c, tutorials: [] as Tutorial[] }]));
-      
-      const tutorialListeners: Unsubscribe[] = [];
-      let allFetchedTutorials: Tutorial[] = [];
 
-      const processingPromises = fetchedChapters.map(chapter => {
-        const tutorialsRef = collection(firestore, `tutorialChapters/${chapter.id}/tutorials`);
-        const tutorialsQuery = query(tutorialsRef, orderBy('order'));
-        
-        return new Promise<void>(resolve => {
-          const unsubscribeTutorials = onSnapshot(tutorialsQuery, (tutorialsSnapshot) => {
-            const tutorialsForChapter = tutorialsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tutorial));
-            
-            const currentChapter = chapterMap.get(chapter.id);
-            if(currentChapter) {
-              currentChapter.tutorials = tutorialsForChapter;
-            }
-            
-            // This part is tricky in a real-time scenario. We need to rebuild the `allTutorials` array on each update.
-            // A more advanced state management would be better, but for this, we'll reconstruct.
-            allFetchedTutorials = Array.from(chapterMap.values()).flatMap(c => c.tutorials);
-            setAllTutorials(allFetchedTutorials);
-            setChaptersWithTutorials(Array.from(chapterMap.values()).sort((a,b) => a.order - b.order));
-            
-            // If the currently selected tutorial gets updated, update its state as well
-            if (selectedTutorial) {
-              const updatedSelected = allFetchedTutorials.find(t => t.id === selectedTutorial.id);
-              setSelectedTutorial(updatedSelected || null);
-            }
-            
-            resolve();
+    setIsLoadingData(true);
+    const chaptersQuery = query(collection(firestore, 'tutorialChapters'), orderBy('order'));
+
+    let activeTutorialListeners: { [key: string]: Unsubscribe } = {};
+
+    const chapterUnsub = onSnapshot(chaptersQuery, (chaptersSnapshot) => {
+      const chaptersData = chaptersSnapshot.docs.map(d => ({ ...d.data(), id: d.id, tutorials: [] } as TutorialChapter));
+      
+      const tutorialState: { [key: string]: Tutorial[] } = {};
+
+      const updateFullState = () => {
+          const finalChapters: TutorialChapter[] = [];
+          const allTutorialsList: Tutorial[] = [];
+
+          chaptersData.forEach(chapter => {
+              const tutorials = tutorialState[chapter.id] || [];
+              finalChapters.push({ ...chapter, tutorials });
+              allTutorialsList.push(...tutorials);
           });
-          tutorialListeners.push(unsubscribeTutorials);
+          
+          finalChapters.sort((a,b) => a.order - b.order);
+
+          setChaptersWithTutorials(finalChapters);
+          setAllTutorials(allTutorialsList);
+
+          if (!selectedTutorial && allTutorialsList.length > 0) {
+              setSelectedTutorial(allTutorialsList[0]);
+          } else if (selectedTutorial) {
+              const updated = allTutorialsList.find(t => t.id === selectedTutorial.id);
+              setSelectedTutorial(updated || allTutorialsList[0] || null);
+          } else {
+              setSelectedTutorial(null);
+          }
+
+          setIsLoadingData(false);
+      };
+
+      // Clean up old listeners before creating new ones
+      Object.values(activeTutorialListeners).forEach(unsub => unsub());
+      activeTutorialListeners = {};
+
+      chaptersData.forEach(chapter => {
+        const tutorialsQuery = query(collection(firestore, `tutorialChapters/${chapter.id}/tutorials`), orderBy('order'));
+        
+        activeTutorialListeners[chapter.id] = onSnapshot(tutorialsQuery, (tutorialsSnapshot) => {
+          tutorialState[chapter.id] = tutorialsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Tutorial));
+          updateFullState();
+        }, (error) => {
+          console.error(`Error fetching tutorials for chapter ${chapter.id}:`, error);
+          toast({ variant: 'destructive', title: 'Error loading tutorials.' });
         });
       });
       
-      await Promise.all(processingPromises);
-      setIsLoadingData(false);
+      updateFullState();
 
-      // Cleanup function for chapter listener
-      return () => {
-        tutorialListeners.forEach(unsub => unsub());
-      };
+    }, (error) => {
+        console.error("Error fetching chapters:", error);
+        toast({ variant: 'destructive', title: 'Error loading chapters.' });
+        setIsLoadingData(false);
     });
 
-    // Main cleanup function for useEffect
     return () => {
-        unsubscribeChapters();
+        chapterUnsub();
+        Object.values(activeTutorialListeners).forEach(unsub => unsub());
     };
-
-  }, [firestore, selectedTutorial?.id]);
+  }, [firestore, toast]);
   
 
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -299,11 +355,8 @@ export default function TutorialsPage() {
 
   const handleDeleteChapter = (chapterId: string) => {
     if (!firestore) return;
-    // Note: Deleting a chapter does not automatically delete subcollections in Firestore.
-    // A cloud function would be required for full cleanup. This deletes the chapter doc only.
     deleteDocumentNonBlocking(doc(firestore, 'tutorialChapters', chapterId));
     toast({ title: 'Chapter deleted.' });
-    // Data will refresh automatically due to onSnapshot
   };
   
   const handleAddTutorial = (chapter: TutorialChapter) => {
@@ -324,13 +377,11 @@ export default function TutorialsPage() {
     if(selectedTutorial?.id === tutorial.id) {
         setSelectedTutorial(null);
     }
-     // Data will refresh automatically due to onSnapshot
   };
 
   const handleSave = () => {
     setIsChapterFormOpen(false);
     setIsTutorialFormOpen(false);
-    // No longer need to manually refresh data
   };
 
   const showLoadingState = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc;
@@ -356,7 +407,7 @@ export default function TutorialsPage() {
         />
         <div className="flex-1 h-full px-4 md:px-6">
             {showLoadingState && (
-                 <div className="text-center py-12">
+                 <div className="w-full h-full flex items-center justify-center">
                     <p>Loading tutorials...</p>
                  </div>
             )}
