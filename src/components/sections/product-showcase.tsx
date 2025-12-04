@@ -143,7 +143,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselNext className="right-4" />
             </Carousel>
             <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-[hsl(var(--color-green))] text-white border-none">
-              Save 50%
+              Save 16.7%
             </Badge>
              {isOutOfStock && (
               <Badge variant="destructive" className="absolute top-4 right-4 py-1.5 px-3 text-base font-bold border-none">
