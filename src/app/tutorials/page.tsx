@@ -4,11 +4,11 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, getDocs, orderBy, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Lock, ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen, PlusCircle, Edit, Trash2, Clock, BarChart } from 'lucide-react';
+import { Lock, ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen, PlusCircle, Edit, Trash2, Clock, BarChart, Code, FileText, Download, Copy } from 'lucide-react';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import Link from 'next/link';
 import TutorialSidebar from '@/components/tutorials/tutorial-sidebar';
@@ -25,6 +25,7 @@ import TutorialForm from '@/components/admin/tutorial-form';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const LockedOverlay = () => (
@@ -44,6 +45,8 @@ const LockedOverlay = () => (
 
 const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNext: () => void, onPrev: () => void }) => {
     
+    const { toast } = useToast();
+
     const VideoPlayer = React.memo(({ videoId }: { videoId: string }) => {
       if (!videoId) {
           return (
@@ -87,8 +90,8 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
       }
       
       return <video src={videoId} controls className="aspect-video absolute top-0 left-0 w-full h-full rounded-lg bg-black shadow-lg" />;
-  });
-  VideoPlayer.displayName = 'VideoPlayer';
+    });
+    VideoPlayer.displayName = 'VideoPlayer';
 
 
     return (
@@ -103,16 +106,16 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                 <h2 className="text-3xl font-bold">{tutorial.title}</h2>
                 <div className="flex items-center gap-4 text-muted-foreground mt-2">
                         <Badge variant={
-                            tutorial.level === 'Beginner' ? 'secondary' :
-                            tutorial.level === 'Intermediate' ? 'default' :
-                            'destructive'
+                           tutorial.level === 'Beginner' ? 'secondary' :
+                           tutorial.level === 'Intermediate' ? 'default' :
+                           'destructive'
                         }>{tutorial.level}</Badge>
                         <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4" />
                             <span>{tutorial.duration}</span>
                         </div>
                     </div>
-                <p className="text-muted-foreground mt-2">{tutorial.description}</p>
+                 <p className="text-muted-foreground mt-2">{tutorial.description}</p>
             </div>
             <div className="flex justify-end items-center gap-2 flex-shrink-0 pt-4">
                 <Button onClick={onPrev} variant="outline">
@@ -146,10 +149,9 @@ export default function TutorialsPage() {
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [chapterForNewTutorial, setChapterForNewTutorial] = useState<TutorialChapter | null>(null);
   
-  // State to trigger re-fetch
-  const [dataVersion, setDataVersion] = useState(0);
-  const refreshData = useCallback(() => setDataVersion(v => v + 1), []);
-
+  // State to trigger re-fetch is no longer needed
+  // const [dataVersion, setDataVersion] = useState(0);
+  // const refreshData = useCallback(() => setDataVersion(v => v + 1), []);
 
   const userDocRef = useMemo(
     () => (user && !isUserLoading ? doc(firestore, 'users', user.uid) : null),
@@ -159,50 +161,69 @@ export default function TutorialsPage() {
   const isAdmin = userData?.isAdmin ?? false;
 
   useEffect(() => {
-    async function fetchAllData() {
-      if (!firestore) {
-        setIsLoadingData(false);
-        return;
-      }
-      setIsLoadingData(true);
+    if (!firestore) {
+      setIsLoadingData(false);
+      return;
+    }
+    
+    setIsLoadingData(true);
+    const chaptersRef = collection(firestore, 'tutorialChapters');
+    const chaptersQuery = query(chaptersRef, orderBy('order'));
+    
+    // Set up a real-time listener for the chapters collection
+    const unsubscribeChapters = onSnapshot(chaptersQuery, async (chaptersSnapshot) => {
+      const fetchedChapters = chaptersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Omit<TutorialChapter, 'tutorials'>));
+      const chapterMap = new Map(fetchedChapters.map(c => [c.id, { ...c, tutorials: [] as Tutorial[] }]));
       
-      const chaptersRef = collection(firestore, 'tutorialChapters');
-      const chaptersQuery = query(chaptersRef, orderBy('order'));
-      const chapterSnapshots = await getDocs(chaptersQuery);
-      const fetchedChapters = chapterSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Omit<TutorialChapter, 'tutorials'>));
+      const tutorialListeners: Unsubscribe[] = [];
+      let allFetchedTutorials: Tutorial[] = [];
 
-      const tutorialPromises = fetchedChapters.map(chapter => {
+      const processingPromises = fetchedChapters.map(chapter => {
         const tutorialsRef = collection(firestore, `tutorialChapters/${chapter.id}/tutorials`);
         const tutorialsQuery = query(tutorialsRef, orderBy('order'));
-        return getDocs(tutorialsQuery);
-      });
-
-      const tutorialSnapshots = await Promise.all(tutorialPromises);
-      
-      const chapterMap = new Map(fetchedChapters.map(c => [c.id, { ...c, tutorials: [] as Tutorial[] }]));
-      const allFetchedTutorials : Tutorial[] = [];
-
-      tutorialSnapshots.forEach((snapshot) => {
-        snapshot.docs.forEach(doc => {
-            const tutorial = { id: doc.id, ...doc.data() } as Tutorial;
-            allFetchedTutorials.push(tutorial);
-            const chapter = chapterMap.get(tutorial.chapterId);
-            if (chapter) {
-              chapter.tutorials.push(tutorial);
+        
+        return new Promise<void>(resolve => {
+          const unsubscribeTutorials = onSnapshot(tutorialsQuery, (tutorialsSnapshot) => {
+            const tutorialsForChapter = tutorialsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tutorial));
+            
+            const currentChapter = chapterMap.get(chapter.id);
+            if(currentChapter) {
+              currentChapter.tutorials = tutorialsForChapter;
             }
+            
+            // This part is tricky in a real-time scenario. We need to rebuild the `allTutorials` array on each update.
+            // A more advanced state management would be better, but for this, we'll reconstruct.
+            allFetchedTutorials = Array.from(chapterMap.values()).flatMap(c => c.tutorials);
+            setAllTutorials(allFetchedTutorials);
+            setChaptersWithTutorials(Array.from(chapterMap.values()).sort((a,b) => a.order - b.order));
+            
+            // If the currently selected tutorial gets updated, update its state as well
+            if (selectedTutorial) {
+              const updatedSelected = allFetchedTutorials.find(t => t.id === selectedTutorial.id);
+              setSelectedTutorial(updatedSelected || null);
+            }
+            
+            resolve();
+          });
+          tutorialListeners.push(unsubscribeTutorials);
         });
       });
       
-      const sortedChapters = Array.from(chapterMap.values()).sort((a,b) => a.order - b.order);
-      setChaptersWithTutorials(sortedChapters);
-      setAllTutorials(allFetchedTutorials);
-
+      await Promise.all(processingPromises);
       setIsLoadingData(false);
-    }
-    
-    fetchAllData();
 
-  }, [firestore, dataVersion]);
+      // Cleanup function for chapter listener
+      return () => {
+        tutorialListeners.forEach(unsub => unsub());
+      };
+    });
+
+    // Main cleanup function for useEffect
+    return () => {
+        unsubscribeChapters();
+    };
+
+  }, [firestore, selectedTutorial?.id]);
   
 
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -282,7 +303,7 @@ export default function TutorialsPage() {
     // A cloud function would be required for full cleanup. This deletes the chapter doc only.
     deleteDocumentNonBlocking(doc(firestore, 'tutorialChapters', chapterId));
     toast({ title: 'Chapter deleted.' });
-    refreshData();
+    // Data will refresh automatically due to onSnapshot
   };
   
   const handleAddTutorial = (chapter: TutorialChapter) => {
@@ -300,16 +321,16 @@ export default function TutorialsPage() {
     if (!firestore) return;
     deleteDocumentNonBlocking(doc(firestore, `tutorialChapters/${tutorial.chapterId}/tutorials`, tutorial.id));
     toast({ title: 'Tutorial deleted.' });
-    refreshData();
     if(selectedTutorial?.id === tutorial.id) {
         setSelectedTutorial(null);
     }
+     // Data will refresh automatically due to onSnapshot
   };
 
   const handleSave = () => {
     setIsChapterFormOpen(false);
     setIsTutorialFormOpen(false);
-    refreshData();
+    // No longer need to manually refresh data
   };
 
   const showLoadingState = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc;
@@ -391,7 +412,3 @@ export default function TutorialsPage() {
     </>
   );
 }
-
-
-
-

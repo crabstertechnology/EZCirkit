@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -9,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFirestore } from '@/firebase';
 import { doc, collection, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { Tutorial } from '@/lib/tutorials';
+import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
+import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const tutorialSchema = z.object({
   title: z.string().min(3, 'Title is required.'),
@@ -32,6 +35,8 @@ interface TutorialFormProps {
   tutorial?: Tutorial | null;
   chapterId: string;
 }
+
+const LEVEL_OPTIONS: TutorialLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
 const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId }) => {
   const firestore = useFirestore();
@@ -53,7 +58,10 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
 
   useEffect(() => {
     if (tutorial) {
-      form.reset(tutorial);
+      form.reset({
+        ...tutorial,
+        level: tutorial.level || 'Beginner',
+      });
     } else {
       form.reset({
         title: '',
@@ -65,7 +73,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         order: 0,
       });
     }
-  }, [tutorial, form]);
+  }, [tutorial, form.reset]);
 
   const onSubmit: SubmitHandler<TutorialFormValues> = async (data) => {
     if (!firestore || !chapterId) {
@@ -87,7 +95,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     try {
       await setDoc(docRef, tutorialData, { merge: isEditing });
       toast({ title: tutorial ? 'Tutorial updated!' : 'Tutorial created!' });
-      onSave();
+      onSave(); // This now correctly waits for setDoc to finish
     } catch(error: any) {
         toast({
             variant: 'destructive',
@@ -100,38 +108,53 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
   };
 
   return (
+    <ScrollArea className="h-[70vh] pr-6">
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField name="title" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Blinking an LED" {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
-        <FormField name="description" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short summary of the project." {...field} /></FormControl><FormMessage /></FormItem>
-        )}/>
+
+        <FormField
+          control={form.control}
+          name="level"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Level</FormLabel>
+               <div className="grid grid-cols-3 gap-2">
+                {LEVEL_OPTIONS.map(level => (
+                  <Button
+                    key={level}
+                    type="button"
+                    variant={field.value === level ? 'default' : 'outline'}
+                    onClick={() => field.onChange(level)}
+                  >
+                    {level}
+                  </Button>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
         <div className="grid grid-cols-2 gap-4">
-            <FormField name="level" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Level</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a level" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        <SelectItem value="Beginner">Beginner</SelectItem>
-                        <SelectItem value="Intermediate">Intermediate</SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
-                    </SelectContent>
-                </Select><FormMessage /></FormItem>
-            )}/>
-            <FormField name="duration" control={form.control} render={({ field }) => (
+             <FormField name="duration" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Duration</FormLabel><FormControl><Input placeholder="45 mins" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
-        </div>
-         <div className="grid grid-cols-2 gap-4">
             <FormField name="order" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Order</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
-             <FormField name="imageId" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Image ID</FormLabel><FormControl><Input placeholder="tutorial-1" {...field} /></FormControl><FormMessage /></FormItem>
-            )}/>
         </div>
+
+        <FormField name="imageId" control={form.control} render={({ field }) => (
+            <FormItem><FormLabel>Image ID</FormLabel><FormControl><Input placeholder="tutorial-1" {...field} /></FormControl><FormMessage /></FormItem>
+        )}/>
         
+        <FormField name="description" control={form.control} render={({ field }) => (
+            <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short summary of the project." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
+        )}/>
+
         <FormField name="videoId" control={form.control} render={({ field }) => (
             <FormItem>
                 <FormLabel>Video URL (YouTube, Google Drive, etc.)</FormLabel>
@@ -147,6 +170,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         </Button>
       </form>
     </Form>
+    </ScrollArea>
   );
 };
 

@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="!scroll-smooth">
       <head>
-        <title>EZCirkit-Crabster Technology</title>
+      <title>EZCirkit-Crabster Technology</title>
         <meta name="description" content="Learn Electronics Made Easy with crabster" />
       </head>
       <body className={cn('font-body antialiased')}>

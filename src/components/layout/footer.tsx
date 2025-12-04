@@ -39,10 +39,10 @@ const Footer = () => {
               Making electronics learning accessible and fun for everyone.
             </p>
             <div className="flex space-x-3 pt-2">
-              <SocialIcon href="https://www.instagram.com/crabstertechnology?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==">
+              <SocialIcon href="#">
                 <Instagram className="h-5 w-5" />
               </SocialIcon>
-              <SocialIcon href="https://www.linkedin.com/company/crabster-technology">
+              <SocialIcon href="#">
                 <Linkedin className="h-5 w-5" />
               </SocialIcon>
             </div>

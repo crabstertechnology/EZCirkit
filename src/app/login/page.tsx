@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Eye, EyeOff } from 'lucide-react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,8 +33,10 @@ function LoginPage() {
          toast({
           variant: 'destructive',
           title: 'Email Not Verified',
-          description: 'Please verify your email before logging in. Check your inbox for the verification link.',
+          description: 'A new verification link has been sent. Please check your inbox.',
         });
+        // Resend the verification email
+        await sendEmailVerification(userCredential.user);
         // Sign the user out so they can't proceed
         await auth.signOut();
         setIsLoading(false);
