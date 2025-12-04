@@ -57,7 +57,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
     const VideoPlayer = React.memo(({ videoId }: { videoId: string }) => {
       if (!videoId) {
           return (
-              <div className="aspect-square w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
+              <div className="aspect-video w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
                   <p>Video coming soon!</p>
               </div>
           );
@@ -74,7 +74,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
-                  className="aspect-square w-full rounded-lg bg-black shadow-lg"
+                  className="aspect-video w-full rounded-lg bg-black shadow-lg"
               ></iframe>
           );
       }
@@ -91,23 +91,24 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   sandbox="allow-scripts allow-same-origin"
-                  className="aspect-square w-full rounded-lg bg-black shadow-lg"
+                  className="aspect-video w-full rounded-lg bg-black shadow-lg"
               ></iframe>
           );
       }
       
-      return <video src={videoId} controls className="aspect-square w-full rounded-lg bg-black shadow-lg" />;
+      return <video src={videoId} controls className="aspect-video w-full rounded-lg bg-black shadow-lg" />;
     });
     VideoPlayer.displayName = 'VideoPlayer';
 
 
     return (
      <div className="h-full flex flex-col overflow-hidden">
-        {/* Video Player */}
-        <VideoPlayer videoId={tutorial.videoId || ''} />
+        <div className="flex-shrink-0">
+          <VideoPlayer videoId={tutorial.videoId || ''} />
+        </div>
 
         <ScrollArea className="flex-grow min-h-0 mt-6">
-            <div className="space-y-6">
+            <div className="space-y-6 pr-4">
                 <div className="flex-shrink-0">
                     <h2 className="text-3xl font-bold">{tutorial.title}</h2>
                     <div className="flex items-center gap-4 text-muted-foreground mt-2">
@@ -134,10 +135,14 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                         <Card><CardContent className="p-6 relative">
                             {tutorial.code ? (
                                 <div className="relative">
-                                    <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto"><code className="font-mono">{tutorial.code}</code></pre>
-                                    <Button size="icon" variant="ghost" className="absolute top-2 right-2 h-8 w-8" onClick={handleCopyCode}>
-                                        <Copy className="h-4 w-4" />
-                                    </Button>
+                                    <div className="w-full overflow-x-auto rounded-md border bg-muted">
+                                        <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all">{tutorial.code}</pre>
+                                    </div>
+                                    <div className="absolute top-2 right-2">
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCopyCode}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground">No code snippet available for this tutorial.</p>
@@ -148,7 +153,9 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                         <Card>
                             <CardContent className="p-6">
                                 {tutorial.transcript ? (
-                                    <p className="text-sm whitespace-pre-wrap">{tutorial.transcript}</p>
+                                    <ScrollArea className="h-64">
+                                      <p className="text-sm whitespace-pre-wrap">{tutorial.transcript}</p>
+                                    </ScrollArea>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">No transcript available for this tutorial.</p>
                                 )}
@@ -159,7 +166,9 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                          <Card>
                             <CardContent className="p-6">
                                 {tutorial.notes ? (
-                                    <p className="text-sm whitespace-pre-wrap">{tutorial.notes}</p>
+                                     <ScrollArea className="h-64">
+                                        <p className="text-sm whitespace-pre-wrap">{tutorial.notes}</p>
+                                     </ScrollArea>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">No notes available for this tutorial.</p>
                                 )}
@@ -170,7 +179,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
             </div>
         </ScrollArea>
         
-        <div className="flex justify-end items-center gap-2 flex-shrink-0 pt-4">
+        <div className="flex justify-end items-center gap-2 flex-shrink-0 pt-4 mt-auto">
             <Button onClick={onPrev} variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
@@ -409,7 +418,7 @@ export default function TutorialsPage() {
           onSelectTutorial={handleSelectTutorial}
           activeTutorialId={selectedTutorial?.id}
         />
-        <div className="flex-1 h-full px-4 md:px-6">
+        <div className="flex-1 h-full px-4 md:px-6 min-w-0">
             {showLoadingState && (
                  <div className="w-full h-full flex items-center justify-center">
                     <p>Loading tutorials...</p>

@@ -49,7 +49,7 @@ const TutorialSidebar: React.FC<TutorialSidebarProps> = ({
     const AdminChapterControls = ({ chapter }: { chapter: TutorialChapter }) => {
         if (!isAdmin || isPageSidebar) return null;
         return (
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1 transition-opacity" onClick={e => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" onClick={() => onEditChapter(chapter)}><Edit className="h-4 w-4" /></Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -67,7 +67,7 @@ const TutorialSidebar: React.FC<TutorialSidebarProps> = ({
     const AdminTutorialControls = ({ tutorial }: { tutorial: Tutorial }) => {
         if (!isAdmin || isPageSidebar) return null;
         return (
-             <div className="flex items-center gap-0 pr-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+             <div className="flex items-center gap-0 pr-1 transition-opacity" onClick={e => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" onClick={() => onEditTutorial(tutorial)}><Edit className="h-4 w-4" /></Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>

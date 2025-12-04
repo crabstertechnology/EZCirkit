@@ -147,7 +147,7 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
     const VideoPlayer = React.memo(({ videoId }: { videoId: string }) => {
         if (!videoId) {
             return (
-              <div className="aspect-square w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
+              <div className="aspect-video w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
                 <p>Video coming soon!</p>
               </div>
             );
@@ -164,7 +164,7 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
-                    className="aspect-square w-full rounded-lg bg-black shadow-lg"
+                    className="aspect-video w-full rounded-lg bg-black shadow-lg"
                 ></iframe>
             );
         }
@@ -181,12 +181,12 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     sandbox="allow-scripts allow-same-origin"
-                    className="aspect-square w-full rounded-lg bg-black shadow-lg"
+                    className="aspect-video w-full rounded-lg bg-black shadow-lg"
                 ></iframe>
             );
         }
         
-        return <video src={videoId} controls className="aspect-square w-full rounded-lg bg-black shadow-lg" />;
+        return <video src={videoId} controls className="aspect-video w-full rounded-lg bg-black shadow-lg" />;
     });
     VideoPlayer.displayName = 'VideoPlayer';
 
@@ -196,7 +196,7 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                <div className="lg:col-span-2">
                  <Skeleton className="h-12 w-full mb-4" />
-                 <Skeleton className="aspect-square w-full" />
+                 <Skeleton className="aspect-video w-full" />
                </div>
                <div className="lg:col-span-1">
                  <Skeleton className="h-96 w-full" />
