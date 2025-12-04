@@ -117,12 +117,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
             </div>
             <div className="absolute -top-4 -left-4 animate-float-delay-1">
               <Badge className="bg-green-100 text-green-800 border-green-300 py-1 px-3 text-sm font-semibold">
-                50+ Components
+                35+ Components
               </Badge>
             </div>
             <div className="absolute -bottom-4 -right-4 animate-float-delay-2">
               <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 py-1 px-3 text-sm font-semibold">
-                20+ Projects
+                45+ Projects
               </Badge>
             </div>
           </div>

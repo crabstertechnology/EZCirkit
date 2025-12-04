@@ -1,6 +1,6 @@
 
 import { placeholderImages } from './placeholder-images';
-import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star } from 'lucide-react';
 
 export const SHIPPING_COST = 0;
 
@@ -23,16 +23,16 @@ export const ADMIN_NAV_LINKS = [
 ]
 
 export const STATS = [
-  { value: '10,000+', label: 'Happy Customers' },
-  { value: '50+', label: 'Components' },
-  { value: '20+', label: 'Projects' },
+  { value: '50+', label: 'Tutorials' },
+  { value: '35+', label: 'Components' },
+  { value: '45+', label: 'Projects' },
   { value: '4.8★', label: 'Rating' },
 ];
 
 export const PRODUCT_FEATURES = [
-  '50+ Electronic Components',
+  '35+ Electronic Components',
   'Arduino Compatible Board',
-  '20+ Step-by-Step Projects',
+  '45+ Step-by-Step Projects',
   'High-Quality Breadboard',
   'Durable Storage Box',
   'Online Video Tutorials',

@@ -1,7 +1,17 @@
-import React from 'react';
-import { STATS } from '@/lib/constants';
 
-const StatsSection = () => {
+'use client';
+
+import React from 'react';
+
+const StatsSection = ({ averageRating, isLoading }: { averageRating: number; isLoading: boolean }) => {
+  
+  const STATS = [
+    { value: '50+', label: 'Tutorials' },
+    { value: '35+', label: 'Components' },
+    { value: '45+', label: 'Projects' },
+    { value: isLoading ? '...' : `${averageRating.toFixed(1)}★`, label: 'Rating' },
+  ];
+
   return (
     <section className="bg-primary-gradient text-white py-12">
       <div className="container mx-auto px-4 md:px-6">

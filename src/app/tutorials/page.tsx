@@ -220,7 +220,11 @@ export default function TutorialsPage() {
     let activeTutorialListeners: { [key: string]: Unsubscribe } = {};
 
     const chapterUnsub = onSnapshot(chaptersQuery, (chaptersSnapshot) => {
-      const chaptersData = chaptersSnapshot.docs.map(d => ({ ...d.data(), id: d.id, tutorials: [] } as TutorialChapter));
+      const chaptersData = chaptersSnapshot.docs.map(d => ({
+        ...(d.data() as Omit<TutorialChapter, 'id' | 'tutorials'>),
+        id: d.id,
+        tutorials: []
+      }));
       
       const tutorialState: { [key: string]: Tutorial[] } = {};
 

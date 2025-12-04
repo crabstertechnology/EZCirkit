@@ -42,7 +42,7 @@ export default function Home() {
         reviewCount={reviewCount}
         isLoading={isLoadingReviews}
       />
-      <StatsSection />
+      <StatsSection averageRating={averageRating} isLoading={isLoadingReviews} />
       <FeaturesSection />
       <ProductShowcase 
         reviews={reviews}
