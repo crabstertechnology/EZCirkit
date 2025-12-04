@@ -13,7 +13,7 @@ import type { Review } from '@/components/sections/testimonials';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
-const PRODUCT_DOC_ID = 'pP2ohIXBTTLUCUPRk0Z8';
+const PRODUCT_DOC_ID = 'pro1';
 
 export default function Home() {
   const firestore = useFirestore();

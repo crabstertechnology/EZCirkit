@@ -33,7 +33,7 @@ export interface Review {
   createdAt: { toDate: () => Date };
 }
 
-const PRODUCT_DOC_ID = 'pP2ohIXBTTLUCUPRk0Z8'; 
+const PRODUCT_DOC_ID = 'pro1'; 
 
 interface TestimonialsProps {
   reviews: Review[];
