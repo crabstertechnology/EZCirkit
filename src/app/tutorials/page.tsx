@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
@@ -57,7 +55,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
     const VideoPlayer = React.memo(({ videoId }: { videoId: string }) => {
       if (!videoId) {
           return (
-              <div className="aspect-video w-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
+              <div className="w-full h-[300px] flex items-center justify-center text-muted-foreground bg-muted rounded-lg shadow-lg">
                   <p>Video coming soon!</p>
               </div>
           );
@@ -74,7 +72,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
-                  className="aspect-video w-full rounded-lg bg-black shadow-lg"
+                  className="w-full h-[300px] rounded-lg bg-black shadow-lg"
               ></iframe>
           );
       }
@@ -91,12 +89,12 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   sandbox="allow-scripts allow-same-origin"
-                  className="aspect-video w-full rounded-lg bg-black shadow-lg"
+                  className="w-full h-[300px] rounded-lg bg-black shadow-lg"
               ></iframe>
           );
       }
       
-      return <video src={videoId} controls className="aspect-video w-full rounded-lg bg-black shadow-lg" />;
+      return <video src={videoId} controls className="w-full h-[300px] rounded-lg bg-black shadow-lg" />;
     });
     VideoPlayer.displayName = 'VideoPlayer';
 
@@ -107,8 +105,8 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
           <VideoPlayer videoId={tutorial.videoId || ''} />
         </div>
 
-        <ScrollArea className="flex-grow min-h-0 mt-6">
-            <div className="space-y-6 pr-4">
+        <ScrollArea className="flex-grow min-h-0 mt-4">
+            <div className="space-y-4 pr-4">
                 <div className="flex-shrink-0">
                     <h2 className="text-3xl font-bold">{tutorial.title}</h2>
                     <div className="flex items-center gap-4 text-muted-foreground mt-2">
@@ -193,7 +191,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
 
 
 export default function TutorialsPage() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(true);
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
@@ -336,6 +334,7 @@ export default function TutorialsPage() {
 
   const handleSelectTutorial = (tutorial: Tutorial) => {
     setSelectedTutorial(tutorial);
+    setIsSidebarCollapsed(true); // Close sidebar on mobile when selecting tutorial
   };
   
   const handleNextTutorial = () => {

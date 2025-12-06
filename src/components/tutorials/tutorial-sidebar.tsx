@@ -1,10 +1,9 @@
-
 'use client';
 
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { PanelLeftClose, PanelLeftOpen, PlusCircle, Edit, Trash2, CheckCircle } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PlusCircle, Edit, Trash2, CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import type { TutorialChapter, Tutorial } from '@/lib/tutorials';
@@ -94,24 +93,6 @@ const TutorialSidebar: React.FC<TutorialSidebarProps> = ({
                  </div>
             );
         }
-
-        if (isCollapsed) {
-            return (
-                 <div className="space-y-2 p-2">
-                     {isAdmin && !isPageSidebar && (
-                        <Button onClick={onAddChapter} size="icon" className="w-10 h-10 mb-2">
-                            <PlusCircle className="h-5 w-5" />
-                            <span className="sr-only">Add Chapter</span>
-                        </Button>
-                    )}
-                    {chapters.map(chapter => (
-                        <div key={chapter.id} title={chapter.title} className="h-10 w-10 bg-secondary rounded-md flex items-center justify-center font-bold text-sm">
-                            {chapter.order}
-                        </div>
-                    ))}
-                </div>
-            )
-        }
         
         const handleTutorialClick = (tutorial: Tutorial, e: React.MouseEvent) => {
             if (onSelectTutorial) {
@@ -119,7 +100,6 @@ const TutorialSidebar: React.FC<TutorialSidebarProps> = ({
                 onSelectTutorial(tutorial);
             }
         };
-
 
         return (
              <ScrollArea className="h-full">
@@ -189,23 +169,47 @@ const TutorialSidebar: React.FC<TutorialSidebarProps> = ({
         )
     }
 
+    // Overlay sidebar implementation
     return (
-        <aside className={cn(
-            "sticky top-[calc(theme(spacing.16)+1px)] h-[calc(100vh-theme(spacing.16)-2px)] bg-background border-r flex flex-col transition-all duration-300 ease-in-out z-40",
-            isCollapsed ? "w-20" : "w-80"
-        )}>
-            <div className={cn("flex items-center justify-between h-14 border-b", isCollapsed ? "px-4 justify-center" : "px-4")}>
-                 {!isCollapsed && (
-                    <h2 className="text-lg font-semibold tracking-tight">Chapters</h2>
-                 )}
-                <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(!isCollapsed)}>
-                    {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-                    <span className="sr-only">Toggle Sidebar</span>
-                </Button>
-            </div>
+        <>
+            {/* Backdrop */}
+            {!isCollapsed && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
+                    onClick={() => setIsCollapsed(true)}
+                />
+            )}
             
-            <SidebarContent />
-        </aside>
+            {/* Floating toggle button when collapsed */}
+            {isCollapsed && (
+                <Button
+                    variant="default"
+                    size="icon"
+                    className="fixed left-4 top-20 z-50 shadow-lg"
+                    onClick={() => setIsCollapsed(false)}
+                >
+                    <PanelLeftOpen className="h-5 w-5" />
+                    <span className="sr-only">Open Sidebar</span>
+                </Button>
+            )}
+
+            {/* Sidebar */}
+            <aside className={cn(
+                "fixed left-0 top-0 h-screen bg-background border-r flex flex-col transition-transform duration-300 ease-in-out z-50 shadow-2xl",
+                "w-80",
+                isCollapsed ? "-translate-x-full" : "translate-x-0"
+            )}>
+                <div className="flex items-center justify-between h-14 border-b px-4">
+                    <h2 className="text-lg font-semibold tracking-tight">Chapters</h2>
+                    <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(true)}>
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">Close Sidebar</span>
+                    </Button>
+                </div>
+                
+                <SidebarContent />
+            </aside>
+        </>
     );
 };
 

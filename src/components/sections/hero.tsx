@@ -47,7 +47,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 m-auto h-[400px] w-[400px] animate-pulse-bg rounded-full bg-primary/10 blur-3xl"
+        className="absolute inset-0 m-auto h-[300px] w-[400px] animate-pulse-bg rounded-full bg-primary/10 blur-3xl"
       ></div>
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2">
