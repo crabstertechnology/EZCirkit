@@ -204,6 +204,19 @@
             "country": { "type": "string" }
           },
           "required": ["name", "phone", "addressLine1", "city", "state", "postalCode", "country"]
+        },
+        "shiprocket": {
+          "type": "object",
+          "description": "Contains order and shipment details from Shiprocket.",
+          "properties": {
+            "order_id": { "type": "number", "description": "Shiprocket's internal order ID." },
+            "shipment_id": { "type": "number", "description": "Shiprocket's internal shipment ID." },
+            "status": { "type": "string", "description": "The current status of the order in Shiprocket (e.g., 'NEW', 'PICKUP')." },
+            "awb_code": { "type": "string", "description": "The Air Waybill (AWB) or tracking number for the shipment." },
+            "courier_name": { "type": "string", "description": "The name of the assigned courier (e.g., 'Delhivery', 'BlueDart')." },
+            "created_at": { "type": "string", "format": "date-time", "description": "Timestamp when the shipment was created in Shiprocket." },
+            "error": { "type": "string", "description": "Any error message if the shipment creation failed." }
+          }
         }
       },
       "required": [
@@ -325,7 +338,10 @@
         "duration": { "type": "string", "description": "The estimated time to complete the tutorial." },
         "imageId": { "type": "string", "description": "The ID of the placeholder image for this tutorial." },
         "videoId": { "type": "string", "description": "The ID of the video for this tutorial (e.g., a YouTube video ID)." },
-        "order": { "type": "number", "description": "The display order of the tutorial within the chapter." }
+        "order": { "type": "number", "description": "The display order of the tutorial within the chapter." },
+        "code": { "type": "string", "description": "An optional code snippet for the tutorial." },
+        "transcript": { "type": "string", "description": "An optional transcript for the tutorial video." },
+        "notes": { "type": "string", "description": "Optional supplementary notes for the tutorial." }
       },
       "required": ["id", "chapterId", "title", "description", "level", "duration", "imageId", "order"]
     }

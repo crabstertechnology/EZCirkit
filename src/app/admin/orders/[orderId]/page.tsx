@@ -27,10 +27,20 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Truck } from 'lucide-react';
 import type { User } from '@/app/admin/users/page';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+
+interface ShiprocketData {
+  order_id: number;
+  shipment_id: number;
+  status: string;
+  awb_code?: string;
+  courier_name?: string;
+  created_at: string;
+  error?: string;
+}
 
 interface Order {
   id: string;
@@ -49,6 +59,7 @@ interface Order {
     postalCode: string;
     country: string;
   };
+  shiprocket?: ShiprocketData;
 }
 
 interface OrderItem {
@@ -105,6 +116,12 @@ const OrderDetailsComponent = () => {
         title: "Order Status Updated",
         description: `Order has been marked as ${newStatus}.`,
     })
+  }
+  
+  const getShiprocketTrackingUrl = (awb: string | undefined) => {
+    if (!awb) return '#';
+    // This is a generic tracking URL format, adjust if Shiprocket provides a different one
+    return `https://shiprocket.co/tracking/${awb}`;
   }
 
   if (isLoading) {
@@ -196,6 +213,41 @@ const OrderDetailsComponent = () => {
                 <p className="font-semibold">{user.displayName}</p>
                 <p className="text-muted-foreground">{user.email}</p>
                 <p className="text-muted-foreground font-mono text-xs">{user.id}</p>
+            </CardContent>
+          </Card>
+          
+           <Card>
+            <CardHeader>
+              <CardTitle>Shipment Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+               {order.shiprocket && order.shiprocket.status !== 'creation_failed' ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shiprocket Status</span>
+                    <Badge variant="secondary" className="capitalize">{order.shiprocket.status}</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Courier</span>
+                    <span>{order.shiprocket.courier_name || 'Not Assigned'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tracking ID (AWB)</span>
+                    <span className="font-mono text-xs">{order.shiprocket.awb_code || 'Not Assigned'}</span>
+                  </div>
+                   {order.shiprocket.awb_code && (
+                     <Button asChild className="w-full mt-2">
+                        <a href={getShiprocketTrackingUrl(order.shiprocket.awb_code)} target="_blank" rel="noopener noreferrer">
+                          <Truck className="mr-2 h-4 w-4" /> Track on Shiprocket
+                        </a>
+                      </Button>
+                   )}
+                </>
+               ) : (
+                 <p className="text-destructive text-center">
+                   {order.shiprocket?.error || 'Shipment creation failed or is pending.'}
+                 </p>
+               )}
             </CardContent>
           </Card>
 

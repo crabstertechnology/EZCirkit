@@ -5,14 +5,14 @@ import React from 'react';
 import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle, Home } from 'lucide-react';
+import { CheckCircle, Home, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
-import { SHIPPING_COST } from '@/lib/constants';
+import { Badge } from '@/components/ui/badge';
 
 interface OrderItem {
     id: string;
@@ -20,6 +20,16 @@ interface OrderItem {
     price: number;
     quantity: number;
     image: string;
+}
+
+interface ShiprocketData {
+  order_id: number;
+  shipment_id: number;
+  status: string;
+  awb_code?: string;
+  courier_name?: string;
+  created_at: string;
+  error?: string;
 }
 
 interface Order {
@@ -35,6 +45,7 @@ interface Order {
         state: string;
         postalCode: string;
     };
+    shiprocket?: ShiprocketData;
 }
 
 
@@ -58,6 +69,13 @@ const OrderConfirmationPage = () => {
   const isLoading = isUserLoading || isLoadingOrder || isLoadingItems;
   
   const subtotal = order ? order.total : 0;
+
+  const getShiprocketTrackingUrl = (awb: string | undefined) => {
+    if (!awb) return '#';
+    // This is a generic tracking URL format, adjust if Shiprocket provides a different one
+    return `https://shiprocket.co/tracking/${awb}`;
+  }
+
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading your order details...</div>;
@@ -144,14 +162,55 @@ const OrderConfirmationPage = () => {
                     </div>
                 </div>
             </div>
-            
-            <div className="flex justify-center gap-4 pt-6">
+
+            {/* Shipment Details */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Shipment Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                   {order.shiprocket && order.shiprocket.status !== 'creation_failed' ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Shiprocket Status</span>
+                        <Badge variant="secondary" className="capitalize">{order.shiprocket.status}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Courier</span>
+                        <span>{order.shiprocket.courier_name || 'Not Assigned'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tracking ID (AWB)</span>
+                        <span className="font-mono text-xs">{order.shiprocket.awb_code || 'Not Assigned'}</span>
+                      </div>
+                       {order.shiprocket.awb_code && (
+                         <Button asChild className="w-full mt-2">
+                            <a href={getShiprocketTrackingUrl(order.shiprocket.awb_code)} target="_blank" rel="noopener noreferrer">
+                              <Truck className="mr-2 h-4 w-4" /> Track Package
+                            </a>
+                          </Button>
+                       )}
+                    </>
+                   ) : (
+                     <p className="text-center text-muted-foreground">
+                       Your order is being processed. Shipment details will appear here soon.
+                     </p>
+                   )}
+                </CardContent>
+            </Card>
+
+            <CardFooter className="flex justify-center gap-4 pt-6">
                 <Button asChild>
                     <Link href="/">
                         <Home className="mr-2 h-4 w-4" /> Continue Shopping
                     </Link>
                 </Button>
-            </div>
+                 <Button asChild variant="outline">
+                    <Link href="/profile">
+                         View My Orders
+                    </Link>
+                </Button>
+            </CardFooter>
         </CardContent>
       </Card>
     </div>
