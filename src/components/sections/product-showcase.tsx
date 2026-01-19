@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -132,10 +131,14 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
                 ))}
                 <CarouselItem>
                    <div className="aspect-w-4 aspect-h-3">
-                      <video controls className="w-full h-full object-cover rounded-xl shadow-lg">
-                        <source src="/CT003.mp4" type="video/mp4" />
-                        Your browser does not support the video tag.
-                      </video>
+                      <iframe
+                        src="https://www.youtube.com/embed/gV7zBtKObMo"
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="w-full h-full object-cover rounded-xl shadow-lg"
+                      ></iframe>
                    </div>
                 </CarouselItem>
               </CarouselContent>
@@ -143,7 +146,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselNext className="right-4" />
             </Carousel>
             <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-[hsl(var(--color-green))] text-white border-none">
-              Save 16.7%
+              Save 50%
             </Badge>
              {isOutOfStock && (
               <Badge variant="destructive" className="absolute top-4 right-4 py-1.5 px-3 text-base font-bold border-none">
