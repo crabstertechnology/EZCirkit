@@ -115,10 +115,11 @@ export async function POST(request: NextRequest) {
       order_items: shipmentRequest.orderItems,
       payment_method: shipmentRequest.paymentMethod,
       sub_total: shipmentRequest.subTotal,
-      length: 10,
-      breadth: 15,
-      height: 20,
+      length: 34,
+      breadth: 24,
+      height: 6,
       weight: shipmentRequest.weight,
+
     };
     
     // Create the ad-hoc order in Shiprocket
