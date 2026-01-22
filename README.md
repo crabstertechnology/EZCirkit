@@ -8,7 +8,7 @@ To run this project on your local machine, follow the steps below.
 
 ### 1. Prerequisites
 
-- **Node.js**: Make sure you have Node.js version 20 or later installed. You can download it from [nodejs.org](https://nodejs.org/).
+- **Node.js**: Make hi sure you have Node.js version 20 or later installed. You can download it from [nodejs.org](https://nodejs.org/).
 - **Git**: You will need Git to manage your code. You can download it from [git-scm.com](https://git-scm.com/).
 - **Firebase Project**: You will need your own Firebase project to connect the application to. If you don't have one, you can create a new project for free at the [Firebase Console](https://console.firebase.google.com/).
 - **Razorpay Account**: To process payments, you will need a Razorpay account. You can create one at [razorpay.com](https://razorpay.com/).
