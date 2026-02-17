@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
@@ -120,7 +121,7 @@ const TutorialViewer = ({ tutorial, onNext, onPrev }: { tutorial: Tutorial, onNe
                             <span>{tutorial.duration}</span>
                         </div>
                     </div>
-                    <p className="text-muted-foreground mt-2">{tutorial.description}</p>
+                    <p className="text-muted-foreground mt-2 whitespace-pre-wrap">{tutorial.description}</p>
                 </div>
 
                 <Tabs defaultValue="code" className="w-full mt-4">
