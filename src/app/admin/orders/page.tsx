@@ -1,8 +1,7 @@
-
 'use client';
 
 import React from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +25,20 @@ import type { User } from '@/app/admin/users/page';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Order {
   id: string;
@@ -44,6 +57,7 @@ const STATUS_SORT_ORDER: Order['status'][] = ['paid', 'shipped', 'delivered', 'c
 const OrdersPage = () => {
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [allOrders, setAllOrders] = React.useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = React.useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -128,6 +142,22 @@ const OrdersPage = () => {
     router.push(`/admin/orders/${order.id}?userId=${order.userId}`);
   };
 
+  const handleDeleteOrder = (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation(); // Prevent navigating to order details
+    if (!firestore) return;
+    
+    const orderRef = doc(firestore, 'users', order.userId, 'orders', order.id);
+    deleteDocumentNonBlocking(orderRef);
+    
+    // Update local state to reflect deletion instantly
+    setAllOrders(prev => prev.filter(o => o.id !== order.id));
+    
+    toast({
+      title: "Order Deleted",
+      description: `Order ${order.id.substring(0, 7)} has been removed.`,
+    });
+  };
+
   return (
       <div className="space-y-8">
         <h1 className="text-3xl font-bold">Order Management</h1>
@@ -171,14 +201,15 @@ const OrdersPage = () => {
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading orders...</TableCell></TableRow>}
+                  {isLoading && <TableRow><TableCell colSpan={6} className="text-center">Loading orders...</TableCell></TableRow>}
                   {!isLoading && filteredOrders.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center">
+                        <TableCell colSpan={6} className="text-center">
                           {searchQuery ? 'No orders match your search.' : 'No orders found.'}
                         </TableCell>
                       </TableRow>
@@ -196,7 +227,30 @@ const OrdersPage = () => {
                       <TableCell>
                         <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">₹{order.total.toLocaleString()}</TableCell>
+                      <TableCell className="font-medium">₹{order.total.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Order?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete order <strong>{order.id.substring(0, 7)}</strong>? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={(e) => handleDeleteOrder(e as any, order)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Delete Order
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -219,7 +273,30 @@ const OrdersPage = () => {
                             <CardTitle className="text-lg">{order.userName}</CardTitle>
                             <CardDescription className="text-xs font-mono">{order.id}</CardDescription>
                           </div>
-                          <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
+                             <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => e.stopPropagation()}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Order?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Permanently remove order {order.id.substring(0, 7)}?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={(e) => handleDeleteOrder(e as any, order)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                     </CardHeader>
                     <CardContent>

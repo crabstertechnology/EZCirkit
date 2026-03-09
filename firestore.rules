@@ -62,7 +62,8 @@ service cloud.firestore {
         // Admins can update the status, but other fields are immutable for others.
         allow update: if isAdmin() && isChangingOrderStatus();
         
-        allow delete: if false; // Orders are immutable and should not be deleted by users.
+        // ALLOW ADMINS TO DELETE ORDERS
+        allow delete: if isAdmin();
 
         match /items/{orderItemId} {
           // Admins can read all order items. Users can only read items in their own orders.
@@ -72,8 +73,9 @@ service cloud.firestore {
           // This rule is critical for the batch write to succeed.
           allow create: if isOwner(userId);
           
-          // Order items are immutable once created.
-          allow update, delete: if false;
+          // ALLOW ADMINS TO DELETE ORDER ITEMS
+          allow update: if false;
+          allow delete: if isAdmin();
         }
       }
     }

@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { Suspense, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
-import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
@@ -27,10 +26,21 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Truck } from 'lucide-react';
+import { ArrowLeft, Truck, Trash2 } from 'lucide-react';
 import type { User } from '@/app/admin/users/page';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ShiprocketData {
   order_id: number;
@@ -78,6 +88,7 @@ const OrderDetailsComponent = () => {
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
   const firestore = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
 
   const [currentStatus, setCurrentStatus] = useState<Order['status'] | undefined>();
@@ -117,6 +128,17 @@ const OrderDetailsComponent = () => {
         description: `Order has been marked as ${newStatus}.`,
     })
   }
+
+  const handleDeleteOrder = () => {
+    if (!orderDocRef) return;
+    
+    deleteDocumentNonBlocking(orderDocRef);
+    toast({
+      title: "Order Deleted",
+      description: "The order has been successfully removed.",
+    });
+    router.replace('/admin/orders');
+  };
   
   const getShiprocketTrackingUrl = (awb: string | undefined) => {
     if (!awb) return '#';
@@ -165,6 +187,27 @@ const OrderDetailsComponent = () => {
             <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize text-base h-8">
                 {order.status}
             </Badge>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" className="h-8 w-8">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete order <strong>{order.id.substring(0, 7)}</strong> and all associated records.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete Order
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </div>
       </div>
 
