@@ -340,10 +340,11 @@
         "id": { "type": "string", "description": "Unique identifier for the video." },
         "title": { "type": "string", "description": "A short title or student name." },
         "videoUrl": { "type": "string", "format": "uri", "description": "The YouTube Shorts or video URL." },
+        "aspectRatio": { "type": "string", "enum": ["16:9", "9:16"], "description": "The aspect ratio of the video." },
         "order": { "type": "number", "description": "The display order of the video." },
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the entry was created." }
       },
-      "required": ["id", "title", "videoUrl", "order", "createdAt"]
+      "required": ["id", "title", "videoUrl", "aspectRatio", "order", "createdAt"]
     }
   },
   "auth": {

@@ -10,10 +10,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const testimonialVideoSchema = z.object({
   title: z.string().min(2, 'Title or student name is required.'),
   videoUrl: z.string().url('Please enter a valid YouTube URL.'),
+  aspectRatio: z.enum(['16:9', '9:16']),
   order: z.coerce.number().int().min(0, 'Order must be a positive number.'),
 });
 
@@ -34,6 +36,7 @@ const TestimonialVideoForm: React.FC<TestimonialVideoFormProps> = ({ onSave, vid
     defaultValues: {
       title: '',
       videoUrl: '',
+      aspectRatio: '16:9',
       order: 0,
     },
   });
@@ -43,12 +46,14 @@ const TestimonialVideoForm: React.FC<TestimonialVideoFormProps> = ({ onSave, vid
       form.reset({
         title: video.title,
         videoUrl: video.videoUrl,
+        aspectRatio: video.aspectRatio || '16:9',
         order: video.order,
       });
     } else {
       form.reset({
         title: '',
         videoUrl: '',
+        aspectRatio: '16:9',
         order: 0,
       });
     }
@@ -100,6 +105,27 @@ const TestimonialVideoForm: React.FC<TestimonialVideoFormProps> = ({ onSave, vid
               <FormControl>
                 <Input placeholder="https://youtube.com/shorts/..." {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="aspectRatio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Aspect Ratio</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ratio" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="16:9">16:9 (Standard Widescreen)</SelectItem>
+                  <SelectItem value="9:16">9:16 (YouTube Shorts)</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

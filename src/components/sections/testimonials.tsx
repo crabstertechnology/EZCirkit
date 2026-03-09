@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from '../ui/button';
+import { cn } from '@/lib/utils';
 
 export interface Review {
   id: string;
@@ -36,6 +37,7 @@ interface TestimonialVideo {
   id: string;
   title: string;
   videoUrl: string;
+  aspectRatio: '16:9' | '9:16';
   order: number;
 }
 
@@ -182,19 +184,28 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
               <h3 className="text-2xl font-bold md:text-3xl">Student Success Stories</h3>
               <p className="text-muted-foreground mt-2">See what our community is creating with EZCirkit.</p>
             </div>
-            <div className="flex flex-wrap justify-center gap-8">
-              {videos.map((video) => (
-                <div key={video.id} className="w-full max-w-[320px] aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border relative group">
-                  <iframe
-                    src={getYoutubeEmbedUrl(video.videoUrl)} 
-                    title={video.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {videos.map((video) => {
+                const isShort = video.aspectRatio === '9:16';
+                return (
+                  <div 
+                    key={video.id} 
+                    className={cn(
+                      "w-full bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border relative group transition-all duration-300 hover:scale-[1.02]",
+                      isShort ? "aspect-[9/16] col-span-1 max-w-[320px] mx-auto" : "aspect-video md:col-span-2 lg:col-span-2 w-full"
+                    )}
+                  >
+                    <iframe
+                      src={getYoutubeEmbedUrl(video.videoUrl)} 
+                      title={video.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

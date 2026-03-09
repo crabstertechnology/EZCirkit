@@ -27,11 +27,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface TestimonialVideo {
   id: string;
   title: string;
   videoUrl: string;
+  aspectRatio: '16:9' | '9:16';
   order: number;
   createdAt: any;
 }
@@ -102,51 +104,60 @@ const AdminTestimonialsPage = () => {
             <p className="text-center py-8 text-muted-foreground">No video testimonials found. Click "Add Testimonial Video" to get started.</p>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos?.map((video) => (
-              <Card key={video.id} className="overflow-hidden">
-                <div className="aspect-[9/16] bg-black relative group">
-                   <iframe
-                    src={getYoutubeEmbedUrl(video.videoUrl)}
-                    title={video.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
-                </div>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-bold truncate" title={video.title}>{video.title}</h3>
-                    <Badge variant="secondary">Order: {video.order}</Badge>
+            {videos?.map((video) => {
+              const isShort = video.aspectRatio === '9:16';
+              return (
+                <Card key={video.id} className="overflow-hidden">
+                  <div className={cn(
+                    "bg-black relative group",
+                    isShort ? "aspect-[9/16]" : "aspect-video"
+                  )}>
+                     <iframe
+                      src={getYoutubeEmbedUrl(video.videoUrl)}
+                      title={video.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate" title={video.videoUrl}>{video.videoUrl}</p>
-                </CardContent>
-                <CardFooter className="p-4 border-t flex justify-end gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenForm(video)}>
-                    <Edit className="mr-2 h-4 w-4" /> Edit
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently remove this success story from your homepage.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(video.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </CardFooter>
-              </Card>
-            ))}
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <h3 className="font-bold truncate" title={video.title}>{video.title}</h3>
+                      <Badge variant="secondary">Order: {video.order}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">{video.aspectRatio || 'Unknown Ratio'}</Badge>
+                      <p className="text-xs text-muted-foreground truncate" title={video.videoUrl}>{video.videoUrl}</p>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 border-t flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleOpenForm(video)}>
+                      <Edit className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently remove this success story from your homepage.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(video.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
