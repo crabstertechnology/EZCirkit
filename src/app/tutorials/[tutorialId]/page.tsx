@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -224,11 +222,12 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
                     {/* Top Bar */}
                     <Card>
                         <CardContent className="p-4 flex justify-between items-center">
-                            <div>
+                            <div className="flex-1">
                                 <p className="text-sm text-muted-foreground">Chapter {currentChapter?.order}: {currentChapter?.title}</p>
                                 <p className="text-lg font-bold">{tutorial.title}</p>
+                                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{tutorial.description}</p>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right ml-4">
                                 <p className="text-lg font-bold">{allTutorials.length}</p>
                                 <p className="text-sm text-muted-foreground">Total Tutorials</p>
                             </div>

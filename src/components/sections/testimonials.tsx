@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -150,6 +149,26 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
             {reviews?.map((review) => <ReviewCard key={review.id} review={review} />)}
           </div>
         )}
+
+        {/* Video Testimonials Section */}
+        <div className="my-16 space-y-8">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold md:text-3xl">Student Success Stories</h3>
+            <p className="text-muted-foreground mt-2">See what our community is creating with EZCirkit.</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-8">
+            <div className="w-full max-w-[320px] aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border relative group">
+              <iframe
+                src="https://www.youtube.com/embed/c8qLXmIy4LY" 
+                title="YouTube Shorts Testimonial"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full"
+              ></iframe>
+            </div>
+          </div>
+        </div>
         
         <ReviewForm productId={PRODUCT_DOC_ID} existingReviews={reviews || []} />
         

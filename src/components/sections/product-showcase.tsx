@@ -181,6 +181,10 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               </span>}
             </div>
 
+            {product.description && (
+              <p className="text-foreground/70 whitespace-pre-wrap leading-relaxed">{product.description}</p>
+            )}
+
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {PRODUCT_FEATURES.map((feature, index) => (
                 <div key={index} className="flex items-center gap-2">
