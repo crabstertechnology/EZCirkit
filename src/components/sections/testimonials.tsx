@@ -4,8 +4,8 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import StarRating from '@/components/shared/star-rating';
-import { useFirestore, deleteDocumentNonBlocking, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, deleteDocumentNonBlocking, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import ReviewForm from './review-form';
 import { Skeleton } from '../ui/skeleton';
 import { Trash2 } from 'lucide-react';
@@ -30,6 +30,13 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: { toDate: () => Date };
+}
+
+interface TestimonialVideo {
+  id: string;
+  title: string;
+  videoUrl: string;
+  order: number;
 }
 
 const PRODUCT_DOC_ID = 'pro1'; 
@@ -104,6 +111,24 @@ const ReviewCard = ({ review }: { review: Review }) => {
 
 
 const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isLoadingReviews }) => {
+  const firestore = useFirestore();
+
+  const videosQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'testimonialVideos'), orderBy('order', 'asc')) : null),
+    [firestore]
+  );
+  const { data: videos, isLoading: isLoadingVideos } = useCollection<TestimonialVideo>(videosQuery);
+
+  const getYoutubeEmbedUrl = (url: string) => {
+    if (!url) return '';
+    const shortsMatch = url.match(/shorts\/([\w-]{11})/);
+    if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+    
+    const ytMatch = url.match(/(?:embed\/|v=|\/)([\w-]{11})(?:\?|&|#|$)/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    
+    return url;
+  };
 
   return (
     <section id="testimonials" className="py-16 md:py-24 bg-secondary">
@@ -151,24 +176,28 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
         )}
 
         {/* Video Testimonials Section */}
-        <div className="my-16 space-y-8">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold md:text-3xl">Student Success Stories</h3>
-            <p className="text-muted-foreground mt-2">See what our community is creating with EZCirkit.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-8">
-            <div className="w-full max-w-[320px] aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border relative group">
-              <iframe
-                src="https://www.youtube.com/embed/c8qLXmIy4LY" 
-                title="YouTube Shorts Testimonial"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="w-full h-full"
-              ></iframe>
+        {(!isLoadingVideos && videos && videos.length > 0) && (
+          <div className="my-16 space-y-8">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold md:text-3xl">Student Success Stories</h3>
+              <p className="text-muted-foreground mt-2">See what our community is creating with EZCirkit.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-8">
+              {videos.map((video) => (
+                <div key={video.id} className="w-full max-w-[320px] aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border relative group">
+                  <iframe
+                    src={getYoutubeEmbedUrl(video.videoUrl)} 
+                    title={video.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="w-full h-full"
+                  ></iframe>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
         
         <ReviewForm productId={PRODUCT_DOC_ID} existingReviews={reviews || []} />
         

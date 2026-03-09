@@ -1,6 +1,5 @@
-
 import { placeholderImages } from './placeholder-images';
-import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video } from 'lucide-react';
 
 export const SHIPPING_COST = 0;
 
@@ -19,6 +18,7 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/messages', label: 'Messages', icon: Mail },
+  { href: '/admin/testimonials', label: 'Testimonials', icon: Video },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
