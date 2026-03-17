@@ -1,10 +1,10 @@
-
 'use client';
 
 import React from 'react';
 import HeroSection from '@/components/sections/hero';
 import StatsSection from '@/components/sections/stats';
 import FeaturesSection from '@/components/sections/features';
+import BrochureSection from '@/components/sections/brochure';
 import ProductShowcase from '@/components/sections/product-showcase';
 import Testimonials from '@/components/sections/testimonials';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -44,6 +44,7 @@ export default function Home() {
       />
       <StatsSection averageRating={averageRating} isLoading={isLoadingReviews} />
       <FeaturesSection />
+      <BrochureSection />
       <ProductShowcase 
         reviews={reviews}
         averageRating={averageRating}

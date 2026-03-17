@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Minus, Plus, Truck, PackageX } from 'lucide-react';
+import { Check, Minus, Plus, Truck, PackageX, FileText } from 'lucide-react';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { PRODUCT_FEATURES } from '@/lib/constants';
 import { useCart } from '@/context/cart-context';
@@ -146,7 +146,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselNext className="right-4" />
             </Carousel>
             <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-[hsl(var(--color-green))] text-white border-none">
-              Save 16.7%
+              Save 50%
             </Badge>
              {isOutOfStock && (
               <Badge variant="destructive" className="absolute top-4 right-4 py-1.5 px-3 text-base font-bold border-none">
@@ -157,9 +157,16 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
 
           {/* Right Column: Product Info */}
           <div className="space-y-6">
-            <h2 className="text-3xl md:text-4xl font-extrabold font-headline">
-              {product.name}
-            </h2>
+            <div className="flex justify-between items-start">
+              <h2 className="text-3xl md:text-4xl font-extrabold font-headline">
+                {product.name}
+              </h2>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" asChild>
+                <a href="/brochure.pdf" target="_blank" rel="noopener noreferrer">
+                  <FileText className="mr-2 h-4 w-4" /> Brochure
+                </a>
+              </Button>
+            </div>
             
              {isLoadingReviews ? (
                 <Skeleton className="h-6 w-48" />
