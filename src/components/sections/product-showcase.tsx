@@ -183,9 +183,9 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
              )}
 
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-primary">â‚¹{product.price}</span>
+              <span className="text-4xl font-bold text-primary">₹{product.price}</span>
               {product.originalPrice && <span className="text-xl text-foreground/50 line-through">
-                â‚¹{product.originalPrice}
+                ₹{product.originalPrice}
               </span>}
             </div>
 
