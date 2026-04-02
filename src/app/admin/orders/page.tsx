@@ -57,6 +57,13 @@ interface Order {
   userEmail?: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+}
+
 type SortOption = 'date_desc' | 'date_asc' | 'status_asc' | 'status_desc';
 
 const STATUS_SORT_ORDER: Order['status'][] = ['paid', 'shipped', 'delivered', 'cancelled'];
@@ -73,6 +80,7 @@ const OrdersPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [newOrderUserId, setNewOrderUserId] = React.useState<string>('');
   const [newOrderTotal, setNewOrderTotal] = React.useState<string>('');
+  const [newOrderProductId, setNewOrderProductId] = React.useState<string>('none');
   const [isAddingOrder, setIsAddingOrder] = React.useState(false);
 
   const usersQuery = useMemoFirebase(
@@ -80,6 +88,12 @@ const OrdersPage = () => {
     [firestore]
   );
   const { data: allUsers } = useCollection<User>(usersQuery);
+
+  const productsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'products') : null),
+    [firestore]
+  );
+  const { data: allProducts } = useCollection<Product>(productsQuery);
 
 
   React.useEffect(() => {
@@ -94,11 +108,11 @@ const OrdersPage = () => {
              const orderData = doc.data() as Omit<Order, 'id'>;
              if (orderData.createdAt) { // Guard against missing createdAt
                 aggregatedOrders.push({
+                  ...orderData,
                   id: doc.id,
-                  ...(orderData as Order),
                   userName: user.displayName,
                   userEmail: user.email,
-                });
+                } as Order);
              }
            });
         }
@@ -165,6 +179,19 @@ const OrdersPage = () => {
         };
         const docRef = await addDoc(collection(firestore, 'users', newOrderUserId, 'orders'), orderData);
         
+        if (newOrderProductId !== 'none') {
+            const selectedProduct = allProducts?.find(p => p.id === newOrderProductId);
+            if (selectedProduct) {
+                const itemData = {
+                    name: selectedProduct.name,
+                    price: selectedProduct.price, // Or we could use newOrderTotal, but product price is fine
+                    quantity: 1,
+                    image: selectedProduct.image,
+                };
+                await addDoc(collection(firestore, 'users', newOrderUserId, 'orders', docRef.id, 'items'), itemData);
+            }
+        }
+        
         // Optimistically update UI
         const selectedUser = allUsers?.find(u => u.id === newOrderUserId);
         const newOrder: Order = {
@@ -182,6 +209,7 @@ const OrdersPage = () => {
         setIsAddModalOpen(false);
         setNewOrderUserId('');
         setNewOrderTotal('');
+        setNewOrderProductId('none');
     } catch (error) {
         console.error("Error adding offline order:", error);
         toast({ title: 'Error adding order', variant: 'destructive' });
@@ -386,6 +414,31 @@ const OrdersPage = () => {
                                 {allUsers?.map((user) => (
                                     <SelectItem key={user.id} value={user.id}>
                                         {user.displayName || user.email || user.id} {user.email ? `(${user.email})` : ''}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Select Product</Label>
+                        <Select 
+                            value={newOrderProductId} 
+                            onValueChange={(val) => {
+                                setNewOrderProductId(val);
+                                if (val !== 'none') {
+                                    const prod = allProducts?.find(p => p.id === val);
+                                    if (prod) setNewOrderTotal(prod.price.toString());
+                                }
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a product (Optional)" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-64">
+                                <SelectItem value="none">None (Custom Order)</SelectItem>
+                                {allProducts?.map((prod) => (
+                                    <SelectItem key={prod.id} value={prod.id}>
+                                        {prod.name} (₹{prod.price})
                                     </SelectItem>
                                 ))}
                             </SelectContent>

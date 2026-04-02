@@ -299,12 +299,18 @@ const OrderDetailsComponent = () => {
               <CardTitle>Shipping Address</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
-              <p className="font-semibold">{order.shippingAddress.name}</p>
-              <p>{order.shippingAddress.phone}</p>
-              <p>{order.shippingAddress.addressLine1}</p>
-              {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
-              <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</p>
-              <p>{order.shippingAddress.country}</p>
+              {order.shippingAddress ? (
+                <>
+                  <p className="font-semibold">{order.shippingAddress.name}</p>
+                  <p>{order.shippingAddress.phone}</p>
+                  <p>{order.shippingAddress.addressLine1}</p>
+                  {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
+                  <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</p>
+                  <p>{order.shippingAddress.country}</p>
+                </>
+              ) : (
+                 <p className="text-muted-foreground italic">No shipping details provided (Offline Order).</p>
+              )}
             </CardContent>
           </Card>
 
@@ -319,7 +325,7 @@ const OrderDetailsComponent = () => {
                  </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Payment ID</span>
-                    <span className="font-mono text-xs">{order.paymentId}</span>
+                    <span className="font-mono text-xs">{order.paymentId || 'N/A'}</span>
                  </div>
                  <Separator />
                   <div className="flex justify-between font-bold text-lg">
