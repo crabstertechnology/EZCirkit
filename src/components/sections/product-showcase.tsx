@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -146,7 +147,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselNext className="right-4" />
             </Carousel>
             <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-[hsl(var(--color-green))] text-white border-none">
-              Save 50%
+              Save 16.7 %
             </Badge>
              {isOutOfStock && (
               <Badge variant="destructive" className="absolute top-4 right-4 py-1.5 px-3 text-base font-bold border-none">
@@ -195,7 +196,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {PRODUCT_FEATURES.map((feature, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-[hsl(var(--color-green))]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   <span className="text-sm">{feature}</span>
                 </div>
               ))}
