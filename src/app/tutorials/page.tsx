@@ -318,7 +318,7 @@ export default function TutorialsPage() {
       const ordersRef = collection(firestore, 'users', user.uid, 'orders');
       const q = query(
         ordersRef,
-        where('status', '==', 'paid')
+        where('status', 'in', ['paid', 'shipped', 'delivered'])
       );
       try {
         const querySnapshot = await getDocs(q);
