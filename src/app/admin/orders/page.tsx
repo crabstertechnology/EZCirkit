@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, addDoc, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,6 +39,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Order {
   id: string;
@@ -63,6 +70,10 @@ const OrdersPage = () => {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
   const [sortOption, setSortOption] = React.useState<SortOption>('date_desc');
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
+  const [newOrderUserId, setNewOrderUserId] = React.useState<string>('');
+  const [newOrderTotal, setNewOrderTotal] = React.useState<string>('');
+  const [isAddingOrder, setIsAddingOrder] = React.useState(false);
 
   const usersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'users') : null),
@@ -138,6 +149,47 @@ const OrdersPage = () => {
     setFilteredOrders(filtered);
   }, [searchQuery, allOrders, sortOption]);
 
+  const handleAddOfflineOrder = async () => {
+    if (!firestore || !newOrderUserId || !newOrderTotal || isNaN(Number(newOrderTotal))) {
+        toast({ title: 'Please select a user and enter a valid total', variant: 'destructive' });
+        return;
+    }
+    setIsAddingOrder(true);
+    try {
+        const orderData = {
+            userId: newOrderUserId,
+            total: Number(newOrderTotal),
+            status: 'paid',
+            createdAt: Timestamp.now(),
+            isOfflineOrder: true,
+        };
+        const docRef = await addDoc(collection(firestore, 'users', newOrderUserId, 'orders'), orderData);
+        
+        // Optimistically update UI
+        const selectedUser = allUsers?.find(u => u.id === newOrderUserId);
+        const newOrder: Order = {
+            id: docRef.id,
+            userId: newOrderUserId,
+            total: Number(newOrderTotal),
+            status: 'paid',
+            createdAt: Timestamp.now() as any,
+            userName: selectedUser?.displayName,
+            userEmail: selectedUser?.email,
+        };
+        setAllOrders(prev => [newOrder, ...prev]);
+
+        toast({ title: 'Offline Order Added Successfully' });
+        setIsAddModalOpen(false);
+        setNewOrderUserId('');
+        setNewOrderTotal('');
+    } catch (error) {
+        console.error("Error adding offline order:", error);
+        toast({ title: 'Error adding order', variant: 'destructive' });
+    } finally {
+        setIsAddingOrder(false);
+    }
+  };
+
   const handleRowClick = (order: Order) => {
     router.push(`/admin/orders/${order.id}?userId=${order.userId}`);
   };
@@ -163,7 +215,10 @@ const OrdersPage = () => {
         <h1 className="text-3xl font-bold">Order Management</h1>
         <Card>
           <CardHeader>
-            <CardTitle>All Orders</CardTitle>
+            <div className="flex items-center justify-between">
+                <CardTitle>All Orders</CardTitle>
+                <Button onClick={() => setIsAddModalOpen(true)}>Add Offline Order</Button>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 mt-4">
                 <div className="flex-1">
                   <Label htmlFor="search-orders" className="sr-only">Search Orders</Label>
@@ -314,6 +369,47 @@ const OrdersPage = () => {
 
           </CardContent>
         </Card>
+
+        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add Manual Offline Order</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Select User</Label>
+                        <Select value={newOrderUserId} onValueChange={setNewOrderUserId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a customer" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-64">
+                                {allUsers?.map((user) => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                        {user.displayName || user.email || user.id} {user.email ? `(${user.email})` : ''}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Order Total (₹)</Label>
+                        <Input 
+                            type="number" 
+                            placeholder="Enter total amount" 
+                            value={newOrderTotal}
+                            onChange={(e) => setNewOrderTotal(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddOfflineOrder} disabled={isAddingOrder}>
+                        {isAddingOrder ? "Adding..." : "Add Order"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       </div>
   );
 };

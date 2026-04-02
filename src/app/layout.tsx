@@ -27,12 +27,12 @@ export default function RootLayout({
   const isAdminPage = pathname.startsWith('/admin');
 
   return (
-    <html lang="en" className="!scroll-smooth">
+    <html lang="en" className="!scroll-smooth" suppressHydrationWarning>
       <head>
       <title>EZCirkit-Crabster Technology</title>
         <meta name="description" content="Learn Electronics Made Easy with crabster" />
       </head>
-      <body className={cn('font-body antialiased')}>
+      <body className={cn('font-body antialiased')} suppressHydrationWarning>
         <Script src="https://checkout.razorpay.com/v1/checkout.js"></Script>
         <FirebaseClientProvider>
           <CartProvider>

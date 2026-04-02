@@ -55,9 +55,8 @@ service cloud.firestore {
         // Admins can read all orders. Users can only read their own.
         allow get, list: if isAdmin() || isOwner(userId);
         
-        // A user can create their own order, ensuring the userId in the document matches THEIR OWN auth uid.
-        // This is the primary rule for the order document part of the batch write.
-        allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+        // A user can create their own order, ensuring the userId in the document matches THEIR OWN auth uid. Admins can create orders for anyone.
+        allow create: if isAdmin() || (isOwner(userId) && request.resource.data.userId == request.auth.uid);
         
         // Admins can update the status, but other fields are immutable for others.
         allow update: if isAdmin() && isChangingOrderStatus();
