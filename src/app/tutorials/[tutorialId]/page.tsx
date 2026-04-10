@@ -70,7 +70,7 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
         const chaptersRef = collection(firestore, 'tutorialChapters');
         const chaptersQuery = query(chaptersRef, orderBy('order'));
         const chapterSnapshots = await getDocs(chaptersQuery);
-        const fetchedChapters = chapterSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data(), tutorials: [] } as TutorialChapter));
+        const fetchedChapters = chapterSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data(), tutorials: [] } as unknown as TutorialChapter));
 
         const tutorialPromises = fetchedChapters.map(chapter => 
             getDocs(query(collection(firestore, `tutorialChapters/${chapter.id}/tutorials`), orderBy('order')))
