@@ -49,8 +49,9 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
     () => (user && !isUserLoading ? doc(firestore, 'users', user.uid) : null),
     [firestore, user, isUserLoading]
   );
-  const { data: userData } = useDoc<{ isAdmin?: boolean }>(userDocRef);
+  const { data: userData } = useDoc<{ isAdmin?: boolean, hasTutorialAccess?: boolean }>(userDocRef);
   const isAdmin = userData?.isAdmin ?? false;
+  const hasTutorialAccess = userData?.hasTutorialAccess ?? false;
 
   useEffect(() => {
     const findAndLoadData = async () => {
@@ -101,7 +102,9 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
   const { data: tutorial, isLoading: isLoadingTutorial } = useDoc<Tutorial>(tutorialRef);
 
   useEffect(() => {
-    if (isAdmin) {
+    let isActive = true;
+
+    if (isAdmin || hasTutorialAccess) {
         setHasPurchased(true);
         setIsVerifying(false);
         return;
@@ -115,23 +118,33 @@ const TutorialPage = ({ params }: { params: { tutorialId: string } }) => {
 
     const verifyPurchase = async () => {
       if (!firestore) {
-        setIsVerifying(false);
+        if (isActive) setIsVerifying(false);
         return;
       }
       const ordersRef = collection(firestore, 'users', user.uid, 'orders');
-      const q = query(ordersRef, where('status', '==', 'paid'));
+      const q = query(ordersRef, where('status', 'in', ['paid', 'shipped', 'delivered']));
       try {
         const querySnapshot = await getDocs(q);
-        setHasPurchased(!querySnapshot.empty);
+        if (isActive) {
+          setHasPurchased(!querySnapshot.empty);
+        }
       } catch (error) {
         console.error("Error verifying purchase:", error);
-        setHasPurchased(false);
+        if (isActive) {
+          setHasPurchased(false);
+        }
       } finally {
-        setIsVerifying(false);
+        if (isActive) {
+          setIsVerifying(false);
+        }
       }
     };
     verifyPurchase();
-  }, [user, isUserLoading, firestore, isAdmin]);
+
+    return () => {
+      isActive = false;
+    };
+  }, [user, isUserLoading, firestore, isAdmin, hasTutorialAccess]);
 
   const isLoading = isUserLoading || isVerifying || isLoadingTutorial || isLoadingCourseData;
 
