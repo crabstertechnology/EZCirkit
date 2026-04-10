@@ -34,8 +34,8 @@ service cloud.firestore {
       allow read: if isAdmin() || isOwner(userId);
       // Admins can write to any user document. Users can only update their own.
       // Create and delete are implicitly denied for the base user doc unless specified.
-      allow update: if isAdmin() || isOwner(userId);
-      allow create: if isOwner(userId); // A user can be created
+      allow update: if isAdmin() || (isOwner(userId) && !((request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'hasTutorialAccess']))));
+      allow create: if isOwner(userId) && request.resource.data.get('isAdmin', false) == false && request.resource.data.get('hasTutorialAccess', false) == false; // A user can be created but they cannot grant themselves privileges
       allow delete: if false; // Users should not be deletable this way
 
       match /addresses/{addressId} {

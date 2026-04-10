@@ -29,6 +29,7 @@ export interface User {
   photoURL: string;
   createdAt: string;
   isAdmin: boolean;
+  hasTutorialAccess?: boolean;
 }
 
 type SortOption = 'role_desc' | 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc';

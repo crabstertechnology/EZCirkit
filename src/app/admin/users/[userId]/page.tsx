@@ -102,6 +102,15 @@ const UserDetailsPage = () => {
     setIsConfirmingRoleChange(true);
   };
   
+  const handleTutorialAccessToggle = (hasAccess: boolean) => {
+    if (!userDocRef || !user) return;
+    updateDocumentNonBlocking(userDocRef, { hasTutorialAccess: hasAccess });
+    toast({
+      title: 'Tutorial Access Updated',
+      description: `${user.displayName} now ${hasAccess ? 'has' : 'does not have'} free access to tutorials.`,
+    });
+  };
+
   const confirmRoleChange = () => {
     if (!userDocRef || !user || nextAdminState === null) return;
     
@@ -169,6 +178,22 @@ const UserDetailsPage = () => {
                         </div>
                     </CardContent>
                     <CardFooter className="flex-col items-start gap-4">
+                        <Separator />
+                        <div className="flex items-center justify-between w-full gap-4">
+                            <div className="flex-1 space-y-1">
+                                <Label htmlFor="tutorial-access" className="block font-medium">
+                                    Free Tutorial Access
+                                </Label>
+                                <span className="text-xs text-muted-foreground block">
+                                    Grant access to tutorials without requiring a kit purchase.
+                                </span>
+                            </div>
+                            <Switch
+                                id="tutorial-access"
+                                checked={user.hasTutorialAccess ?? false}
+                                onCheckedChange={handleTutorialAccessToggle}
+                            />
+                        </div>
                         <Separator />
                         <div className="flex items-center justify-between w-full">
                             <Label htmlFor="admin-role" className={authUser?.uid === userId ? 'text-muted-foreground' : ''}>
