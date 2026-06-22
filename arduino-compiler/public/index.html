@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arduino Online IDE & Flasher</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  <!-- RequireJS for Monaco Editor -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+</head>
+<body class="dark-theme">
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-container">
+          <div class="logo-glow"></div>
+          <img src="logo.png" alt="Logo" class="logo-image">
+        </div>
+        <div class="badge">Arduino Uno</div>
+      </div>
+      
+      <div class="header-actions">
+        <!-- Connection -->
+        <button class="btn btn-secondary btn-glow-blue" id="connectPortBtn">
+          <i data-lucide="usb"></i>
+          <span id="portStatusText">Connect Board</span>
+        </button>
+
+        <!-- Compile & Upload -->
+        <button class="btn btn-primary btn-glow-green" id="verifyBtn" title="Verify / Compile">
+          <i data-lucide="check"></i>
+          <span>Verify</span>
+        </button>
+        
+        <button class="btn btn-success btn-glow-purple" id="uploadBtn" title="Upload to Board" disabled>
+          <i data-lucide="arrow-right-circle"></i>
+          <span>Upload</span>
+        </button>
+
+        <button class="btn btn-accent btn-glow-orange" id="serialToggleBtn">
+          <i data-lucide="terminal"></i>
+          <span>Serial Monitor</span>
+        </button>
+      </div>
+      <div class="header-right-placeholder"></div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Left Panel: Code Editor -->
+      <section class="panel editor-panel">
+        <div class="panel-header" style="position: relative;">
+          <div class="panel-title">
+            <i data-lucide="code-2"></i>
+            <span>sketch.ino</span>
+          </div>
+          <div class="editor-actions" style="display: flex; align-items: center; gap: 8px;">
+            <span class="status-indicator success" id="editorStatus">Ready</span>
+            <span class="compile-percentage-text" id="compileProgressText" style="display: none;">0%</span>
+          </div>
+          <div class="compile-progress-bar-container" id="compileProgressBarContainer" style="display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: var(--bg-secondary);">
+            <div class="compile-progress-bar" id="compileProgressBar" style="height: 100%; width: 0%; background: var(--color-primary); transition: width 0.1s ease-out;"></div>
+          </div>
+        </div>
+        <div class="panel-body" id="editorContainer">
+          <!-- Monaco Editor goes here -->
+          <div class="loading-editor">
+            <div class="spinner"></div>
+            <p>Loading editor environment...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Combined Console and Serial Monitor -->
+      <section class="panel tool-panel" id="toolPanel">
+        <!-- Tab Headers -->
+        <div class="panel-header tab-header">
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="console">
+              <i data-lucide="terminal-square"></i>
+              <span>Compiler Output</span>
+            </button>
+            <button class="tab-btn" data-tab="serial">
+              <i data-lucide="activity"></i>
+              <span>Serial Monitor</span>
+            </button>
+          </div>
+          <div class="tab-actions">
+            <button class="icon-btn" id="clearConsoleBtn" title="Clear Logs">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="panel-body tab-container">
+          <!-- Console Output -->
+          <div class="tab-content active" id="consoleTab">
+            <div class="terminal-view" id="consoleTerminal">
+              <div class="log-line system">Welcome to Online Arduino IDE.</div>
+              <div class="log-line info">1. Write your Arduino C++ code in the editor.</div>
+              <div class="log-line info">2. Connect your Arduino Uno board via USB.</div>
+              <div class="log-line info">3. Click "Verify" to compile.</div>
+              <div class="log-line info">4. Click "Upload" to flash the code onto your board.</div>
+            </div>
+          </div>
+
+          <!-- Serial Monitor -->
+          <div class="tab-content" id="serialTab">
+            <div class="serial-controls">
+              <div class="control-group">
+                <label for="baudRateSelect">Baud Rate:</label>
+                <select id="baudRateSelect" class="input-select">
+                  <option value="300">300</option>
+                  <option value="1200">1200</option>
+                  <option value="2400">2400</option>
+                  <option value="4800">4800</option>
+                  <option value="9600" selected>9600</option>
+                  <option value="19200">19200</option>
+                  <option value="38400">38400</option>
+                  <option value="57600">57600</option>
+                  <option value="74880">74880</option>
+                  <option value="115200">115200</option>
+                  <option value="230400">230400</option>
+                  <option value="250000">250000</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="autoscrollCheck" checked>
+                  <span class="checkmark"></span>
+                  Autoscroll
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" id="showTimestampCheck">
+                  <span class="checkmark"></span>
+                  Timestamp
+                </label>
+              </div>
+              
+              <button class="btn btn-secondary btn-sm" id="clearSerialBtn">
+                <i data-lucide="ban"></i> Clear
+              </button>
+            </div>
+
+            <!-- Serial Input Bar -->
+            <div class="serial-input-bar">
+              <input type="text" id="serialInput" placeholder="Type message to send..." disabled>
+              <select id="lineEndingSelect" class="input-select select-sm">
+                <option value="none">No line ending</option>
+                <option value="nl" selected>Newline (\n)</option>
+                <option value="cr">Carriage return (\r)</option>
+                <option value="nlcr">Both NL & CR</option>
+              </select>
+              <button class="btn btn-primary btn-sm" id="sendSerialBtn" disabled>Send</button>
+            </div>
+
+            <!-- Serial Terminal -->
+            <div class="terminal-view serial-terminal" id="serialTerminal">
+              <div class="log-line system">Serial Monitor is closed. Connect port and open monitor to begin.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <i data-lucide="radio" class="status-pulse-green"></i>
+        <span id="footerConnectionText">Discovered: No device selected</span>
+      </div>
+      <div class="footer-right">
+        <span>Web Serial API: <strong class="badge success" id="webSerialSupport">Supported</strong></span>
+        <span class="footer-sep">|</span>
+        <span>v1.0.0</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Javascript File -->
+  <script src="app.js"></script>
+</body>
+</html>

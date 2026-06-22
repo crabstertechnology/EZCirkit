@@ -8,6 +8,7 @@ export const NAV_LINKS = [
   { href: '/#features', label: 'Features' },
   { href: '/#products', label: 'Products' },
   { href: '/tutorials', label: 'Tutorials'},
+  { href: '/ide/index.html', label: 'EZCirkit IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
 
