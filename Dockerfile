@@ -41,12 +41,12 @@ RUN arduino-cli lib install \
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package*.json ./
+COPY arduino-compiler/package*.json ./
 RUN npm install --only=production
 
 # Copy server code
-COPY server.js ./
-COPY public/ ./public
+COPY arduino-compiler/server.js ./
+COPY arduino-compiler/public/ ./public
 
 # Expose port
 EXPOSE 3000
