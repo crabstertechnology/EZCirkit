@@ -347,6 +347,115 @@ function setupEventListeners() {
   });
 
   sendSerialBtn.addEventListener('click', sendSerialData);
+
+  // --- Tutorials / YouTube Video Integration ---
+  const serialVideoBtn = document.getElementById('serialVideoBtn');
+  const serialVideoMenu = document.getElementById('serialVideoMenu');
+  const videoTabBtn = document.querySelector('.tab-btn[data-tab="video"]');
+  const youtubeIframe = document.getElementById('youtubeIframe');
+  const videoPlaceholder = document.getElementById('videoPlaceholder');
+  const videoPlayerContainer = document.getElementById('videoPlayerContainer');
+  const videoPlayerTitle = document.getElementById('videoPlayerTitle');
+  const customVideoUrlInput = document.getElementById('customVideoUrlInput');
+  
+  // Toggle Tutorials Dropdown
+  if (serialVideoBtn && serialVideoMenu) {
+    serialVideoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      serialVideoMenu.classList.toggle('show');
+    });
+  }
+
+  // Close dropdown on click outside
+  document.addEventListener('click', () => {
+    if (serialVideoMenu) {
+      serialVideoMenu.classList.remove('show');
+    }
+  });
+
+  // Extract YouTube ID from URL
+  function getYoutubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  // Play Video function
+  function playVideo(videoId, title) {
+    if (!videoId) return;
+    
+    // Set active tab to video tab
+    if (videoTabBtn) {
+      videoTabBtn.click();
+    }
+    
+    // Update player UI
+    videoPlayerTitle.textContent = title || "YouTube Tutorial";
+    youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    videoPlaceholder.style.display = 'none';
+    videoPlayerContainer.style.display = 'flex';
+  }
+
+  // recommended-video-dropdown-btn click handler
+  document.querySelectorAll('.recommended-video-dropdown-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const videoId = btn.getAttribute('data-video-id');
+      const title = btn.getAttribute('data-video-title');
+      playVideo(videoId, title);
+    });
+  });
+
+  // video-card click handler (inside tab placeholder)
+  document.querySelectorAll('.video-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const videoId = card.getAttribute('data-video-id');
+      const title = card.getAttribute('data-video-title');
+      playVideo(videoId, title);
+    });
+  });
+
+  // Add Custom Video Button in dropdown
+  const addCustomVideoBtn = document.getElementById('addCustomVideoBtn');
+  if (addCustomVideoBtn) {
+    addCustomVideoBtn.addEventListener('click', () => {
+      const url = prompt("Enter YouTube video link (e.g. https://www.youtube.com/watch?v=...):");
+      if (url) {
+        const id = getYoutubeId(url);
+        if (id) {
+          playVideo(id, "Custom Video");
+        } else {
+          alert("Invalid YouTube URL. Please try again.");
+        }
+      }
+    });
+  }
+
+  // Load Custom Video Button (inside tab placeholder)
+  const loadCustomVideoBtn = document.getElementById('loadCustomVideoBtn');
+  if (loadCustomVideoBtn && customVideoUrlInput) {
+    loadCustomVideoBtn.addEventListener('click', () => {
+      const url = customVideoUrlInput.value.trim();
+      if (url) {
+        const id = getYoutubeId(url);
+        if (id) {
+          playVideo(id, "Custom Video");
+          customVideoUrlInput.value = '';
+        } else {
+          alert("Invalid YouTube URL. Please try again.");
+        }
+      }
+    });
+  }
+
+  // Back to tutorials button (inside player header)
+  const backToTutorialsBtn = document.getElementById('backToTutorialsBtn');
+  if (backToTutorialsBtn) {
+    backToTutorialsBtn.addEventListener('click', () => {
+      youtubeIframe.src = '';
+      videoPlayerContainer.style.display = 'none';
+      videoPlaceholder.style.display = 'flex';
+    });
+  }
 }
 
 // -------------------------------------------------------------

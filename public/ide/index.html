@@ -17,6 +17,70 @@
 </head>
 <body class="dark-theme">
   <div class="app-container">
+    <!-- Global Site Sidebar -->
+    <div class="sidebar-wrapper">
+      <aside class="site-sidebar">
+        <div class="sidebar-logo-container">
+          <a href="/" class="sidebar-logo">
+            <img src="/logo.png" alt="Crabster Logo">
+            <span>Crabster</span>
+          </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="sidebar-nav">
+          <a href="/"><i data-lucide="home"></i> <span>Home</span></a>
+          <a href="/#features"><i data-lucide="zap"></i> <span>Features</span></a>
+          <a href="/#products"><i data-lucide="shopping-bag"></i> <span>Products</span></a>
+          <a href="/tutorials"><i data-lucide="book-open"></i> <span>Tutorials</span></a>
+          <a href="/ide/index.html" class="active"><i data-lucide="code-2"></i> <span>EZCirkit IDE</span></a>
+          <a href="/#testimonials"><i data-lucide="star"></i> <span>Reviews</span></a>
+        </nav>
+
+        <!-- Sidebar Bottom Actions -->
+        <div class="sidebar-bottom">
+          <a href="/cart" class="sidebar-cart-btn" title="Shopping Cart">
+            <i data-lucide="shopping-cart"></i>
+            <span>Cart</span>
+            <span class="cart-badge" id="headerCartCount" style="display: none;">0</span>
+          </a>
+
+          <!-- User Profile Dropdown -->
+          <div class="user-profile-dropdown" id="userProfileDropdown" style="display: none;">
+            <button class="avatar-btn" id="userAvatarBtn">
+              <span class="avatar-fallback" id="userAvatarFallback">U</span>
+              <span class="user-profile-name" id="sidebarUserName">User</span>
+            </button>
+            <div class="dropdown-menu" id="userDropdownMenu">
+              <div class="dropdown-header">
+                <div class="user-name" id="dropdownUserName">User</div>
+                <div class="user-email" id="dropdownUserEmail">user@example.com</div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a href="/profile" class="dropdown-item">
+                <i data-lucide="user"></i> Profile
+              </a>
+              <a href="/admin" class="dropdown-item" id="adminPanelLink" style="display: none;">
+                <i data-lucide="shield"></i> Admin Panel
+              </a>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item logout-btn" id="logoutBtn">
+                <i data-lucide="log-out"></i> Log out
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-buttons" id="authButtons" style="display: none;">
+            <a href="/login" class="btn-login"><i data-lucide="log-in"></i> <span>Login</span></a>
+            <a href="/signup" class="btn-signup"><i data-lucide="user-plus"></i> <span>Sign Up</span></a>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-layout">
+
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
@@ -92,6 +156,10 @@
               <i data-lucide="activity"></i>
               <span>Serial Monitor</span>
             </button>
+            <button class="tab-btn" data-tab="video">
+              <i data-lucide="youtube"></i>
+              <span>YouTube Video</span>
+            </button>
           </div>
           <div class="tab-actions">
             <button class="icon-btn" id="clearConsoleBtn" title="Clear Logs">
@@ -150,6 +218,29 @@
               <button class="btn btn-secondary btn-sm" id="clearSerialBtn">
                 <i data-lucide="ban"></i> Clear
               </button>
+
+              <div class="control-group video-dropdown-container">
+                <button class="btn btn-secondary btn-sm" id="serialVideoBtn">
+                  <i data-lucide="youtube"></i>
+                  <span>Tutorials</span>
+                  <i data-lucide="chevron-down" style="width:12px;height:12px;margin-left:4px;"></i>
+                </button>
+                <div class="dropdown-menu video-dropdown-menu" id="serialVideoMenu">
+                  <button class="dropdown-item" id="addCustomVideoBtn">
+                    <i data-lucide="plus-circle"></i> Add Custom Video
+                  </button>
+                  <div class="dropdown-divider"></div>
+                  <button class="dropdown-item recommended-video-dropdown-btn" data-video-id="d8_xXNcGYtM" data-video-title="Arduino LED Blink Tutorial">
+                    <i data-lucide="play-circle"></i> Arduino Blink Tutorial
+                  </button>
+                  <button class="dropdown-item recommended-video-dropdown-btn" data-video-id="zJ-LqeX_yLU" data-video-title="Arduino Uno Beginner Guide">
+                    <i data-lucide="play-circle"></i> Arduino Uno Guide
+                  </button>
+                  <button class="dropdown-item recommended-video-dropdown-btn" data-video-id="fJWR7dBuc18" data-video-title="Web Serial Setup Guide">
+                    <i data-lucide="play-circle"></i> Web Serial Guide
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Serial Input Bar -->
@@ -169,6 +260,59 @@
               <div class="log-line system">Serial Monitor is closed. Connect port and open monitor to begin.</div>
             </div>
           </div>
+
+          <!-- YouTube Video Tab -->
+          <div class="tab-content" id="videoTab">
+            <div class="video-tab-placeholder" id="videoPlaceholder">
+              <i data-lucide="youtube" class="placeholder-icon"></i>
+              <h3>Load YouTube Tutorial</h3>
+              <p>Paste a YouTube link or select a tutorial below to play it directly inside the IDE.</p>
+              
+              <div class="video-input-group">
+                <input type="text" id="customVideoUrlInput" placeholder="https://www.youtube.com/watch?v=...">
+                <button class="btn btn-primary btn-sm" id="loadCustomVideoBtn">Load Video</button>
+              </div>
+              
+              <div class="recommended-grid-title">Recommended Tutorials</div>
+              <div class="recommended-videos-grid">
+                <div class="video-card" data-video-id="d8_xXNcGYtM" data-video-title="Arduino LED Blink Tutorial">
+                  <div class="video-thumbnail">
+                    <img src="https://img.youtube.com/vi/d8_xXNcGYtM/mqdefault.jpg" alt="Blink LED">
+                    <div class="play-overlay"><i data-lucide="play"></i></div>
+                  </div>
+                  <div class="video-title">Arduino LED Blink Tutorial</div>
+                </div>
+                
+                <div class="video-card" data-video-id="zJ-LqeX_yLU" data-video-title="Arduino Uno Beginner Guide">
+                  <div class="video-thumbnail">
+                    <img src="https://img.youtube.com/vi/zJ-LqeX_yLU/mqdefault.jpg" alt="Beginner Guide">
+                    <div class="play-overlay"><i data-lucide="play"></i></div>
+                  </div>
+                  <div class="video-title">Arduino Uno Beginner Guide</div>
+                </div>
+                
+                <div class="video-card" data-video-id="fJWR7dBuc18" data-video-title="Web Serial Setup Guide">
+                  <div class="video-thumbnail">
+                    <img src="https://img.youtube.com/vi/fJWR7dBuc18/mqdefault.jpg" alt="Web Serial">
+                    <div class="play-overlay"><i data-lucide="play"></i></div>
+                  </div>
+                  <div class="video-title">Web Serial Connection Guide</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="video-player-container" id="videoPlayerContainer" style="display: none;">
+              <div class="video-player-header">
+                <h4 id="videoPlayerTitle">Arduino LED Blink Tutorial</h4>
+                <button class="btn btn-secondary btn-sm" id="backToTutorialsBtn">
+                  <i data-lucide="arrow-left"></i> Change Video
+                </button>
+              </div>
+              <div class="iframe-wrapper">
+                <iframe id="youtubeIframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -186,8 +330,120 @@
       </div>
     </footer>
   </div>
+</div>
 
   <!-- Javascript File -->
   <script src="app.js"></script>
+
+  <!-- Firebase Integration Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      projectId: "studio-2519724075-3b571",
+      appId: "1:1063677286444:web:d59cc52205c940edda5989",
+      apiKey: "AIzaSyAaRHpOOODgLR9sinxecEqb2u7s8iT9158",
+      authDomain: "studio-2519724075-3b571.firebaseapp.com",
+      messagingSenderId: "1063677286444"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // DOM Elements
+    const userProfileDropdown = document.getElementById('userProfileDropdown');
+    const authButtons = document.getElementById('authButtons');
+    const userAvatarFallback = document.getElementById('userAvatarFallback');
+    const dropdownUserName = document.getElementById('dropdownUserName');
+    const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+    const adminPanelLink = document.getElementById('adminPanelLink');
+    const headerCartCount = document.getElementById('headerCartCount');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userAvatarBtn = document.getElementById('userAvatarBtn');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+    // Toggle Dropdown
+    if (userAvatarBtn && userDropdownMenu) {
+      userAvatarBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdownMenu.classList.toggle('show');
+      });
+      document.addEventListener('click', () => {
+        userDropdownMenu.classList.remove('show');
+      });
+    }
+
+    // Sign Out
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await signOut(auth);
+          window.location.reload();
+        } catch (error) {
+          console.error("Sign out error", error);
+        }
+      });
+    }
+
+    // Auth State Listener
+    let unsubscribeCart = null;
+    onAuthStateChanged(auth, (user) => {
+      // Clean up previous cart listener if active
+      if (unsubscribeCart) {
+        unsubscribeCart();
+        unsubscribeCart = null;
+      }
+
+      if (user) {
+        if (authButtons) authButtons.style.display = 'none';
+        if (userProfileDropdown) userProfileDropdown.style.display = 'block';
+
+        // Set Initials
+        const name = user.displayName || '';
+        let initials = 'U';
+        if (name) {
+          const names = name.split(' ');
+          initials = names.length > 1 ? names[0][0] + names[names.length - 1][0] : name.substring(0, 2);
+        }
+        if (userAvatarFallback) userAvatarFallback.textContent = initials.toUpperCase();
+        if (dropdownUserName) dropdownUserName.textContent = user.displayName || 'User';
+        if (dropdownUserEmail) dropdownUserEmail.textContent = user.email;
+        const sidebarUserName = document.getElementById('sidebarUserName');
+        if (sidebarUserName) sidebarUserName.textContent = user.displayName || 'User';
+
+        // Fetch User Data for Admin check
+        getDoc(doc(db, 'users', user.uid)).then((docSnap) => {
+          if (docSnap.exists() && docSnap.data().isAdmin) {
+            if (adminPanelLink) adminPanelLink.style.display = 'flex';
+          }
+        });
+
+        // Listen to Cart Count
+        unsubscribeCart = onSnapshot(collection(db, 'users', user.uid, 'cart'), (snapshot) => {
+          let count = 0;
+          snapshot.forEach((doc) => {
+            count += (doc.data().quantity || 0);
+          });
+          if (headerCartCount) {
+            if (count > 0) {
+              headerCartCount.textContent = count;
+              headerCartCount.style.display = 'flex';
+            } else {
+              headerCartCount.style.display = 'none';
+            }
+          }
+        });
+
+      } else {
+        if (authButtons) authButtons.style.display = 'flex';
+        if (userProfileDropdown) userProfileDropdown.style.display = 'none';
+        if (headerCartCount) headerCartCount.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
