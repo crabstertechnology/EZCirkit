@@ -349,29 +349,20 @@ function setupEventListeners() {
   sendSerialBtn.addEventListener('click', sendSerialData);
 
   // --- Tutorials / YouTube Video Integration ---
-  const serialVideoBtn = document.getElementById('serialVideoBtn');
-  const serialVideoMenu = document.getElementById('serialVideoMenu');
-  const videoTabBtn = document.querySelector('.tab-btn[data-tab="video"]');
   const youtubeIframe = document.getElementById('youtubeIframe');
-  const videoPlaceholder = document.getElementById('videoPlaceholder');
-  const videoPlayerContainer = document.getElementById('videoPlayerContainer');
-  const videoPlayerTitle = document.getElementById('videoPlayerTitle');
-  const customVideoUrlInput = document.getElementById('customVideoUrlInput');
+  const youtubePlaceholder = document.getElementById('youtubePlaceholder');
+  const youtubePlayerContainer = document.getElementById('youtubePlayerContainer');
+  const youtubePlayerTitle = document.getElementById('youtubePlayerTitle');
   
-  // Toggle Tutorials Dropdown
-  if (serialVideoBtn && serialVideoMenu) {
-    serialVideoBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      serialVideoMenu.classList.toggle('show');
-    });
-  }
-
-  // Close dropdown on click outside
-  document.addEventListener('click', () => {
-    if (serialVideoMenu) {
-      serialVideoMenu.classList.remove('show');
-    }
-  });
+  // Modal Elements
+  const youtubeLinkModal = document.getElementById('youtubeLinkModal');
+  const youtubeAddLinkBtn = document.getElementById('youtubeAddLinkBtn');
+  const youtubePlaceholderAddLinkBtn = document.getElementById('youtubePlaceholderAddLinkBtn');
+  const closeYoutubeModalBtn = document.getElementById('closeYoutubeModalBtn');
+  const cancelYoutubeModalBtn = document.getElementById('cancelYoutubeModalBtn');
+  const submitYoutubeModalBtn = document.getElementById('submitYoutubeModalBtn');
+  const modalVideoTitle = document.getElementById('modalVideoTitle');
+  const modalVideoUrl = document.getElementById('modalVideoUrl');
 
   // Extract YouTube ID from URL
   function getYoutubeId(url) {
@@ -384,76 +375,70 @@ function setupEventListeners() {
   function playVideo(videoId, title) {
     if (!videoId) return;
     
-    // Set active tab to video tab
-    if (videoTabBtn) {
-      videoTabBtn.click();
-    }
-    
     // Update player UI
-    videoPlayerTitle.textContent = title || "YouTube Tutorial";
-    youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    videoPlaceholder.style.display = 'none';
-    videoPlayerContainer.style.display = 'flex';
+    if (youtubePlayerTitle) youtubePlayerTitle.textContent = title || "YouTube Tutorial";
+    if (youtubeIframe) youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    if (youtubePlaceholder) youtubePlaceholder.style.display = 'none';
+    if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'flex';
   }
 
-  // recommended-video-dropdown-btn click handler
-  document.querySelectorAll('.recommended-video-dropdown-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const videoId = btn.getAttribute('data-video-id');
-      const title = btn.getAttribute('data-video-title');
-      playVideo(videoId, title);
-    });
-  });
+  // Open modal handlers
+  const openModal = () => {
+    if (youtubeLinkModal) {
+      youtubeLinkModal.classList.add('show');
+      if (modalVideoUrl) modalVideoUrl.focus();
+    }
+  };
 
-  // video-card click handler (inside tab placeholder)
-  document.querySelectorAll('.video-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const videoId = card.getAttribute('data-video-id');
-      const title = card.getAttribute('data-video-title');
-      playVideo(videoId, title);
-    });
-  });
+  const closeModal = () => {
+    if (youtubeLinkModal) {
+      youtubeLinkModal.classList.remove('show');
+      if (modalVideoTitle) modalVideoTitle.value = '';
+      if (modalVideoUrl) modalVideoUrl.value = '';
+    }
+  };
 
-  // Add Custom Video Button in dropdown
-  const addCustomVideoBtn = document.getElementById('addCustomVideoBtn');
-  if (addCustomVideoBtn) {
-    addCustomVideoBtn.addEventListener('click', () => {
-      const url = prompt("Enter YouTube video link (e.g. https://www.youtube.com/watch?v=...):");
-      if (url) {
-        const id = getYoutubeId(url);
-        if (id) {
-          playVideo(id, "Custom Video");
-        } else {
-          alert("Invalid YouTube URL. Please try again.");
-        }
+  if (youtubeAddLinkBtn) youtubeAddLinkBtn.addEventListener('click', openModal);
+  if (youtubePlaceholderAddLinkBtn) youtubePlaceholderAddLinkBtn.addEventListener('click', openModal);
+
+  if (closeYoutubeModalBtn) closeYoutubeModalBtn.addEventListener('click', closeModal);
+  if (cancelYoutubeModalBtn) cancelYoutubeModalBtn.addEventListener('click', closeModal);
+
+  // Close modal when clicking outside modal-container
+  if (youtubeLinkModal) {
+    youtubeLinkModal.addEventListener('click', (e) => {
+      if (e.target === youtubeLinkModal) {
+        closeModal();
       }
     });
   }
 
-  // Load Custom Video Button (inside tab placeholder)
-  const loadCustomVideoBtn = document.getElementById('loadCustomVideoBtn');
-  if (loadCustomVideoBtn && customVideoUrlInput) {
-    loadCustomVideoBtn.addEventListener('click', () => {
-      const url = customVideoUrlInput.value.trim();
+  // Submit Modal
+  if (submitYoutubeModalBtn) {
+    submitYoutubeModalBtn.addEventListener('click', () => {
+      const url = modalVideoUrl ? modalVideoUrl.value.trim() : '';
+      const title = modalVideoTitle ? modalVideoTitle.value.trim() : '';
       if (url) {
         const id = getYoutubeId(url);
         if (id) {
-          playVideo(id, "Custom Video");
-          customVideoUrlInput.value = '';
+          playVideo(id, title || "Custom Video");
+          closeModal();
         } else {
           alert("Invalid YouTube URL. Please try again.");
         }
+      } else {
+        alert("Please enter a YouTube video URL.");
       }
     });
   }
 
-  // Back to tutorials button (inside player header)
-  const backToTutorialsBtn = document.getElementById('backToTutorialsBtn');
-  if (backToTutorialsBtn) {
-    backToTutorialsBtn.addEventListener('click', () => {
-      youtubeIframe.src = '';
-      videoPlayerContainer.style.display = 'none';
-      videoPlaceholder.style.display = 'flex';
+  // Back to placeholder button (inside player header)
+  const youtubeBackToPlaceholderBtn = document.getElementById('youtubeBackToPlaceholderBtn');
+  if (youtubeBackToPlaceholderBtn) {
+    youtubeBackToPlaceholderBtn.addEventListener('click', () => {
+      if (youtubeIframe) youtubeIframe.src = '';
+      if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'none';
+      if (youtubePlaceholder) youtubePlaceholder.style.display = 'flex';
     });
   }
 }
