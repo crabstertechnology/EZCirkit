@@ -1,7 +1,7 @@
 // Configurable Compiler Server URL
 // Set this to your deployed online server URL (e.g., "https://your-compiler.onrender.com")
 // Leave empty "" to run relative to the website's domain (or fall back to localhost:3000 on static hosts)
-const COMPILER_SERVER_URL = "";
+const COMPILER_SERVER_URL = "https://ezcirkit.onrender.com";
 
 // Monaco Editor and IDE State
 let editor;
