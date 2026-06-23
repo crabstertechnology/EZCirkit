@@ -123,7 +123,7 @@ const Header = () => {
       setMobileMenuOpen(false);
       if (!href.includes('#')) {
         e.preventDefault();
-        router.push(href);
+        window.location.href = href;
       }
     };
 
