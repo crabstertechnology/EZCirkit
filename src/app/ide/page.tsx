@@ -414,11 +414,13 @@ export default function IdeSelectionPage() {
                     <Card className="bg-white hover:bg-zinc-50/50 border border-zinc-200/80 hover:border-orange-200/60 transition-all duration-300 overflow-hidden flex flex-col h-full rounded-2xl relative shadow-sm hover:shadow-md">
                       
                       {/* Image Thumbnail Container */}
-                      <div className="relative h-48 w-full bg-zinc-100 overflow-hidden border-b border-zinc-200/50">
+                      <div className="relative h-48 w-full bg-white overflow-hidden border-b border-zinc-200/50 flex items-center justify-center">
                         <img
-                          src={getYoutubeThumbnail(tut.videoId)}
+                          src={tut.diagramUrl || getYoutubeThumbnail(tut.videoId)}
                           alt={tut.title}
-                          className="object-cover w-full h-full group-hover:scale-103 transition-transform duration-500"
+                          className={`${
+                            tut.diagramUrl ? 'object-contain' : 'object-cover'
+                          } w-full h-full group-hover:scale-103 transition-transform duration-500`}
                           loading="lazy"
                         />
                         
@@ -449,9 +451,9 @@ export default function IdeSelectionPage() {
                         )}
                       </div>
 
-                      <CardHeader className="space-y-1.5 p-4 flex-grow">
+                      <CardHeader className="space-y-1 p-3.5 flex-grow">
                         <div className="flex items-center justify-between gap-2">
-                          <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 rounded-full border-none shadow-none ${
+                          <Badge variant="outline" className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border-none shadow-none ${
                             tut.level === 'Beginner' ? 'text-teal-600 bg-teal-50' :
                             tut.level === 'Intermediate' ? 'text-amber-600 bg-amber-50' :
                             'text-rose-600 bg-rose-50'
@@ -459,23 +461,23 @@ export default function IdeSelectionPage() {
                             {tut.level}
                           </Badge>
                           {!hasPurchased && (
-                            <Badge variant="outline" className="text-[10px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
+                            <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
                               <Lock className="h-2.5 w-2.5" /> Premium
                             </Badge>
                           )}
                         </div>
 
-                        <CardTitle className="text-sm font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
+                        <CardTitle className="text-[13px] font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
                           {tut.title}
                         </CardTitle>
                         
-                        <CardDescription className="text-zinc-500 text-[11px] line-clamp-1 leading-relaxed">
+                        <CardDescription className="text-zinc-500 text-[10.5px] line-clamp-1 leading-relaxed">
                           {tut.description}
                         </CardDescription>
                       </CardHeader>
 
-                      <CardFooter className="px-4 pb-4 pt-0">
-                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[11px] font-semibold py-2 gap-1.5 transition-all shadow-sm">
+                      <CardFooter className="px-3.5 pb-3.5 pt-0">
+                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm">
                           {hasPurchased ? (
                             <>
                               <Code2 className="h-3.5 w-3.5" /> Launch IDE
