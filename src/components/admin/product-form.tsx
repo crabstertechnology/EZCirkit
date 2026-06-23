@@ -12,6 +12,7 @@ import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection }from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import type { Product } from '@/app/admin/products/page';
 
 const productSchema = z.object({
@@ -23,6 +24,44 @@ const productSchema = z.object({
   stock: z.coerce.number().int().nonnegative('Stock cannot be negative.'),
   image: z.string().min(1, 'Image URL is required.'),
 });
+
+const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 600): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+  });
+};
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -36,7 +75,29 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const isEditing = !!product;
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      try {
+        const compressed = await compressImage(base64);
+        onChange(compressed);
+        toast({ title: 'Image uploaded & compressed!' });
+      } catch (err) {
+        console.error("Compression error:", err);
+        toast({ variant: 'destructive', title: 'Failed to process image.' });
+      } finally {
+        setIsUploadingImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -173,11 +234,60 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
             control={form.control}
             name="image"
             render={({ field }) => (
-                <FormItem>
-                <FormLabel>Image URL</FormLabel>
-                <FormControl>
-                    <Input placeholder="/1.jpg" {...field} />
-                </FormControl>
+                <FormItem className="space-y-2">
+                <FormLabel>Product Image</FormLabel>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <FormControl>
+                        <Input placeholder="Paste image URL or upload one" {...field} value={field.value || ''} />
+                      </FormControl>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="product-file-upload"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e, field.onChange)}
+                        disabled={isUploadingImage}
+                      />
+                      <label htmlFor="product-file-upload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="cursor-pointer gap-1.5"
+                          asChild
+                          disabled={isUploadingImage}
+                        >
+                          <span>
+                            <Upload className="h-4 w-4" />
+                            {isUploadingImage ? 'Uploading...' : 'Upload'}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+
+                  {field.value && (
+                    <div className="relative border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50 max-h-48 flex items-center justify-center p-2 group">
+                      <img
+                        src={field.value}
+                        alt="Product Image Preview"
+                        className="max-h-40 object-contain rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => field.onChange('')}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <FormMessage />
                 </FormItem>
             )}
