@@ -118,20 +118,30 @@ const Header = () => {
     );
   };
 
-  const NavLinks = () => (
-    <>
-      {NAV_LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          {link.label}
-        </Link>
-      ))}
-    </>
-  );
+  const NavLinks = () => {
+    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      setMobileMenuOpen(false);
+      if (!href.includes('#')) {
+        e.preventDefault();
+        router.push(href);
+      }
+    };
+
+    return (
+      <>
+        {NAV_LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
+            onClick={(e) => handleLinkClick(e, link.href)}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </>
+    );
+  };
 
   const MobileMenu = () => {
     return (
