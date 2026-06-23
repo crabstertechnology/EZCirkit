@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useFirestore } from '@/firebase';
-import { doc, collection, setDoc } from 'firebase/firestore';
+import { doc, collection, setDoc, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
@@ -176,8 +176,27 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         diagramUrl: '',
         pinout: '',
       });
+
+      if (firestore && chapterId) {
+        getDocs(collection(firestore, `tutorialChapters/${chapterId}/tutorials`))
+          .then((snapshot) => {
+            let maxOrder = -1;
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              if (data && typeof data.order === 'number') {
+                if (data.order > maxOrder) {
+                  maxOrder = data.order;
+                }
+              }
+            });
+            form.setValue('order', maxOrder + 1);
+          })
+          .catch((err) => {
+            console.error("Error fetching tutorials for auto-order:", err);
+          });
+      }
     }
-  }, [tutorial, form.reset]);
+  }, [tutorial, form.reset, firestore, chapterId, form.setValue]);
 
   const onSubmit: SubmitHandler<TutorialFormValues> = async (data) => {
     if (!firestore || !chapterId) {
