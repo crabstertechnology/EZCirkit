@@ -95,7 +95,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
                 variant="outline"
                 className="rounded-full text-lg font-bold shadow-sm transition-transform duration-300 hover:scale-105"
               >
-                <Link href="/tutorials">Learn More</Link>
+                <Link href="/ide">Learn More</Link>
               </Button>
             </div>
           </div>

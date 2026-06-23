@@ -7,7 +7,6 @@ export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/#features', label: 'Features' },
   { href: '/#products', label: 'Products' },
-  { href: '/tutorials', label: 'Tutorials'},
   { href: '/ide', label: 'EZCirkit IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
@@ -24,7 +23,7 @@ export const ADMIN_NAV_LINKS = [
 ]
 
 export const STATS = [
-  { value: '50+', label: 'Tutorials' },
+  { value: '50+', label: 'Experiments' },
   { value: '35+', label: 'Components' },
   { value: '45+', label: 'Projects' },
   { value: '4.8★', label: 'Rating' },

@@ -449,7 +449,7 @@ export default function IdeSelectionPage() {
                         )}
                       </div>
 
-                      <CardHeader className="space-y-2 p-5 flex-grow">
+                      <CardHeader className="space-y-1.5 p-4 flex-grow">
                         <div className="flex items-center justify-between gap-2">
                           <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 rounded-full border-none shadow-none ${
                             tut.level === 'Beginner' ? 'text-teal-600 bg-teal-50' :
@@ -465,17 +465,17 @@ export default function IdeSelectionPage() {
                           )}
                         </div>
 
-                        <CardTitle className="text-base font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
+                        <CardTitle className="text-sm font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
                           {tut.title}
                         </CardTitle>
                         
-                        <CardDescription className="text-zinc-500 text-xs line-clamp-2 leading-relaxed">
+                        <CardDescription className="text-zinc-500 text-[11px] line-clamp-1 leading-relaxed">
                           {tut.description}
                         </CardDescription>
                       </CardHeader>
 
-                      <CardFooter className="px-5 pb-5 pt-0">
-                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-xs font-semibold py-2.5 gap-1.5 transition-all shadow-sm">
+                      <CardFooter className="px-4 pb-4 pt-0">
+                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[11px] font-semibold py-2 gap-1.5 transition-all shadow-sm">
                           {hasPurchased ? (
                             <>
                               <Code2 className="h-3.5 w-3.5" /> Launch IDE
