@@ -126,6 +126,9 @@ void loop() {
 }`
 };
 
+// Global variable to store loaded tutorial details until Monaco Editor is ready
+let pendingCode = null;
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
   // Render Lucide Icons
@@ -142,6 +145,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Auto-connect to previously authorized board
   await autoConnectPort();
+
+  // Load experiment if parameters are present in URL
+  loadExperimentFromUrlParams();
 });
 
 // Monaco Editor Config
@@ -153,7 +159,7 @@ function initMonacoEditor() {
     if (loadingEl) loadingEl.remove();
 
     editor = monaco.editor.create(document.getElementById('editorContainer'), {
-      value: SKETCHES.blink,
+      value: pendingCode || SKETCHES.blink,
       language: 'cpp',
       theme: 'vs',
       automaticLayout: true,
@@ -381,6 +387,9 @@ function setupEventListeners() {
     if (youtubePlaceholder) youtubePlaceholder.style.display = 'none';
     if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'flex';
   }
+
+  window.playVideo = playVideo;
+  window.getYoutubeId = getYoutubeId;
 
   // Open modal handlers
   const openModal = () => {
@@ -1175,4 +1184,56 @@ function parseHexToPages(hexString) {
   }
 
   return pages;
+}
+
+async function loadExperimentFromUrlParams() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const experimentId = urlParams.get('experiment');
+  const chapterId = urlParams.get('chapter');
+  
+  if (!experimentId || !chapterId) return;
+
+  logToConsole("Loading experiment details...", "info");
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/studio-2519724075-3b571/databases/(default)/documents/tutorialChapters/${chapterId}/tutorials/${experimentId}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch experiment (Status: ${response.status})`);
+    }
+    const data = await response.json();
+    if (data && data.fields) {
+      const title = data.fields.title ? data.fields.title.stringValue : 'Coding Tutorial';
+      const videoId = data.fields.videoId ? data.fields.videoId.stringValue : '';
+      const code = data.fields.code ? data.fields.code.stringValue : '';
+
+      logToConsole(`Loaded experiment: ${title}`, "success");
+
+      // Load code in Monaco
+      if (code) {
+        if (editor) {
+          editor.setValue(code);
+        } else {
+          // Monaco Editor is still loading; queue the code
+          pendingCode = code;
+        }
+      }
+
+      // Load YouTube video
+      if (videoId && typeof window.playVideo === 'function') {
+        const id = typeof window.getYoutubeId === 'function' ? window.getYoutubeId(videoId) : null;
+        if (id) {
+          window.playVideo(id, title);
+        } else {
+          // Fallback if not a standard YouTube watch URL but is already an ID or embedded URL
+          const ytVideoIdMatch = videoId.match(/(?:embed\/|v=|\/)([\w-]{11})(?:\?|&|#|$)/);
+          const rawId = ytVideoIdMatch ? ytVideoIdMatch[1] : videoId;
+          window.playVideo(rawId, title);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error loading experiment details:", error);
+    logToConsole(`Error loading experiment: ${error.message}`, "error");
+  }
 }

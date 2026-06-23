@@ -154,25 +154,18 @@
               <span id="youtubePanelTitle">YouTube Tutorial</span>
             </div>
             <div class="panel-actions">
-              <button class="btn btn-secondary btn-sm" id="youtubeAddLinkBtn">
-                <i data-lucide="plus"></i> Add Link
-              </button>
             </div>
           </div>
           <div class="panel-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-height: 200px;">
             <div class="video-tab-placeholder" id="youtubePlaceholder" style="padding: 20px;">
               <i data-lucide="youtube" class="placeholder-icon" style="width: 40px; height: 40px; color: var(--color-danger); margin-bottom: 8px;"></i>
               <h3 style="font-size: 14px; margin-bottom: 4px;">No Video Loaded</h3>
-              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Click "Add Link" or the button below to load a YouTube tutorial.</p>
-              <button class="btn btn-primary btn-sm" id="youtubePlaceholderAddLinkBtn">Load Video Tutorial</button>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Please select an experiment from the home selection page to load its matching YouTube video tutorial.</p>
             </div>
             
             <div class="video-player-container" id="youtubePlayerContainer" style="display: none; height: 100%; width: 100%; flex-direction: column;">
               <div class="video-player-header" style="padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); background: var(--bg-panel-header);">
-                <h4 id="youtubePlayerTitle" style="font-size: 11px; font-weight: 600; color: var(--text-main); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;">Arduino LED Blink Tutorial</h4>
-                <button class="btn btn-secondary btn-sm" id="youtubeBackToPlaceholderBtn" style="padding: 2px 6px; font-size: 10px; display: flex; align-items: center; gap: 4px;">
-                  <i data-lucide="arrow-left" style="width:10px; height:10px;"></i> Change Video
-                </button>
+                <h4 id="youtubePlayerTitle" style="font-size: 11px; font-weight: 600; color: var(--text-main); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Arduino LED Blink Tutorial</h4>
               </div>
               <div class="iframe-wrapper" style="flex: 1; position: relative; width: 100%; height: 100%; background: #000;">
                 <iframe id="youtubeIframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top:0; left:0; width:100%; height:100%; border:0;"></iframe>
