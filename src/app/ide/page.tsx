@@ -24,7 +24,6 @@ export default function IdeSelectionPage() {
   const [allTutorials, setAllTutorials] = useState<Tutorial[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [selectedChapter, setSelectedChapter] = useState<string>('All');
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
@@ -175,11 +174,10 @@ export default function IdeSelectionPage() {
     return allTutorials.filter(tut => {
       const matchesSearch = tut.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             tut.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesLevel = selectedLevel === 'All' || tut.level === selectedLevel;
       const matchesChapter = selectedChapter === 'All' || tut.chapterId === selectedChapter;
-      return matchesSearch && matchesLevel && matchesChapter;
+      return matchesSearch && matchesChapter;
     });
-  }, [allTutorials, searchQuery, selectedLevel, selectedChapter]);
+  }, [allTutorials, searchQuery, selectedChapter]);
 
   const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc;
 
@@ -302,22 +300,7 @@ export default function IdeSelectionPage() {
           </div>
 
           <div className="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
-            {/* Level Filter */}
-            <div className="flex bg-zinc-50 p-1 border border-zinc-200 rounded-xl gap-1">
-              {['All', 'Beginner', 'Intermediate', 'Advanced'].map(lvl => (
-                <button
-                  key={lvl}
-                  onClick={() => setSelectedLevel(lvl)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
-                    selectedLevel === lvl 
-                      ? 'bg-orange-500 text-white shadow-sm' 
-                      : 'text-zinc-500 hover:text-zinc-800'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
-            </div>
+
 
             {/* Chapter Filter & Edit Icon if Admin */}
             <div className="flex items-center gap-1.5">
@@ -452,20 +435,13 @@ export default function IdeSelectionPage() {
                       </div>
 
                       <CardHeader className="space-y-1 p-3.5 flex-grow">
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge variant="outline" className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border-none shadow-none ${
-                            tut.level === 'Beginner' ? 'text-teal-600 bg-teal-50' :
-                            tut.level === 'Intermediate' ? 'text-amber-600 bg-amber-50' :
-                            'text-rose-600 bg-rose-50'
-                          }`}>
-                            {tut.level}
-                          </Badge>
-                          {!hasPurchased && (
+                        {!hasPurchased && (
+                          <div className="flex items-center justify-start mb-1">
                             <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
                               <Lock className="h-2.5 w-2.5" /> Premium
                             </Badge>
-                          )}
-                        </div>
+                          </div>
+                        )}
 
                         <CardTitle className="text-[13px] font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
                           {tut.title}
