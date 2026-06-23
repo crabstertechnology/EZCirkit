@@ -148,9 +148,10 @@
         <!-- Top Half: YouTube Video Panel -->
         <section class="panel youtube-panel" id="youtubeVideoPanel">
           <div class="panel-header">
-            <div class="panel-title">
-              <i data-lucide="youtube" style="color: var(--color-danger);"></i>
-              <span id="youtubePanelTitle">YouTube Tutorial</span>
+            <div class="panel-title" style="display: flex; align-items: center; gap: 6px; overflow: hidden; max-width: calc(100% - 40px);">
+              <i data-lucide="youtube" style="color: var(--color-danger); flex-shrink: 0;"></i>
+              <span id="youtubePanelTitle" style="flex-shrink: 0;">YouTube Tutorial</span>
+              <span id="youtubePlayerTitle" style="font-size: 11px; color: var(--text-muted); border-left: 1px solid var(--border-color); padding-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none;"></span>
             </div>
             <div class="panel-actions">
               <button class="icon-btn" id="experimentInfoBtn" title="Circuit Diagram & Pinout" style="display: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-input); justify-content: center; align-items: center; color: var(--text-main); cursor: pointer; transition: all 0.2s;">
@@ -166,9 +167,6 @@
             </div>
             
             <div class="video-player-container" id="youtubePlayerContainer" style="display: none; height: 100%; width: 100%; flex-direction: column;">
-              <div class="video-player-header" style="padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); background: var(--bg-panel-header);">
-                <h4 id="youtubePlayerTitle" style="font-size: 11px; font-weight: 600; color: var(--text-main); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Arduino LED Blink Tutorial</h4>
-              </div>
               <div class="iframe-wrapper" style="flex: 1; position: relative; width: 100%; height: 100%; background: #000;">
                 <iframe id="youtubeIframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top:0; left:0; width:100%; height:100%; border:0;"></iframe>
               </div>

@@ -383,7 +383,10 @@ function setupEventListeners() {
     if (!videoId) return;
     
     // Update player UI
-    if (youtubePlayerTitle) youtubePlayerTitle.textContent = title || "YouTube Tutorial";
+    if (youtubePlayerTitle) {
+      youtubePlayerTitle.textContent = title || "YouTube Tutorial";
+      youtubePlayerTitle.style.display = 'inline-block';
+    }
     if (youtubeIframe) youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
     if (youtubePlaceholder) youtubePlaceholder.style.display = 'none';
     if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'flex';
@@ -449,6 +452,10 @@ function setupEventListeners() {
       if (youtubeIframe) youtubeIframe.src = '';
       if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'none';
       if (youtubePlaceholder) youtubePlaceholder.style.display = 'flex';
+      if (youtubePlayerTitle) {
+        youtubePlayerTitle.style.display = 'none';
+        youtubePlayerTitle.textContent = '';
+      }
     });
   }
 
