@@ -147,6 +147,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Auto-connect to previously authorized board
   await autoConnectPort();
 
+  // Mobile Sidebar Toggle
+  const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+  const sidebarWrapper = document.querySelector('.sidebar-wrapper');
+  if (mobileSidebarToggle && sidebarWrapper) {
+    mobileSidebarToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebarWrapper.classList.toggle('show');
+    });
+
+    // Close when clicking backdrop
+    sidebarWrapper.addEventListener('click', (e) => {
+      if (e.target === sidebarWrapper) {
+        sidebarWrapper.classList.remove('show');
+      }
+    });
+
+    // Close when clicking any link inside sidebar
+    const sidebarLinks = sidebarWrapper.querySelectorAll('a, button');
+    sidebarLinks.forEach(link => {
+      if (link.id !== 'userAvatarBtn') {
+        link.addEventListener('click', () => {
+          sidebarWrapper.classList.remove('show');
+        });
+      }
+    });
+  }
+
   // Load experiment if parameters are present in URL
   loadExperimentFromUrlParams();
 });
