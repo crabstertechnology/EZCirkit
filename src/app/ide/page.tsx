@@ -407,7 +407,7 @@ export default function IdeSelectionPage() {
                   )}
 
                   <Link
-                    href={`/ide/index.html?experiment=${tut.id}&chapter=${tut.chapterId}`}
+                    href={`/editor/index.html?experiment=${tut.id}&chapter=${tut.chapterId}`}
                     onClick={(e) => handleTutorialClick(e, tut)}
                     className="block h-full"
                   >

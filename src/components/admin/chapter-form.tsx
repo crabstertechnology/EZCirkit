@@ -60,10 +60,12 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ onSave, chapter }) => {
         order: data.order,
     };
 
-    const options: SetOptions | undefined = isEditing ? { merge: true } : undefined;
-
     try {
-        await setDoc(docRef, chapterData, options);
+        if (isEditing) {
+            await setDoc(docRef, chapterData, { merge: true });
+        } else {
+            await setDoc(docRef, chapterData);
+        }
         toast({ title: chapter ? 'Chapter updated!' : 'Chapter created!' });
         onSave();
     } catch (error: any) {

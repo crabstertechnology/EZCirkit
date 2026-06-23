@@ -80,7 +80,8 @@ const ProductsPage = () => {
     if (!firestore) return;
     
     const newStock = stockLevels[productId];
-    if (newStock === '' || newStock < 0) {
+    const newStockVal = typeof newStock === 'string' ? parseInt(newStock, 10) : newStock;
+    if (newStock === '' || isNaN(newStockVal) || newStockVal < 0) {
       toast({ variant: 'destructive', title: 'Invalid stock value.' });
       return;
     }
