@@ -1479,6 +1479,16 @@ body {
   gap: 16px;
 }
 
+#infoModalImage {
+  max-width: 100%;
+  max-height: 380px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -1560,30 +1570,54 @@ body {
 
 @media (max-width: 768px) {
   .app-header {
-    height: auto;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 12px;
-    padding: 16px 12px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
   }
 
   .header-left {
-    justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: auto;
   }
 
   .header-actions {
-    justify-self: center;
-    flex-wrap: wrap;
-    justify-content: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--bg-panel-header);
+    border-top: 1px solid var(--border-color);
+    padding: 8px 12px;
+    z-index: 999;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
     gap: 8px;
-    width: 100%;
+    align-items: center;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    justify-self: auto;
+    width: auto;
   }
 
   .header-actions .btn {
-    padding: 6px 12px;
-    font-size: 12px;
-    flex: 1;
-    min-width: 100px;
+    padding: 6px 4px;
+    font-size: 11px;
+    height: 38px;
+    width: 100%;
+    margin: 0;
+    justify-content: center;
+  }
+
+  .header-actions .btn span {
+    display: inline-block;
+  }
+
+  .header-right-placeholder {
+    display: none;
   }
 
   .mobile-menu-btn {
@@ -1625,6 +1659,30 @@ body {
     left: 0 !important;
   }
 
+  .workspace {
+    flex-direction: column;
+    height: calc(100vh - 144px); /* 56px header + 56px bottom bar + 32px footer */
+    padding: 8px;
+    gap: 8px;
+    overflow-y: auto;
+    padding-bottom: 72px; /* Extra padding to prevent bottom bar from overlapping content */
+  }
+
+  .editor-panel {
+    height: 320px;
+    min-height: 260px;
+  }
+
+  .right-workspace-col {
+    height: auto;
+    min-height: 600px;
+    gap: 8px;
+  }
+
+  .youtube-panel, .tool-panel {
+    height: 320px;
+  }
+
   .modal-container {
     width: 92%;
     max-width: 92%;
@@ -1632,7 +1690,7 @@ body {
   }
 
   #infoModalImage {
-    max-height: 220px;
+    max-height: 250px;
   }
 
   .modal-body {
@@ -1656,21 +1714,23 @@ body {
 }
 
 @media (max-width: 480px) {
-  .header-actions {
-    grid-template-columns: repeat(2, 1fr);
-    display: grid;
+  .header-actions .btn span {
+    display: none; /* Hide button text on very small screens, icons only */
+  }
+  
+  .header-actions .btn {
+    font-size: 14px; /* Make icons slightly larger */
   }
 
-  .header-actions .btn {
-    width: 100%;
-    margin: 0;
+  #infoModalImage {
+    max-height: 180px;
   }
 
   .editor-panel {
-    height: 380px;
+    height: 300px;
   }
 
   .youtube-panel, .tool-panel {
-    height: 380px;
+    height: 300px;
   }
 }

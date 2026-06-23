@@ -499,8 +499,18 @@ function setupEventListeners() {
 
   const openInfoModal = () => {
     if (experimentInfoModal) {
+      const hasDescription = !!(currentExperimentInfo && currentExperimentInfo.description);
       const hasDiagram = !!(currentExperimentInfo && currentExperimentInfo.diagramUrl);
       const hasPinout = !!(currentExperimentInfo && currentExperimentInfo.pinout);
+
+      const infoModalDescriptionContainer = document.getElementById('infoModalDescriptionContainer');
+      const infoModalDescriptionText = document.getElementById('infoModalDescriptionText');
+      if (infoModalDescriptionContainer) {
+        infoModalDescriptionContainer.style.display = hasDescription ? 'block' : 'none';
+        if (hasDescription && infoModalDescriptionText) {
+          infoModalDescriptionText.textContent = currentExperimentInfo.description;
+        }
+      }
 
       if (infoModalDiagramContainer) {
         infoModalDiagramContainer.style.display = hasDiagram ? 'block' : 'none';
@@ -517,7 +527,7 @@ function setupEventListeners() {
       }
 
       if (infoModalEmptyState) {
-        infoModalEmptyState.style.display = (!hasDiagram && !hasPinout) ? 'block' : 'none';
+        infoModalEmptyState.style.display = (!hasDescription && !hasDiagram && !hasPinout) ? 'block' : 'none';
       }
 
       experimentInfoModal.classList.add('show');
@@ -1295,16 +1305,17 @@ async function loadExperimentFromUrlParams() {
     const data = await response.json();
     if (data && data.fields) {
       const title = data.fields.title ? data.fields.title.stringValue : 'Coding Tutorial';
+      const description = data.fields.description ? data.fields.description.stringValue : '';
       const videoId = data.fields.videoId ? data.fields.videoId.stringValue : '';
       const code = data.fields.code ? data.fields.code.stringValue : '';
       const diagramUrl = data.fields.diagramUrl ? data.fields.diagramUrl.stringValue : '';
       const pinout = data.fields.pinout ? data.fields.pinout.stringValue : '';
 
-      currentExperimentInfo = { diagramUrl, pinout };
+      currentExperimentInfo = { description, diagramUrl, pinout };
 
       const experimentInfoBtn = document.getElementById('experimentInfoBtn');
       if (experimentInfoBtn) {
-        experimentInfoBtn.style.display = 'flex';
+        experimentInfoBtn.style.display = (description || diagramUrl || pinout) ? 'flex' : 'none';
       }
 
       logToConsole(`Loaded experiment: ${title}`, "success");
