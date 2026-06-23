@@ -513,6 +513,9 @@ function setupEventListeners() {
       }
 
       if (infoModalDiagramContainer) {
+        if (infoModalImage) {
+          infoModalImage.removeAttribute('src');
+        }
         infoModalDiagramContainer.style.display = hasDiagram ? 'block' : 'none';
         if (hasDiagram && infoModalImage) {
           infoModalImage.src = currentExperimentInfo.diagramUrl;

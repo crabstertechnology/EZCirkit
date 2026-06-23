@@ -1479,11 +1479,14 @@ body {
   gap: 16px;
 }
 
+.modal-body > * {
+  flex-shrink: 0;
+}
+
 #infoModalImage {
-  max-width: 100%;
-  max-height: 380px;
-  width: auto;
+  width: 100%;
   height: auto;
+  max-height: 360px;
   object-fit: contain;
   display: block;
   margin: 0 auto;
