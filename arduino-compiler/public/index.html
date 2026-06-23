@@ -154,6 +154,9 @@
               <span id="youtubePanelTitle">YouTube Tutorial</span>
             </div>
             <div class="panel-actions">
+              <button class="icon-btn" id="experimentInfoBtn" title="Circuit Diagram & Pinout" style="display: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-input); justify-content: center; align-items: center; color: var(--text-main); cursor: pointer; transition: all 0.2s;">
+                <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+              </button>
             </div>
           </div>
           <div class="panel-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-height: 200px;">
@@ -292,6 +295,34 @@
         <div class="modal-footer">
           <button class="btn btn-login" id="cancelYoutubeModalBtn" style="width: auto; margin-right: 0;">Cancel</button>
           <button class="btn btn-signup" id="submitYoutubeModalBtn" style="flex: 1;">Load Video</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Experiment Info Modal -->
+    <div class="modal-overlay" id="experimentInfoModal">
+      <div class="modal-container" style="max-width: 600px; width: 90%;">
+        <div class="modal-header">
+          <h3 id="infoModalTitle">Experiment Pinout & Diagram</h3>
+          <button class="modal-close-btn" id="closeInfoModalBtn">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; align-items: center; max-height: 70vh; overflow-y: auto; padding: 20px;">
+          <div id="infoModalDiagramContainer" style="width: 100%; display: none; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); background: #fff; padding: 8px;">
+            <img id="infoModalImage" src="" alt="Circuit Diagram" style="width: 100%; height: auto; object-fit: contain; max-height: 350px; display: block; margin: 0 auto;">
+          </div>
+          <div id="infoModalPinoutContainer" style="width: 100%; display: none;">
+            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Pinout Description</h4>
+            <div id="infoModalPinoutText" style="font-size: 12px; line-height: 1.6; color: var(--text-muted); background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); white-space: pre-wrap; font-family: var(--font-mono);"></div>
+          </div>
+          <div id="infoModalEmptyState" style="text-align: center; padding: 24px 0; color: var(--text-muted); font-size: 13px;">
+            <i data-lucide="info" style="width: 32px; height: 32px; stroke-width: 1.5; margin: 0 auto 8px auto; opacity: 0.6; display: block;"></i>
+            <p>No diagram or pinout description available for this experiment.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="closeInfoModalFooterBtn" style="width: 100%;">Close</button>
         </div>
       </div>
     </div>

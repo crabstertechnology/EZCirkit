@@ -16,6 +16,8 @@ export interface Tutorial {
     code?: string;
     transcript?: string;
     notes?: string;
+    diagramUrl?: string;
+    pinout?: string;
 }
 
 export interface TutorialChapter {

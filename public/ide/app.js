@@ -13,6 +13,7 @@ let serialReadBuffer = [];
 let currentReader = null;
 let isSerialMonitorOpen = false;
 let currentSerialLineEl = null;
+let currentExperimentInfo = null; // Stores diagramUrl and pinout for the active experiment
 
 // Default Sketch Templates
 const SKETCHES = {
@@ -448,6 +449,62 @@ function setupEventListeners() {
       if (youtubeIframe) youtubeIframe.src = '';
       if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'none';
       if (youtubePlaceholder) youtubePlaceholder.style.display = 'flex';
+    });
+  }
+
+  // Experiment Info Modal Handlers
+  const experimentInfoBtn = document.getElementById('experimentInfoBtn');
+  const experimentInfoModal = document.getElementById('experimentInfoModal');
+  const closeInfoModalBtn = document.getElementById('closeInfoModalBtn');
+  const closeInfoModalFooterBtn = document.getElementById('closeInfoModalFooterBtn');
+  const infoModalDiagramContainer = document.getElementById('infoModalDiagramContainer');
+  const infoModalPinoutContainer = document.getElementById('infoModalPinoutContainer');
+  const infoModalEmptyState = document.getElementById('infoModalEmptyState');
+  const infoModalImage = document.getElementById('infoModalImage');
+  const infoModalPinoutText = document.getElementById('infoModalPinoutText');
+
+  const openInfoModal = () => {
+    if (experimentInfoModal) {
+      const hasDiagram = !!(currentExperimentInfo && currentExperimentInfo.diagramUrl);
+      const hasPinout = !!(currentExperimentInfo && currentExperimentInfo.pinout);
+
+      if (infoModalDiagramContainer) {
+        infoModalDiagramContainer.style.display = hasDiagram ? 'block' : 'none';
+        if (hasDiagram && infoModalImage) {
+          infoModalImage.src = currentExperimentInfo.diagramUrl;
+        }
+      }
+
+      if (infoModalPinoutContainer) {
+        infoModalPinoutContainer.style.display = hasPinout ? 'block' : 'none';
+        if (hasPinout && infoModalPinoutText) {
+          infoModalPinoutText.textContent = currentExperimentInfo.pinout;
+        }
+      }
+
+      if (infoModalEmptyState) {
+        infoModalEmptyState.style.display = (!hasDiagram && !hasPinout) ? 'block' : 'none';
+      }
+
+      experimentInfoModal.classList.add('show');
+    }
+  };
+
+  const closeInfoModal = () => {
+    if (experimentInfoModal) {
+      experimentInfoModal.classList.remove('show');
+    }
+  };
+
+  if (experimentInfoBtn) experimentInfoBtn.addEventListener('click', openInfoModal);
+  if (closeInfoModalBtn) closeInfoModalBtn.addEventListener('click', closeInfoModal);
+  if (closeInfoModalFooterBtn) closeInfoModalFooterBtn.addEventListener('click', closeInfoModal);
+
+  if (experimentInfoModal) {
+    experimentInfoModal.addEventListener('click', (e) => {
+      if (e.target === experimentInfoModal) {
+        closeInfoModal();
+      }
     });
   }
 }
@@ -1206,6 +1263,15 @@ async function loadExperimentFromUrlParams() {
       const title = data.fields.title ? data.fields.title.stringValue : 'Coding Tutorial';
       const videoId = data.fields.videoId ? data.fields.videoId.stringValue : '';
       const code = data.fields.code ? data.fields.code.stringValue : '';
+      const diagramUrl = data.fields.diagramUrl ? data.fields.diagramUrl.stringValue : '';
+      const pinout = data.fields.pinout ? data.fields.pinout.stringValue : '';
+
+      currentExperimentInfo = { diagramUrl, pinout };
+
+      const experimentInfoBtn = document.getElementById('experimentInfoBtn');
+      if (experimentInfoBtn) {
+        experimentInfoBtn.style.display = 'flex';
+      }
 
       logToConsole(`Loaded experiment: ${title}`, "success");
 

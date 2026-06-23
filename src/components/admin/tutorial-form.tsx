@@ -22,13 +22,15 @@ const tutorialSchema = z.object({
   title: z.string().min(3, 'Title is required.'),
   description: z.string().min(10, 'Description is required.'),
   level: z.enum(['Beginner', 'Intermediate', 'Advanced']),
-  duration: z.string().min(3, 'Duration is required.'),
-  imageId: z.string().min(1, 'Image ID is required.'),
-  videoId: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+  duration: z.string().optional(),
+  imageId: z.string().optional(),
+  videoId: z.string().optional(),
   order: z.coerce.number().int().min(0, 'Order must be positive.'),
   code: z.string().optional(),
   transcript: z.string().optional(),
   notes: z.string().optional(),
+  diagramUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+  pinout: z.string().optional(),
 });
 
 type TutorialFormValues = z.infer<typeof tutorialSchema>;
@@ -59,8 +61,33 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       code: '',
       transcript: '',
       notes: '',
+      diagramUrl: '',
+      pinout: '',
     },
   });
+
+  const videoIdValue = form.watch('videoId');
+
+  useEffect(() => {
+    if (!videoIdValue) return;
+
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = videoIdValue.match(regExp);
+    const ytId = (match && match[2].length === 11) ? match[2] : null;
+
+    if (ytId) {
+      fetch(`/api/youtube-duration?videoId=${ytId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.duration) {
+            form.setValue('duration', data.duration);
+          }
+        })
+        .catch(err => {
+          console.error("Error auto-fetching duration:", err);
+        });
+    }
+  }, [videoIdValue, form.setValue]);
 
   useEffect(() => {
     if (tutorial) {
@@ -70,6 +97,8 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         code: tutorial.code || '',
         transcript: tutorial.transcript || '',
         notes: tutorial.notes || '',
+        diagramUrl: tutorial.diagramUrl || '',
+        pinout: tutorial.pinout || '',
       });
     } else {
       form.reset({
@@ -83,6 +112,8 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         code: '',
         transcript: '',
         notes: '',
+        diagramUrl: '',
+        pinout: '',
       });
     }
   }, [tutorial, form.reset]);
@@ -100,6 +131,8 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     
     const tutorialData = {
       ...data,
+      imageId: data.imageId || 'tutorial-1',
+      duration: data.duration || '5 mins',
       id: tutorialId,
       chapterId: chapterId,
     };
@@ -150,17 +183,8 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
           )}
         />
         
-        <div className="grid grid-cols-2 gap-4">
-             <FormField name="duration" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Duration</FormLabel><FormControl><Input placeholder="45 mins" {...field} /></FormControl><FormMessage /></FormItem>
-            )}/>
-            <FormField name="order" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Order</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-            )}/>
-        </div>
-
-        <FormField name="imageId" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Image ID</FormLabel><FormControl><Input placeholder="tutorial-1" {...field} /></FormControl><FormMessage /></FormItem>
+        <FormField name="order" control={form.control} render={({ field }) => (
+            <FormItem><FormLabel>Order</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
         
         <FormField name="description" control={form.control} render={({ field }) => (
@@ -169,9 +193,29 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
 
         <FormField name="videoId" control={form.control} render={({ field }) => (
             <FormItem>
-                <FormLabel>Video URL (YouTube, Google Drive, etc.)</FormLabel>
+                <FormLabel>Video URL (YouTube, Google Drive, etc.) (Optional)</FormLabel>
                 <FormControl>
                     <Input placeholder="https://www.youtube.com/embed/your_video_id" {...field} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+        )}/>
+
+        <FormField name="diagramUrl" control={form.control} render={({ field }) => (
+            <FormItem>
+                <FormLabel>Diagram Image URL (Optional)</FormLabel>
+                <FormControl>
+                    <Input placeholder="https://example.com/diagram.png" {...field} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+        )}/>
+
+        <FormField name="pinout" control={form.control} render={({ field }) => (
+            <FormItem>
+                <FormLabel>Pinout Description (Optional)</FormLabel>
+                <FormControl>
+                    <Textarea placeholder="e.g. Pin 9: LED positive terminal, GND: LED negative terminal" {...field} rows={4} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -182,26 +226,6 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                 <FormLabel>Code Snippet (Optional)</FormLabel>
                 <FormControl>
                     <Textarea placeholder="Paste your code here..." {...field} rows={8} />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-        )}/>
-
-        <FormField name="transcript" control={form.control} render={({ field }) => (
-            <FormItem>
-                <FormLabel>Transcript (Optional)</FormLabel>
-                <FormControl>
-                    <Textarea placeholder="Paste the video transcript here..." {...field} rows={8} />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-        )}/>
-
-        <FormField name="notes" control={form.control} render={({ field }) => (
-            <FormItem>
-                <FormLabel>Notes (Optional)</FormLabel>
-                <FormControl>
-                    <Textarea placeholder="Add any supplementary notes here..." {...field} rows={8} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
