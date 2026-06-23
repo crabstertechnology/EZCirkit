@@ -240,29 +240,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
             <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Blinking an LED" {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
 
-        <FormField
-          control={form.control}
-          name="level"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Level</FormLabel>
-               <div className="grid grid-cols-3 gap-2">
-                {LEVEL_OPTIONS.map(level => (
-                  <Button
-                    key={level}
-                    type="button"
-                    variant={field.value === level ? 'default' : 'outline'}
-                    onClick={() => field.onChange(level)}
-                  >
-                    {level}
-                  </Button>
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
+
         <FormField name="order" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Order</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
