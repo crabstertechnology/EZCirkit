@@ -4,7 +4,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, getRedirectResult, Auth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -36,10 +36,18 @@ export function initializeFirebase() {
 
 export function getSdks(firebaseApp: FirebaseApp) {
   const auth = getAuth(firebaseApp);
+  let firestore;
+  try {
+    firestore = initializeFirestore(firebaseApp, {
+      experimentalForceLongPolling: true,
+    });
+  } catch (e) {
+    firestore = getFirestore(firebaseApp);
+  }
   return {
     firebaseApp,
     auth,
-    firestore: getFirestore(firebaseApp),
+    firestore,
     handleRedirectResult: () => getRedirectResult(auth),
   };
 }
