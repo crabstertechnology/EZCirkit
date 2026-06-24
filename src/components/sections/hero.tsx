@@ -43,7 +43,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
   return (
     <section
       id="home"
-      className="relative overflow-hidden bg-background pt-24 pb-12 md:pt-32 md:pb-20"
+      className="relative overflow-hidden bg-background pt-24 pb-12 md:pt-40 md:pb-20"
     >
       <div
         aria-hidden="true"

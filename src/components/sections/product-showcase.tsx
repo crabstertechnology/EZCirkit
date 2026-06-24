@@ -24,6 +24,8 @@ import type { Review } from './testimonials';
 import StarRating from '../shared/star-rating';
 import { Skeleton } from '../ui/skeleton';
 
+import { useRouter } from 'next/navigation';
+
 interface Product {
   id: string; 
   name: string;
@@ -71,9 +73,19 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
     },
   ].filter(Boolean) as typeof placeholderImages;
   
+  const router = useRouter();
+  
   const handleAddToCart = () => {
     if (!product || product.stock <= 0) return;
     addToCart(product);
+  };
+
+  const handleBuyNow = async () => {
+    if (!product || product.stock <= 0) return;
+    if (quantity === 0) {
+      await addToCart(product);
+    }
+    router.push('/checkout');
   };
   
   const handleDecrement = () => {
@@ -217,16 +229,27 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-3">
                     <Button
                       size="lg"
-                      className="flex-1 relative overflow-hidden bg-primary-gradient text-lg font-bold text-primary-foreground shadow-lg transition-transform duration-300 hover:scale-105"
+                      className="w-full relative overflow-hidden bg-primary-gradient text-lg font-bold text-primary-foreground shadow-lg transition-transform duration-300 hover:scale-[1.02]"
                       onClick={handleAddToCart}
                       disabled={!canAddToCart || isOutOfStock}
                     >
                       {isOutOfStock ? <PackageX className="mr-2 h-5 w-5" /> : null}
                       {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                     </Button>
+                    
+                    {!isOutOfStock && (
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full text-lg font-bold border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 hover:scale-[1.02] shadow-md"
+                        onClick={handleBuyNow}
+                      >
+                        Buy Now
+                      </Button>
+                    )}
                 </div>
                  {!isOutOfStock && product.stock > 0 && product.stock <= 10 && (
                   <p className="text-sm text-destructive font-medium">

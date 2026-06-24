@@ -234,7 +234,7 @@ export default function IdeSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 pt-24 pb-16 px-4 md:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 pt-24 md:pt-40 pb-16 px-4 md:px-8 relative overflow-hidden">
       {/* Background Decorative Glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-[120px] pointer-events-none" />

@@ -80,12 +80,12 @@ const ProductsPage = () => {
     if (!firestore) return;
     
     const newStock = stockLevels[productId];
-<<<<<<< Updated upstream
+    if (newStock === undefined || newStock === '') {
+      toast({ variant: 'destructive', title: 'Invalid stock value.' });
+      return;
+    }
     const newStockVal = typeof newStock === 'string' ? parseInt(newStock, 10) : newStock;
-    if (newStock === '' || isNaN(newStockVal) || newStockVal < 0) {
-=======
-    if (newStock === '' || Number(newStock) < 0) {
->>>>>>> Stashed changes
+    if (isNaN(newStockVal) || newStockVal < 0) {
       toast({ variant: 'destructive', title: 'Invalid stock value.' });
       return;
     }

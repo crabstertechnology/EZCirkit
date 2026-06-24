@@ -5,8 +5,9 @@ export const SHIPPING_COST = 0;
 
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },
-  { href: '/#features', label: 'Features' },
-  { href: '/#products', label: 'Products' },
+  { href: '/#brochure', label: 'Features' },
+  { href: '/products', label: 'Products' },
+  { href: '/#products', label: 'KIT' },
   { href: '/ide', label: 'EZCirkit IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
@@ -46,7 +47,7 @@ export const FOOTER_LINKS = {
   ],
   quickLinks: [
     { href: '/', label: 'Home' },
-    { href: '/#products', label: 'Products' },
+    { href: '/products', label: 'Products' },
     { href: '/cart', label: 'Cart' },
   ],
   support: [

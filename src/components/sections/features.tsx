@@ -6,13 +6,15 @@ const FeatureCard = ({
   icon,
   title,
   description,
+  id,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
+  id: string;
 }) => {
   return (
-    <Card className="group relative overflow-hidden text-center transition-all duration-300 hover:-translate-y-3 hover:shadow-xl">
+    <Card id={id} className="group relative overflow-hidden text-center transition-all duration-300 hover:-translate-y-3 hover:shadow-xl">
       <div className="absolute top-0 h-1 w-full bg-primary-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center"></div>
       <CardHeader className="items-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-gradient text-white transition-transform duration-500 group-hover:rotate-[360deg]">
@@ -44,6 +46,7 @@ const FeaturesSection = () => {
           {FEATURES.map((feature, index) => (
             <FeatureCard
               key={index}
+              id={`feature-card-${index}`}
               icon={feature.icon}
               title={feature.title}
               description={feature.description}
