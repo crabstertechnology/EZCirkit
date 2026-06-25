@@ -34,6 +34,13 @@ const tutorialSchema = z.object({
   pinout: z.string().optional(),
 });
 
+const PUBLIC_ASSETS = [
+  { name: 'Kit Front', path: '/new-kit-front.png' },
+  { name: 'Kit Back', path: '/kit-back.png' },
+  { name: 'Kit Inside', path: '/kit-inside.png' },
+  { name: 'Logo', path: '/logo.png' }
+];
+
 const compressImageToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -308,6 +315,29 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                       <span>Compressing image for database...</span>
                     </div>
                   )}
+                  <div className="space-y-1.5 mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-200/80">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Or select local public asset:</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {PUBLIC_ASSETS.map((asset) => (
+                        <button
+                          key={asset.path}
+                          type="button"
+                          className={cn(
+                            "flex flex-col items-center gap-1 p-1 border rounded-md hover:border-primary/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-left group",
+                            field.value === asset.path && "border-primary bg-orange-50/50 dark:bg-orange-950/20"
+                          )}
+                          onClick={() => field.onChange(asset.path)}
+                        >
+                          <div className="w-full aspect-video rounded overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center border">
+                            <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
+                          </div>
+                          <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-foreground truncate w-full text-center">
+                            {asset.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   {field.value && (
                     <div className="relative border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50 max-h-48 flex items-center justify-center p-2 group">

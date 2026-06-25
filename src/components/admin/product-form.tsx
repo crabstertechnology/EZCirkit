@@ -15,6 +15,14 @@ import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import type { Product } from '@/app/admin/products/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+
+const PUBLIC_ASSETS = [
+  { name: 'Kit Front', path: '/new-kit-front.png' },
+  { name: 'Kit Back', path: '/kit-back.png' },
+  { name: 'Kit Inside', path: '/kit-inside.png' },
+  { name: 'Logo', path: '/logo.png' }
+];
 
 // Define the full product schema matching the detail page requirements
 const productSchema = z.object({
@@ -204,6 +212,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     const currentGallery = form.getValues('gallery') || [];
     const updated = currentGallery.filter((_, idx) => idx !== index);
     form.setValue('gallery', updated);
+  };
+
+  const addAssetToGallery = (path: string) => {
+    const current = form.getValues('gallery') || [];
+    if (current.includes(path)) {
+      toast({ title: 'This asset is already in the gallery.' });
+      return;
+    }
+    if (current.length >= 5) {
+      toast({ variant: 'destructive', title: 'You can only add up to 5 images.' });
+      return;
+    }
+    form.setValue('gallery', [...current, path]);
+    toast({ title: 'Added asset to gallery.' });
   };
 
   const onSubmit: SubmitHandler<ProductFormValues> = async (data) => {
@@ -468,6 +490,29 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                       <span>Compressing image for database...</span>
                     </div>
                   )}
+                  <div className="space-y-1.5 mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-200/80">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Or select local public asset:</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {PUBLIC_ASSETS.map((asset) => (
+                        <button
+                          key={asset.path}
+                          type="button"
+                          className={cn(
+                            "flex flex-col items-center gap-1 p-1 border rounded-md hover:border-primary/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-left group",
+                            field.value === asset.path && "border-primary bg-orange-50/50 dark:bg-orange-950/20"
+                          )}
+                          onClick={() => field.onChange(asset.path)}
+                        >
+                          <div className="w-full aspect-video rounded overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center border">
+                            <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
+                          </div>
+                          <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-foreground truncate w-full text-center">
+                            {asset.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -503,6 +548,26 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                   <span>Compressing gallery images for database...</span>
                 </div>
               )}
+              <div className="space-y-1.5 mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-200/80">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Or add local public asset:</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {PUBLIC_ASSETS.map((asset) => (
+                    <button
+                      key={asset.path}
+                      type="button"
+                      className="flex flex-col items-center gap-1 p-1 border rounded-md hover:border-primary/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-left group"
+                      onClick={() => addAssetToGallery(asset.path)}
+                    >
+                      <div className="w-full aspect-video rounded overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center border">
+                        <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
+                      </div>
+                      <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-foreground truncate w-full text-center">
+                        {asset.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Gallery Preview List */}
               {form.watch('gallery') && form.watch('gallery')!.length > 0 && (
