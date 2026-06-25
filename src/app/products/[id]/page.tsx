@@ -49,6 +49,7 @@ export default function ProductDetailPage() {
   const [showZoom, setShowZoom] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [lensPos, setLensPos] = useState({ top: 0, left: 0 });
+  const imageContainerRef = React.useRef<HTMLDivElement>(null);
   
   // Reviews state
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -386,60 +387,73 @@ export default function ProductDetailPage() {
         {/* Row 1: Images Gallery & Order controls */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Left Column: Image viewer */}
-          <div className="lg:col-span-6 space-y-4">
-            <div 
-              className="w-full rounded-2xl overflow-hidden bg-white border border-border/80 relative flex items-center justify-center p-6 shadow-sm cursor-crosshair select-none" 
-              style={{ aspectRatio: '1 / 1' }}
-              onMouseEnter={() => setShowZoom(true)}
-              onMouseLeave={() => setShowZoom(false)}
-              onMouseMove={handleMouseMove}
-            >
-              <Image
-                src={activeImage || product.image}
-                alt={product.name}
-                fill
-                className="object-contain p-4 select-none pointer-events-none"
-                priority
-              />
-              {discountPercent > 0 && (
-                <Badge className="absolute top-4 left-4 bg-red-500 hover:bg-red-600 border-none font-bold text-white text-xs py-1 px-3 rounded-md z-10">
-                  Sale {discountPercent}%
-                </Badge>
+          {/* Left Column: Image viewer + vertical thumbnails */}
+          <div className="lg:col-span-6 relative">
+            <div className="flex gap-3 items-start">
+
+              {/* Vertical Thumbnails — left side */}
+              {gallery.length > 1 && (
+                <div className="hidden sm:flex flex-col gap-2.5 flex-shrink-0">
+                  {gallery.map((img, idx) => {
+                    const isActive = activeImage === img;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImage(img)}
+                        className={`relative w-[72px] h-[72px] border rounded-xl overflow-hidden bg-white flex-shrink-0 transition-all duration-200 p-1.5 ${
+                          isActive
+                            ? 'ring-2 ring-primary border-primary shadow-sm'
+                            : 'border-border/80 hover:border-primary/50 hover:shadow-sm'
+                        }`}
+                      >
+                        <img src={img} alt={`Gallery image ${idx}`} className="w-full h-full object-contain rounded-lg" />
+                      </button>
+                    );
+                  })}
+                </div>
               )}
 
-              {/* Lens Selector Overlay */}
-              {showZoom && (
-                <div 
-                  className="absolute border border-primary/50 bg-primary/10 pointer-events-none z-10 rounded-lg shadow-sm"
-                  style={{
-                    width: '140px',
-                    height: '140px',
-                    top: `${lensPos.top}px`,
-                    left: `${lensPos.left}px`,
-                    backgroundImage: 'radial-gradient(circle, rgba(59,130,246,0.15) 1px, transparent 1px)',
-                    backgroundSize: '8px 8px',
-                  }}
+              {/* Main Image */}
+              <div 
+                ref={imageContainerRef}
+                className="flex-1 rounded-2xl bg-white border border-border/80 relative flex items-center justify-center p-6 shadow-sm cursor-crosshair select-none min-w-0"
+                style={{ aspectRatio: '1 / 1' }}
+                onMouseEnter={() => setShowZoom(true)}
+                onMouseLeave={() => setShowZoom(false)}
+                onMouseMove={handleMouseMove}
+              >
+                <Image
+                  src={activeImage || product.image}
+                  alt={product.name}
+                  fill
+                  className="object-contain p-4 select-none pointer-events-none"
+                  priority
                 />
-              )}
+                {discountPercent > 0 && (
+                  <Badge className="absolute top-4 left-4 bg-red-500 hover:bg-red-600 border-none font-bold text-white text-xs py-1 px-3 rounded-md z-10">
+                    Sale {discountPercent}%
+                  </Badge>
+                )}
 
-              {/* High-fidelity Zoom Window */}
-              {showZoom && (
-                <div 
-                  className="hidden lg:block absolute left-[104%] top-0 w-full h-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-50 rounded-2xl shadow-2xl overflow-hidden pointer-events-none"
-                  style={{
-                    backgroundImage: `url(${activeImage || product.image})`,
-                    backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-                    backgroundSize: '250%', // 2.5x zoom factor
-                    backgroundRepeat: 'no-repeat'
-                  }}
-                />
-              )}
+                {/* Lens Selector Overlay */}
+                {showZoom && (
+                  <div 
+                    className="absolute border-2 border-primary/60 bg-primary/10 pointer-events-none z-10 rounded-lg backdrop-blur-[1px]"
+                    style={{
+                      width: '140px',
+                      height: '140px',
+                      top: `${lensPos.top}px`,
+                      left: `${lensPos.left}px`,
+                      boxShadow: '0 0 0 1px rgba(249,115,22,0.3), inset 0 0 20px rgba(249,115,22,0.05)',
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
-            {/* Gallery Thumbnails */}
+            {/* Mobile Thumbnails — horizontal row, shown only on small screens */}
             {gallery.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex sm:hidden gap-3 overflow-x-auto pb-2 mt-3">
                 {gallery.map((img, idx) => {
                   const isActive = activeImage === img;
                   return (
@@ -459,7 +473,20 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Right Column: Checkout info */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-6 relative">
+
+            {/* High-fidelity Zoom Window — absolute overlay over right column */}
+            {showZoom && (
+              <div
+                className="hidden lg:block absolute inset-0 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden pointer-events-none z-30"
+                style={{
+                  backgroundImage: `url(${activeImage || product.image})`,
+                  backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                  backgroundSize: '300%',
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
+            )}
             
             {/* Branding details */}
             <div className="space-y-2">
@@ -690,7 +717,7 @@ export default function ProductDetailPage() {
                 </p>
                 <div className="pt-2 space-y-2.5">
                   <Button asChild className="w-full bg-[#00e676] hover:bg-[#00c853] text-white font-extrabold h-11 rounded-xl">
-                    <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+                    <a href="https://wa.me/917010396642" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                       <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
                         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.966C16.59 2.012 14.12 1.01 11.5 1.01c-5.448 0-9.873 4.372-9.877 9.802-.001 1.777.472 3.511 1.371 5.074l-1.0 3.655 3.754-.972c1.558.85 3.195 1.3 4.899 1.3z" />
                       </svg>
