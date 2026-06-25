@@ -171,13 +171,13 @@ const Header = () => {
 
   const getLinkIcon = (label: string) => {
     switch (label) {
-      case 'Home': return <Home className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors animate-in" />;
-      case 'Features': return <Zap className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
-      case 'Products': return <ShoppingBag className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
-      case 'Projects': return <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
-      case 'KIT': return <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
-      case 'EZCirkit IDE': return <Code className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
-      case 'Reviews': return <Star className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'Home': return <Home className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors animate-in" />;
+      case 'Features': return <Zap className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'Products': return <ShoppingBag className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'Projects': return <Package className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'KIT': return <Package className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'EZCirkit IDE': return <Code className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'Reviews': return <Star className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
       default: return null;
     }
   };
@@ -220,7 +220,7 @@ const Header = () => {
           <Link
             key={`${link.label}-${link.href}`}
             href={link.href}
-            className="group text-sm xl:text-base font-bold transition-all duration-200 relative text-foreground/80 hover:text-primary flex items-center gap-1 xl:gap-1.5 hover:scale-105 px-1.5 py-1 whitespace-nowrap"
+            className="group text-base lg:text-lg xl:text-xl font-bold transition-all duration-200 relative text-foreground/80 hover:text-primary flex items-center gap-1.5 xl:gap-2 hover:scale-105 px-2 py-1.5 whitespace-nowrap"
             onClick={(e) => handleLinkClick(e, link.href)}
           >
             {getLinkIcon(link.label)}
@@ -369,7 +369,7 @@ const Header = () => {
     return (
       <div ref={containerRef} className="relative w-full">
         <div className="relative flex items-center">
-          <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3.5 h-5 w-5 text-muted-foreground pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -382,11 +382,11 @@ const Header = () => {
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-secondary/80 text-sm pl-9 pr-10 py-1.5 rounded-full border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+            className="w-full bg-secondary/80 text-base pl-11 pr-12 py-2.5 rounded-full border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
           />
           {!isMobile && (
-            <div className="absolute right-3 hidden lg:flex items-center gap-0.5 pointer-events-none select-none text-[9px] font-semibold text-muted-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">
-              <span className="text-[10px]">⌘</span>K
+            <div className="absolute right-3.5 hidden lg:flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-semibold text-muted-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">
+              <span className="text-[11px]">⌘</span>K
             </div>
           )}
         </div>
@@ -451,7 +451,7 @@ const Header = () => {
            </SheetHeader>
           <div className="p-4 space-y-6">
             <div className="mb-2">
-              <Logo />
+              <Logo size="lg" />
             </div>
             
             <SearchBar isMobile={true} />
@@ -481,10 +481,10 @@ const Header = () => {
     >
       <div className="container mx-auto flex flex-col px-4 md:px-6">
         {/* Row 1: Brand & Navigation Links & Actions */}
-        <div suppressHydrationWarning className="flex h-14 items-center justify-between gap-4 w-full">
+        <div suppressHydrationWarning className="flex h-20 items-center justify-between gap-4 w-full">
           {/* Logo (Far Left) */}
           <div className="flex-shrink-0">
-            <Logo />
+            <Logo size="lg" />
           </div>
 
           {/* Left Nav Links (Home, Products) */}
@@ -493,7 +493,7 @@ const Header = () => {
           </nav>
           
           {/* Center SearchBar */}
-          <div className="hidden md:flex justify-center w-full max-w-[200px] lg:max-w-[280px] xl:max-w-[380px]">
+          <div className="hidden md:flex justify-center w-full max-w-[250px] lg:max-w-[320px] xl:max-w-[420px]">
             <SearchBar />
           </div>
 
@@ -505,9 +505,9 @@ const Header = () => {
           {/* Action Buttons (Far Right) */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Wishlist Link Button */}
-            <Button asChild variant="ghost" size="icon" className="relative">
+            <Button asChild variant="ghost" size="icon" className="relative h-10 w-10">
               <Link href="/wishlist">
-                <Heart className="h-5 w-5 text-muted-foreground hover:text-red-500 transition-colors" />
+                <Heart className="h-6 w-6 text-muted-foreground hover:text-red-500 transition-colors" />
                 {wishlistCount > 0 && (
                   <Badge
                     variant="default"
@@ -521,8 +521,8 @@ const Header = () => {
             </Button>
 
             {/* Shopping Cart Sidebar Button */}
-            <Button variant="ghost" size="icon" className="relative" onClick={() => setIsCartOpen(true)}>
-              <ShoppingCart className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="relative h-10 w-10" onClick={() => setIsCartOpen(true)}>
+              <ShoppingCart className="h-6 w-6" />
               {cartCount > 0 && (
                 <Badge
                   variant="default"
