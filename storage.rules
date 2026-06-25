@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == "9UQ07dlmFzWExqQB8aohn4LptNA2" ||
+        ("email" in request.auth.token && request.auth.token.email == "crabstertechnology@gmail.com") ||
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true
+      );
+    }
+
+    match /products/{productId}/{allPaths=**} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+
+    match /tutorials/{chapterId}/{tutorialId}/{allPaths=**} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

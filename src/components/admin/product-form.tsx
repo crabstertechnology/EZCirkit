@@ -7,9 +7,8 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { useUser, useFirestore, useStorage, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
 import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
@@ -39,7 +38,7 @@ const productSchema = z.object({
   gallery: z.array(z.string()).optional(), // Image URLs or Base64 strings
 });
 
-const compressToBlob = (file: File): Promise<Blob> => {
+const compressImageToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -47,8 +46,8 @@ const compressToBlob = (file: File): Promise<Blob> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const maxWidth = 2048; // Excellent 2K high-res quality
-        const maxHeight = 2048;
+        const maxWidth = 800; // Small size for extremely compact Firestore footprint
+        const maxHeight = 800;
         let width = img.width;
         let height = img.height;
 
@@ -70,19 +69,15 @@ const compressToBlob = (file: File): Promise<Blob> => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              resolve(file); // Fallback to original file
-            }
-          }, 'image/jpeg', 0.90); // High density, gorgeous JPEG (90% quality)
+          // Convert to WebP with 0.60 quality for ultra-lightweight storage (usually 15-25 KB)
+          const base64 = canvas.toDataURL('image/webp', 0.60);
+          resolve(base64);
         } else {
-          resolve(file);
+          resolve(event.target?.result as string);
         }
       };
       img.onerror = () => {
-        resolve(file);
+        resolve(event.target?.result as string);
       };
     };
     reader.onerror = () => {
@@ -167,19 +162,47 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     }
   }, [product, form, firestore]);
 
+  const [mainImageProgress, setMainImageProgress] = useState(0);
+  const [galleryProgress, setGalleryProgress] = useState(0);
+  const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
+  const [totalGalleryCount, setTotalGalleryCount] = useState(0);
+
+  const uploadWithProgress = (storageRef: any, blob: Blob, onProgress: (progress: number) => void): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: 'image/jpeg' });
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          onProgress(progress);
+        }, 
+        (error) => {
+          reject(error);
+        }, 
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (err) {
+            reject(err);
+          }
+        }
+      );
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (!file || !storage) return;
     setIsUploadingImage(true);
+    setMainImageProgress(0);
     try {
       const blob = await compressToBlob(file);
       const productId = form.getValues('id') || 'temp';
       const storageRef = ref(storage, `products/${productId}/main_image_${Date.now()}.jpg`);
       
-      const uploadResult = await uploadBytes(storageRef, blob, {
-        contentType: 'image/jpeg'
+      const downloadURL = await uploadWithProgress(storageRef, blob, (progress) => {
+        setMainImageProgress(progress);
       });
-      const downloadURL = await getDownloadURL(uploadResult.ref);
       
       onChange(downloadURL);
       toast({ title: 'Main image uploaded successfully to Storage!' });
@@ -195,6 +218,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !storage) return;
     setIsUploadingGallery(true);
+    setGalleryProgress(0);
+    setCurrentGalleryIndex(0);
+    setTotalGalleryCount(files.length);
     
     const currentGallery = form.getValues('gallery') || [];
     const newImages = [...currentGallery];
@@ -202,14 +228,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      setCurrentGalleryIndex(i);
+      setGalleryProgress(0);
       try {
         const blob = await compressToBlob(file);
         const storageRef = ref(storage, `products/${productId}/gallery_${Date.now()}_${i}.jpg`);
         
-        const uploadResult = await uploadBytes(storageRef, blob, {
-          contentType: 'image/jpeg'
+        const downloadURL = await uploadWithProgress(storageRef, blob, (progress) => {
+          setGalleryProgress(progress);
         });
-        const downloadURL = await getDownloadURL(uploadResult.ref);
         newImages.push(downloadURL);
       } catch (err) {
         console.error("Gallery image upload error:", err);
@@ -483,6 +510,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                       </label>
                     </div>
                   </div>
+                  {isUploadingImage && (
+                    <div className="space-y-1.5 mt-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                        <span className="animate-pulse">Uploading main image...</span>
+                        <span>{mainImageProgress}%</span>
+                      </div>
+                      <Progress value={mainImageProgress} className="h-2 w-full bg-zinc-100" />
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -506,12 +542,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                     <span>
                       <Plus className="h-5 w-5 text-muted-foreground" />
                       <span className="text-xs font-bold text-muted-foreground">
-                        {isUploadingGallery ? 'Processing Images...' : 'Upload Multiple Gallery Images'}
+                        {isUploadingGallery ? 'Uploading Gallery...' : 'Upload Multiple Gallery Images'}
                       </span>
                     </span>
                   </Button>
                 </label>
               </div>
+              {isUploadingGallery && (
+                <div className="space-y-1.5 mt-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+                  <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                    <span className="animate-pulse">Uploading gallery image {currentGalleryIndex + 1} of {totalGalleryCount}...</span>
+                    <span>{galleryProgress}%</span>
+                  </div>
+                  <Progress value={galleryProgress} className="h-2 w-full bg-zinc-100" />
+                </div>
+              )}
 
               {/* Gallery Preview List */}
               {form.watch('gallery') && form.watch('gallery')!.length > 0 && (

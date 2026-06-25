@@ -12,7 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useFirestore, useStorage } from '@/firebase';
 import { doc, collection, setDoc, getDocs } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
@@ -104,6 +105,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [diagramProgress, setDiagramProgress] = useState(0);
   
   // Pre-generate the tutorial ID so it is consistent across uploads and submissions
   const [tutorialId] = useState(() => tutorial?.id || doc(collection(firestore, '_')).id);
@@ -112,16 +114,34 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     const file = e.target.files?.[0];
     if (!file || !storage) return;
     setIsUploadingImage(true);
+    setDiagramProgress(0);
     try {
       const blob = await compressToBlob(file);
       const storageRef = ref(storage, `tutorials/${chapterId}/${tutorialId}/diagram_${Date.now()}.jpg`);
       
-      const uploadResult = await uploadBytes(storageRef, blob, {
-        contentType: 'image/jpeg'
-      });
-      const downloadURL = await getDownloadURL(uploadResult.ref);
+      const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: 'image/jpeg' });
       
-      onChange(downloadURL);
+      await new Promise<void>((resolve, reject) => {
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            setDiagramProgress(progress);
+          },
+          (error) => {
+            reject(error);
+          },
+          async () => {
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              onChange(downloadURL);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }
+        );
+      });
+      
       toast({ title: 'Diagram image uploaded successfully to Storage!' });
     } catch (err) {
       console.error("Storage upload error:", err);
@@ -315,6 +335,15 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                       </label>
                     </div>
                   </div>
+                  {isUploadingImage && (
+                    <div className="space-y-1.5 mt-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                        <span className="animate-pulse">Uploading diagram...</span>
+                        <span>{diagramProgress}%</span>
+                      </div>
+                      <Progress value={diagramProgress} className="h-2 w-full bg-zinc-100" />
+                    </div>
+                  )}
 
                   {field.value && (
                     <div className="relative border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50 max-h-48 flex items-center justify-center p-2 group">
