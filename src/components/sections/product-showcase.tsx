@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Minus, Plus, Truck, PackageX, FileText } from 'lucide-react';
+import { Check, Minus, Plus, Truck, PackageX, FileText, ShoppingCart, ArrowRight } from 'lucide-react';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { PRODUCT_FEATURES } from '@/lib/constants';
 import { useCart } from '@/context/cart-context';
@@ -58,26 +58,40 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
   
   const logicalProductId = product?.id;
   
+  const getDisplayImage = (imgUrl?: string) => {
+    if (!imgUrl || imgUrl === '/1.jpg') {
+      return '/new-kit-front.png';
+    }
+    return imgUrl;
+  };
+
   const productImages = [
     {
       id: 'product-slide-1',
-      description: 'EZCirkit box and components.',
-      imageUrl: product?.image || '/1.jpg', // Use product image from DB
-      imageHint: 'product box'
+      description: 'EZCirkit Starter Kit Front View',
+      imageUrl: getDisplayImage(product?.image),
+      imageHint: 'product front'
     },
-     {
+    {
       id: 'product-slide-2',
-      description: 'Close-up of various electronic components from the kit.',
-      imageUrl: '/2.jpg',
-      imageHint: 'electronic components'
+      description: 'EZCirkit Starter Kit Inside Components View',
+      imageUrl: '/kit-inside.png',
+      imageHint: 'product inside'
     },
-  ].filter(Boolean) as typeof placeholderImages;
+    {
+      id: 'product-slide-3',
+      description: 'EZCirkit Starter Kit Back Box View',
+      imageUrl: '/kit-back.png',
+      imageHint: 'product back'
+    },
+  ];
   
   const router = useRouter();
   
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product || product.stock <= 0) return;
-    addToCart(product);
+    await addToCart(product);
+    router.push('/cart');
   };
 
   const handleBuyNow = async () => {
@@ -174,11 +188,6 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <h2 className="text-3xl md:text-4xl font-extrabold font-headline">
                 {product.name}
               </h2>
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" asChild>
-                <a href="/brochure.pdf" target="_blank" rel="noopener noreferrer">
-                  <FileText className="mr-2 h-4 w-4" /> Brochure
-                </a>
-              </Button>
             </div>
             
              {isLoadingReviews ? (
@@ -216,42 +225,34 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
 
             <ClientOnly>
                <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <p className="font-semibold">Quantity:</p>
-                  <div className="flex items-center border rounded-md">
-                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={handleDecrement} disabled={quantity === 0}>
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-10 text-center font-bold">{quantity}</span>
-                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={handleAddToCart} disabled={!canAddToCart || isOutOfStock}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-row gap-4 w-full">
+                  <Button
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    className="flex-1 bg-[#1a1a1a] hover:bg-[#2d2d2d] text-white font-semibold rounded-lg py-3 px-6 h-12 flex items-center justify-center gap-2 transition-colors duration-200"
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    <span>Add to Cart</span>
+                  </Button>
+                  
+                  {!isOutOfStock && (
                     <Button
-                      size="lg"
-                      className="w-full relative overflow-hidden bg-primary-gradient text-lg font-bold text-primary-foreground shadow-lg transition-transform duration-300 hover:scale-[1.02]"
-                      onClick={handleAddToCart}
-                      disabled={!canAddToCart || isOutOfStock}
+                      onClick={handleBuyNow}
+                      className="flex-1 bg-[#ff6c00] hover:bg-[#e05f00] text-white font-semibold rounded-lg py-3 px-6 h-12 flex items-center justify-center gap-2 transition-colors duration-200"
                     >
-                      {isOutOfStock ? <PackageX className="mr-2 h-5 w-5" /> : null}
-                      {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                      <span>Buy Now</span>
+                      <ArrowRight className="h-5 w-5" />
                     </Button>
-                    
-                    {!isOutOfStock && (
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="w-full text-lg font-bold border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 hover:scale-[1.02] shadow-md"
-                        onClick={handleBuyNow}
-                      >
-                        Buy Now
-                      </Button>
-                    )}
+                  )}
                 </div>
-                 {!isOutOfStock && product.stock > 0 && product.stock <= 10 && (
+                
+                {isOutOfStock && (
+                  <p className="text-sm text-destructive font-semibold text-center">
+                    Out of Stock
+                  </p>
+                )}
+
+                {!isOutOfStock && product.stock > 0 && product.stock <= 10 && (
                   <p className="text-sm text-destructive font-medium">
                     Only {product.stock - quantity} left in stock! Order soon.
                   </p>

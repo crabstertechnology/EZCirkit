@@ -172,6 +172,7 @@ const Header = () => {
       case 'Home': return <Home className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors animate-in" />;
       case 'Features': return <Zap className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'Products': return <ShoppingBag className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'Projects': return <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'KIT': return <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'EZCirkit IDE': return <Code className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'Reviews': return <Star className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />;
@@ -531,6 +532,49 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Announcement Bar */}
+      {pathname === '/' && (
+        <div className="w-full bg-[#050b07] text-zinc-300 py-1 border-t border-emerald-950/20 overflow-hidden relative">
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes marquee {
+              0% { transform: translate3d(0, 0, 0); }
+              100% { transform: translate3d(-50%, 0, 0); }
+            }
+            .animate-marquee {
+              display: inline-flex;
+              white-space: nowrap;
+              animation: marquee 35s linear infinite;
+            }
+          `}} />
+          <div className="flex animate-marquee text-[9px] tracking-widest font-black uppercase items-center gap-6">
+            <div className="flex items-center gap-6 shrink-0">
+              <span className="flex items-center gap-1.5"><span className="text-emerald-400">⚡</span> Free Shipping Over ₹999</span>
+              <span>•</span>
+              <span>Stem Kits For Schools - Bulk Pricing</span>
+              <span>•</span>
+              <span className="text-emerald-400">Made In India 🇮🇳</span>
+              <span>•</span>
+              <span>10,000+ Students Learning With EZCirkit</span>
+              <span>•</span>
+              <span>Step-by-Step Video Tutorials</span>
+              <span>•</span>
+            </div>
+            <div className="flex items-center gap-6 shrink-0">
+              <span className="flex items-center gap-1.5"><span className="text-emerald-400">⚡</span> Free Shipping Over ₹999</span>
+              <span>•</span>
+              <span>Stem Kits For Schools - Bulk Pricing</span>
+              <span>•</span>
+              <span className="text-emerald-400">Made In India 🇮🇳</span>
+              <span>•</span>
+              <span>10,000+ Students Learning With EZCirkit</span>
+              <span>•</span>
+              <span>Step-by-Step Video Tutorials</span>
+              <span>•</span>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

@@ -3,14 +3,12 @@
 import React from 'react';
 import HeroSection from '@/components/sections/hero';
 import StatsSection from '@/components/sections/stats';
-import BrochureSection from '@/components/sections/brochure';
-import ProductShowcase from '@/components/sections/product-showcase';
+import FlagshipProductSection from '@/components/sections/flagship-product';
+import ProjectsPreviewSection from '@/components/sections/projects-preview';
 import Testimonials from '@/components/sections/testimonials';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { Review } from '@/components/sections/testimonials';
-import { Skeleton } from '@/components/ui/skeleton';
-
 
 const PRODUCT_DOC_ID = 'pro1';
 
@@ -42,13 +40,8 @@ export default function Home() {
         isLoading={isLoadingReviews}
       />
       <StatsSection averageRating={averageRating} isLoading={isLoadingReviews} />
-      <BrochureSection />
-      <ProductShowcase 
-        reviews={reviews}
-        averageRating={averageRating}
-        reviewCount={reviewCount}
-        isLoadingReviews={isLoadingReviews}
-      />
+      <FlagshipProductSection />
+      <ProjectsPreviewSection />
       <Testimonials 
          reviews={reviews || []}
          averageRating={averageRating}

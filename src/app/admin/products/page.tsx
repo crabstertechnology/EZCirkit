@@ -44,6 +44,7 @@ export interface Product {
   description?: string;
   stock: number;
   image: string;
+  category?: string;
 }
 
 const ProductsPage = () => {

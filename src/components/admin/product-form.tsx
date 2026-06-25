@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import type { Product } from '@/app/admin/products/page';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const productSchema = z.object({
   id: z.string().min(3, 'Product ID must be at least 3 characters.'),
@@ -23,6 +24,7 @@ const productSchema = z.object({
   originalPrice: z.coerce.number().optional(),
   stock: z.coerce.number().int().nonnegative('Stock cannot be negative.'),
   image: z.string().min(1, 'Image URL is required.'),
+  category: z.string().optional(),
 });
 
 const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 600): Promise<string> => {
@@ -108,13 +110,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
       price: 0,
       originalPrice: 0,
       stock: 0,
-      image: '/1.jpg',
+      image: '/new-kit-front.png',
+      category: 'Components',
     },
   });
 
   useEffect(() => {
     if (product) {
-      form.reset(product);
+      form.reset({
+        ...product,
+        category: product.category || 'Components',
+      });
     } else {
       form.reset({
         id: doc(collection(firestore, '_')).id, // Generate a new ID for new products
@@ -123,7 +129,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
         price: 0,
         originalPrice: 0,
         stock: 0,
-        image: '/1.jpg',
+        image: '/new-kit-front.png',
+        category: 'Components',
       });
     }
   }, [product, form, firestore]);
@@ -225,6 +232,33 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                 <FormControl>
                     <Input type="number" placeholder="100" {...field} />
                 </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+           <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value || 'Components'}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Sensors">Sensors</SelectItem>
+                    <SelectItem value="Arduino Boards">Arduino Boards</SelectItem>
+                    <SelectItem value="Displays">Displays</SelectItem>
+                    <SelectItem value="Power Modules">Power Modules</SelectItem>
+                    <SelectItem value="Robotics">Robotics</SelectItem>
+                    <SelectItem value="Wires & Connectors">Wires & Connectors</SelectItem>
+                    <SelectItem value="Components">Components</SelectItem>
+                    <SelectItem value="DIY Kits">DIY Kits</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
                 </FormItem>
             )}

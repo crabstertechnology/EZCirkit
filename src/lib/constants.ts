@@ -7,6 +7,7 @@ export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/#brochure', label: 'Features' },
   { href: '/products', label: 'Products' },
+  { href: '/projects', label: 'Projects' },
   { href: '/#products', label: 'KIT' },
   { href: '/ide', label: 'EZCirkit IDE' },
   { href: '/#testimonials', label: 'Reviews' },
