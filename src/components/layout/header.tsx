@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, ShoppingCart, User, LogOut, LogIn, UserPlus, Shield, Search, Home, Zap, ShoppingBag, Package, Code, Star, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,11 @@ const Header = () => {
   const firestore = useFirestore();
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userDocRef = useMemoFirebase(
     () => (!isUserLoading && user ? doc(firestore, 'users', user.uid) : null),
@@ -580,8 +585,8 @@ const Header = () => {
       {/* Cart Sidebar */}
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Announcement Bar */}
-      {pathname === '/' && announcementSettings && announcementSettings.enabled && announcementSettings.items.length > 0 && (
+      {/* Announcement Bar — client-only to avoid SSR/hydration mismatch from Firebase data */}
+      {mounted && pathname === '/' && announcementSettings && announcementSettings.enabled && announcementSettings.items.length > 0 && (
         <div 
           className="w-full overflow-hidden relative" 
           style={{ 
