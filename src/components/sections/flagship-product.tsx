@@ -147,8 +147,37 @@ const FlagshipProductSection = () => {
   if (isLoading) return null;
   if (!product) return null;
 
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "image": product.image || "/new-kit-front.png",
+    "description": product.description || "EZCirkit STEM Starter Kit for learning electronics.",
+    "brand": {
+      "@type": "Brand",
+      "name": "EZCirkit"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://ezcirkit.crabster.in",
+      "priceCurrency": "INR",
+      "price": product.price,
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": isOutOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": averageRating,
+      "reviewCount": reviews && reviews.length > 0 ? reviews.length : reviewsCount
+    }
+  };
+
   return (
     <section id="flagship-product" className="py-16 md:py-24 bg-zinc-50/50 dark:bg-zinc-950/20 border-t border-b border-border/80">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
       <div className="container mx-auto px-4 md:px-6">
         
         {/* Section Header */}

@@ -1,32 +1,90 @@
-
-'use client';
-
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { Toaster } from '@/components/ui/toaster';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
-import ScrollToTop from '@/components/shared/scroll-to-top';
-import { CartProvider } from '@/context/cart-context';
-import Script from 'next/script';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { usePathname } from 'next/navigation';
+import ClientLayout from '@/components/layout/client-layout';
+
+export const viewport: Viewport = {
+  themeColor: '#f97316',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export const metadata: Metadata = {
+  title: {
+    default: 'EZCirkit – Learn Electronics Made Easy | Crabster Technology',
+    template: '%s | EZCirkit'
+  },
+  description: 'Learn electronics and programming easily with the EZCirkit STEM kit. Real-time simulation, step-by-step interactive experiments, and video tutorials by Crabster Technology.',
+  keywords: [
+    'EZCirkit', 
+    'Crabster Technology', 
+    'Learn Electronics', 
+    'STEM Kit', 
+    'Arduino Starter Kit', 
+    'Electronics experiments', 
+    'Robotics for students', 
+    'Arduino simulator', 
+    'Online Code Compiler',
+    'Arduino Web IDE',
+    'Learn Coding',
+    'DIY Electronics'
+  ],
+  authors: [{ name: 'Crabster Technology', url: 'https://crabster.in' }],
+  creator: 'Crabster Technology',
+  publisher: 'Crabster Technology',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://ezcirkit.crabster.in'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'EZCirkit – Learn Electronics Made Easy | Crabster Technology',
+    description: 'Learn electronics easily with hands-on STEM kits, Arduino projects and interactive tutorials.',
+    url: 'https://ezcirkit.crabster.in',
+    siteName: 'EZCirkit',
+    images: [
+      {
+        url: '/new-kit-front.png',
+        width: 1200,
+        height: 630,
+        alt: 'EZCirkit STEM Starter Kit',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'EZCirkit – Learn Electronics Made Easy | Crabster Technology',
+    description: 'Learn electronics easily with hands-on STEM kits, Arduino projects and interactive tutorials.',
+    images: ['/new-kit-front.png'],
+    creator: '@crabstertech',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const isAdminPage = pathname.startsWith('/admin');
-
   return (
     <html lang="en" className="!scroll-smooth" suppressHydrationWarning>
       <head>
-        <title>EZCirkit – Learn Electronics Made Easy | Crabster Technology</title>
-        <meta name="description" content="Learn Electronics Made Easy with hands-on STEM kits, Arduino projects and step-by-step video tutorials by Crabster Technology." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-
         {/* DNS Prefetch & Preconnect for critical third-party origins */}
         <link rel="preconnect" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
@@ -44,20 +102,7 @@ export default function RootLayout({
         />
       </head>
       <body className={cn('font-body antialiased')} suppressHydrationWarning>
-        {/* Razorpay loaded lazily – only when browser is idle, non-blocking */}
-        <Script
-          src="https://checkout.razorpay.com/v1/checkout.js"
-          strategy="lazyOnload"
-        />
-        <FirebaseClientProvider>
-          <CartProvider>
-            {!isAdminPage && <Header />}
-            <main className="min-h-screen">{children}</main>
-            {!isAdminPage && <Footer />}
-            <Toaster />
-            <ScrollToTop />
-          </CartProvider>
-        </FirebaseClientProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
