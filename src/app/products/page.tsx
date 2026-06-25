@@ -111,44 +111,10 @@ export default function ShopPage() {
     'EZCirkit'
   ];
 
-  // Client side fallback products matching the mockup
-  const fallbackProducts: Product[] = [
-    {
-      id: 'pro1',
-      name: 'EZCirkit Electronics Learning Starter Kit',
-      price: 2499,
-      originalPrice: 3499,
-      description: 'Everything you need to start your electronics journey in one box. Includes Arduino UNO R3, sensors, modules, breadboard, jumper wires and a multimeter. Pair it with our free project tutorials and learn by doing.',
-      stock: 10,
-      image: '/new-kit-front.png',
-      category: 'DIY Kits'
-    },
-    {
-      id: 'pro2',
-      name: 'Arduino UNO R3 Compatible Board',
-      price: 699,
-      originalPrice: 899,
-      description: 'High-quality micro-controller board compatible with the Arduino Uno R3 platform. Perfect core component for standard robotics and embedded systems projects.',
-      stock: 45,
-      image: '/2.jpg',
-      category: 'Arduino Boards'
-    },
-    {
-      id: 'pro3',
-      name: '0.96" OLED Display I2C 128x64',
-      price: 249,
-      originalPrice: 349,
-      description: 'High-contrast graphic monochrome display screen. Uses simple I2C connection pins (SDA/SCL) to report sensor logs, text symbols, or customized graphics.',
-      stock: 20,
-      image: '/2.jpg',
-      category: 'Displays'
-    }
-  ];
-
   // Combine query results and default fallback items
   const displayProducts = React.useMemo(() => {
-    // If the database has products, only show database products. Otherwise, use fallbacks.
-    let list = products && products.length > 0 ? [...products] : [...fallbackProducts];
+    // Show only database products listed by the admin.
+    let list = products ? [...products] : [];
 
     // Filter by Category
     if (selectedCategory !== 'All Products') {
