@@ -39,7 +39,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   let firestore;
   try {
     firestore = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true,
+      ignoreUndefinedProperties: true,
     });
   } catch (e) {
     firestore = getFirestore(firebaseApp);

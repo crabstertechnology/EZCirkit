@@ -2,17 +2,27 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // In a future major version of Next.js, this will be the default.
-  // We can add it now to address the warning.
   allowedDevOrigins: ['https://*.cloudworkstations.dev'],
+
+  // Compress responses with gzip
+  compress: true,
+
+  // Tree-shake large icon libraries — only imports used icons
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
+
   images: {
+    // Serve modern formats: avif first, then webp fallback
+    formats: ['image/avif', 'image/webp'],
+    // Aggressive caching — 30 days for remote images
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: 'https',
@@ -29,6 +39,18 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
         port: '',
         pathname: '/**',
       },

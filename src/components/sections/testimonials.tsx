@@ -198,6 +198,7 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
                       src={getYoutubeEmbedUrl(video.videoUrl)}
                       title={video.title}
                       frameBorder="0"
+                      loading="lazy"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
@@ -220,6 +221,7 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
                       src={getYoutubeEmbedUrl(video.videoUrl)}
                       title={video.title}
                       frameBorder="0"
+                      loading="lazy"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
