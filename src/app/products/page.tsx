@@ -307,7 +307,7 @@ export default function ShopPage() {
                   return (
                     <Card
                       key={p.id}
-                      onClick={() => setSelectedProduct(p)}
+                      onClick={() => router.push(`/products/${p.id}`)}
                       className="group cursor-pointer border border-border/60 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden flex flex-col justify-between"
                     >
                       {/* Image header container */}

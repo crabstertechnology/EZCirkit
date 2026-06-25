@@ -85,7 +85,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground leading-snug line-clamp-2">{item.name}</p>
+                  <Link href={`/products/${item.id}`} onClick={onClose} className="hover:text-primary transition-colors">
+                    <p className="text-sm font-bold leading-snug line-clamp-2">{item.name}</p>
+                  </Link>
                   <p className="text-sm font-black text-primary mt-1">₹{item.price.toLocaleString('en-IN')}</p>
 
                   {/* Quantity controls */}

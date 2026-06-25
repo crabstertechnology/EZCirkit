@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -7,15 +6,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection }from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
 import type { Product } from '@/app/admin/products/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+// Define the full product schema matching the detail page requirements
 const productSchema = z.object({
   id: z.string().min(3, 'Product ID must be at least 3 characters.'),
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -25,14 +26,35 @@ const productSchema = z.object({
   stock: z.coerce.number().int().nonnegative('Stock cannot be negative.'),
   image: z.string().min(1, 'Image URL is required.'),
   category: z.string().optional(),
+  
+  // Extended fields
+  brand: z.string().optional(),
+  sku: z.string().optional(),
+  features: z.string().optional(), // Newline-separated features
+  specifications: z.string().optional(), // Newline-separated "Key: Value" specifications
+  additionalResources: z.string().optional(), // Newline-separated "Label: URL" resources
+  warranty: z.string().optional(),
+  shipping: z.string().optional(),
+  gallery: z.array(z.string()).optional(), // Image URLs or Base64 strings
 });
 
-const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 600): Promise<string> => {
+const compressImage = (base64Str: string): Promise<string> => {
   return new Promise((resolve) => {
+    const sizeInBytes = base64Str.length * 0.75;
+    
+    // If under 950 KB, keep original file quality byte-for-byte without compressing
+    if (sizeInBytes <= 950 * 1024) {
+      resolve(base64Str);
+      return;
+    }
+
+    // Otherwise, scale gently to fit Firestore's 1MB limit while maintaining high quality (e.g. 1600px max)
     const img = new Image();
     img.src = base64Str;
     img.onload = () => {
       const canvas = document.createElement('canvas');
+      const maxWidth = 1600;
+      const maxHeight = 1600;
       let width = img.width;
       let height = img.height;
 
@@ -54,7 +76,8 @@ const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 600): Prom
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        // Use quality 0.92 for crystal clear details, converting to WebP for high-density compression
+        resolve(canvas.toDataURL('image/webp', 0.92));
       } else {
         resolve(base64Str);
       }
@@ -78,28 +101,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const isEditing = !!product;
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingImage(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      try {
-        const compressed = await compressImage(base64);
-        onChange(compressed);
-        toast({ title: 'Image uploaded & compressed!' });
-      } catch (err) {
-        console.error("Compression error:", err);
-        toast({ variant: 'destructive', title: 'Failed to process image.' });
-      } finally {
-        setIsUploadingImage(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -112,6 +115,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
       stock: 0,
       image: '/new-kit-front.png',
       category: 'Components',
+      brand: '',
+      sku: '',
+      features: '',
+      specifications: '',
+      additionalResources: '',
+      warranty: '',
+      shipping: '',
+      gallery: [],
     },
   });
 
@@ -120,10 +131,18 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
       form.reset({
         ...product,
         category: product.category || 'Components',
+        brand: (product as any).brand || '',
+        sku: (product as any).sku || '',
+        features: (product as any).features || '',
+        specifications: (product as any).specifications || '',
+        additionalResources: (product as any).additionalResources || '',
+        warranty: (product as any).warranty || '',
+        shipping: (product as any).shipping || '',
+        gallery: (product as any).gallery || [],
       });
     } else {
       form.reset({
-        id: doc(collection(firestore, '_')).id, // Generate a new ID for new products
+        id: doc(collection(firestore, '_')).id,
         name: '',
         description: '',
         price: 0,
@@ -131,20 +150,83 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
         stock: 0,
         image: '/new-kit-front.png',
         category: 'Components',
+        brand: '',
+        sku: '',
+        features: '',
+        specifications: '',
+        additionalResources: '',
+        warranty: '',
+        shipping: '',
+        gallery: [],
       });
     }
   }, [product, form, firestore]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      try {
+        const compressed = await compressImage(base64);
+        onChange(compressed);
+        toast({ title: 'Main image uploaded successfully at maximum quality!' });
+      } catch (err) {
+        console.error("Compression error:", err);
+        toast({ variant: 'destructive', title: 'Failed to process image.' });
+      } finally {
+        setIsUploadingImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingGallery(true);
+    
+    const currentGallery = form.getValues('gallery') || [];
+    const newImages = [...currentGallery];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+      try {
+        const compressed = await compressImage(base64);
+        newImages.push(compressed);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    form.setValue('gallery', newImages);
+    toast({ title: `${files.length} gallery image(s) uploaded successfully at maximum quality!` });
+    setIsUploadingGallery(false);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    const currentGallery = form.getValues('gallery') || [];
+    const updated = currentGallery.filter((_, idx) => idx !== index);
+    form.setValue('gallery', updated);
+  };
+
   const onSubmit: SubmitHandler<ProductFormValues> = async (data) => {
     if (!user || !firestore) {
-      toast({ variant: 'destructive', title: 'You must be an admin.' });
+      toast({ variant: 'destructive', title: 'You must be authenticated as admin.' });
       return;
     }
     setIsSubmitting(true);
     
     const productRef = doc(firestore, 'products', data.id);
     
-    // Use non-blocking set with merge for both creating and updating
+    // Write product data
     setDocumentNonBlocking(productRef, data, { merge: true });
 
     toast({ title: `Product ${isEditing ? 'updated' : 'added'} successfully!` });
@@ -154,182 +236,336 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Product ID</FormLabel>
-              <FormControl>
-                <Input placeholder="prod_ezc_01" {...field} disabled={isEditing} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Product Name</FormLabel>
-              <FormControl>
-                <Input placeholder="EZCirkit Complete Kit" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="A short description of the product." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-           <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="2999" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="originalPrice"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Original Price (Optional)</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="3999" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-         <div className="grid grid-cols-2 gap-4">
-           <FormField
-            control={form.control}
-            name="stock"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Stock Quantity</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="100" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-           <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Sensors">Sensors</SelectItem>
-                    <SelectItem value="Arduino Boards">Arduino Boards</SelectItem>
-                    <SelectItem value="Displays">Displays</SelectItem>
-                    <SelectItem value="Power Modules">Power Modules</SelectItem>
-                    <SelectItem value="Robotics">Robotics</SelectItem>
-                    <SelectItem value="Wires & Connectors">Wires & Connectors</SelectItem>
-                    <SelectItem value="Components">Components</SelectItem>
-                    <SelectItem value="DIY Kits">DIY Kits</SelectItem>
-                    <SelectItem value="EZCirkit">EZCirkit</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-        <FormField
-            control={form.control}
-            name="image"
-            render={({ field }) => (
-                <FormItem className="space-y-2">
-                <FormLabel>Product Image</FormLabel>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="basic">1. Basic Info</TabsTrigger>
+            <TabsTrigger value="extended">2. Product Details</TabsTrigger>
+            <TabsTrigger value="media">3. Gallery & Specs</TabsTrigger>
+          </TabsList>
+
+          {/* TAB 1: BASIC INFO */}
+          <TabsContent value="basic" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="prod_ezc_01" {...field} disabled={isEditing} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <Input placeholder="Paste image URL or upload one" {...field} value={field.value || ''} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
                       </FormControl>
-                    </div>
+                      <SelectContent>
+                        <SelectItem value="Sensors">Sensors</SelectItem>
+                        <SelectItem value="Arduino Boards">Arduino Boards</SelectItem>
+                        <SelectItem value="Displays">Displays</SelectItem>
+                        <SelectItem value="Power Modules">Power Modules</SelectItem>
+                        <SelectItem value="Robotics">Robotics</SelectItem>
+                        <SelectItem value="Wires & Connectors">Wires & Connectors</SelectItem>
+                        <SelectItem value="Components">Components</SelectItem>
+                        <SelectItem value="DIY Kits">DIY Kits</SelectItem>
+                        <SelectItem value="EZCirkit">EZCirkit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ESP32-S3 IoT Development Board" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Short Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="A concise, high-converting product summary." {...field} className="h-20" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Selling Price (₹)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="2499" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="originalPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Original Price (₹)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="3499" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stock Quantity</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="50" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
+
+          {/* TAB 2: DETAILED SPECIFICS */}
+          <TabsContent value="extended" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand / Manufacturer</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 7Semi, Arduino, Espressif" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SKU / Part ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. TIFCC0230" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="features"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Key Features (One bullet point per line)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g.&#10;Combines 4G LTE, Wi-Fi, Bluetooth, and GNSS&#10;Supports multiple LTE and GSM bands&#10;ESP32-S3 dual-core processor" 
+                      {...field} 
+                      className="h-28 font-sans text-sm" 
+                    />
+                  </FormControl>
+                  <FormDescription>These will render as bold bullet points on the product page.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="warranty"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Warranty Terms</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="e.g. 6 Months warranty against manufacturing defects." {...field} className="h-20 text-xs" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="shipping"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Shipping & Delivery Info</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="e.g. Dispatched in 24 hours. Free delivery for orders above ₹999." {...field} className="h-20 text-xs" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
+
+          {/* TAB 3: MEDIA & TECHNICAL DETAILS */}
+          <TabsContent value="media" className="space-y-4">
+            {/* Main Image */}
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Main Product Image</FormLabel>
+                  <div className="flex gap-3 items-center">
+                    <FormControl className="flex-1">
+                      <Input placeholder="Paste image URL or upload one" {...field} />
+                    </FormControl>
                     <div className="relative">
                       <input
                         type="file"
                         accept="image/*"
-                        id="product-file-upload"
+                        id="main-image-upload"
                         className="hidden"
                         onChange={(e) => handleImageUpload(e, field.onChange)}
                         disabled={isUploadingImage}
                       />
-                      <label htmlFor="product-file-upload">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="cursor-pointer gap-1.5"
-                          asChild
-                          disabled={isUploadingImage}
-                        >
+                      <label htmlFor="main-image-upload">
+                        <Button type="button" variant="outline" className="cursor-pointer gap-1.5 h-10" asChild disabled={isUploadingImage}>
                           <span>
                             <Upload className="h-4 w-4" />
-                            {isUploadingImage ? 'Uploading...' : 'Upload'}
+                            {isUploadingImage ? 'Processing...' : 'Upload'}
                           </span>
                         </Button>
                       </label>
                     </div>
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                  {field.value && (
-                    <div className="relative border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50 max-h-48 flex items-center justify-center p-2 group">
-                      <img
-                        src={field.value}
-                        alt="Product Image Preview"
-                        className="max-h-40 object-contain rounded-lg"
-                      />
+            {/* Gallery Upload */}
+            <div className="space-y-2">
+              <FormLabel>Product Gallery Images (Up to 5 images)</FormLabel>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  id="gallery-image-upload"
+                  className="hidden"
+                  onChange={handleGalleryUpload}
+                  disabled={isUploadingGallery}
+                />
+                <label htmlFor="gallery-image-upload" className="w-full">
+                  <Button type="button" variant="outline" className="w-full border-dashed border-2 py-6 h-auto flex flex-col gap-1 items-center justify-center cursor-pointer" asChild disabled={isUploadingGallery}>
+                    <span>
+                      <Plus className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {isUploadingGallery ? 'Processing Images...' : 'Upload Multiple Gallery Images'}
+                      </span>
+                    </span>
+                  </Button>
+                </label>
+              </div>
+
+              {/* Gallery Preview List */}
+              {form.watch('gallery') && form.watch('gallery')!.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {form.watch('gallery')!.map((url, idx) => (
+                    <div key={idx} className="relative w-20 h-20 border rounded-lg overflow-hidden bg-zinc-50 group">
+                      <img src={url} alt={`Gallery ${idx}`} className="w-full h-full object-contain" />
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => field.onChange('')}
+                        className="absolute top-1 right-1 h-5 w-5 rounded-full p-0 shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeGalleryImage(idx)}
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
-                  )}
+                  ))}
                 </div>
-                <FormMessage />
-                </FormItem>
-            )}
-        />
+              )}
+            </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Product')}
+            {/* Specifications */}
+            <FormField
+              control={form.control}
+              name="specifications"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Technical Specifications (Enter "Label: Value", one per line)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g.&#10;Microcontroller: ESP32-S3&#10;Flash Memory: 8MB&#10;Operating Voltage: 3.3V&#10;Connectivity: LTE Cat-1, WiFi, BLE" 
+                      {...field} 
+                      className="h-24 font-mono text-xs" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Additional Resources */}
+            <FormField
+              control={form.control}
+              name="additionalResources"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Datasheets & Additional Resources (Enter "Name: URL", one per line)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g.&#10;Datasheet: https://example.com/datasheet.pdf&#10;GitHub Library: https://github.com/example/lib" 
+                      {...field} 
+                      className="h-20 font-mono text-xs" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+        </Tabs>
+
+        <Button type="submit" className="w-full bg-primary text-white hover:bg-primary/95 font-bold h-11" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving Product...' : (isEditing ? 'Save Product Details' : 'Publish Product')}
         </Button>
       </form>
     </Form>

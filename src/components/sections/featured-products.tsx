@@ -100,7 +100,7 @@ const FeaturedProducts = () => {
               return (
                 <Link
                   key={product.id}
-                  href={`/products`}
+                  href={`/products/${product.id}`}
                   className="group flex flex-col"
                 >
                   {/* Image Container */}
