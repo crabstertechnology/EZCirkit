@@ -7,8 +7,9 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useStorage, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
 import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
@@ -38,53 +39,56 @@ const productSchema = z.object({
   gallery: z.array(z.string()).optional(), // Image URLs or Base64 strings
 });
 
-const compressImage = (base64Str: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const sizeInBytes = base64Str.length * 0.75;
-    
-    // If under 950 KB, keep original file quality byte-for-byte without compressing
-    if (sizeInBytes <= 950 * 1024) {
-      resolve(base64Str);
-      return;
-    }
+const compressToBlob = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 2048; // Excellent 2K high-res quality
+        const maxHeight = 2048;
+        let width = img.width;
+        let height = img.height;
 
-    // Otherwise, scale gently to fit Firestore's 1MB limit while maintaining high quality (e.g. 1600px max)
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const maxWidth = 1600;
-      const maxHeight = 1600;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
         }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              resolve(file); // Fallback to original file
+            }
+          }, 'image/jpeg', 0.90); // High density, gorgeous JPEG (90% quality)
+        } else {
+          resolve(file);
         }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        // Use quality 0.92 for crystal clear details, converting to WebP for high-density compression
-        resolve(canvas.toDataURL('image/webp', 0.92));
-      } else {
-        resolve(base64Str);
-      }
+      };
+      img.onerror = () => {
+        resolve(file);
+      };
     };
-    img.onerror = () => {
-      resolve(base64Str);
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
     };
+    reader.readAsDataURL(file);
   });
 };
 
@@ -98,6 +102,7 @@ interface ProductFormProps {
 const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
   const { user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -164,50 +169,55 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !storage) return;
     setIsUploadingImage(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      try {
-        const compressed = await compressImage(base64);
-        onChange(compressed);
-        toast({ title: 'Main image uploaded successfully at maximum quality!' });
-      } catch (err) {
-        console.error("Compression error:", err);
-        toast({ variant: 'destructive', title: 'Failed to process image.' });
-      } finally {
-        setIsUploadingImage(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const blob = await compressToBlob(file);
+      const productId = form.getValues('id') || 'temp';
+      const storageRef = ref(storage, `products/${productId}/main_image_${Date.now()}.jpg`);
+      
+      const uploadResult = await uploadBytes(storageRef, blob, {
+        contentType: 'image/jpeg'
+      });
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      onChange(downloadURL);
+      toast({ title: 'Main image uploaded successfully to Storage!' });
+    } catch (err) {
+      console.error("Storage upload error:", err);
+      toast({ variant: 'destructive', title: 'Failed to upload image.' });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !storage) return;
     setIsUploadingGallery(true);
     
     const currentGallery = form.getValues('gallery') || [];
     const newImages = [...currentGallery];
+    const productId = form.getValues('id') || 'temp';
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => resolve(event.target?.result as string);
-        reader.readAsDataURL(file);
-      });
       try {
-        const compressed = await compressImage(base64);
-        newImages.push(compressed);
+        const blob = await compressToBlob(file);
+        const storageRef = ref(storage, `products/${productId}/gallery_${Date.now()}_${i}.jpg`);
+        
+        const uploadResult = await uploadBytes(storageRef, blob, {
+          contentType: 'image/jpeg'
+        });
+        const downloadURL = await getDownloadURL(uploadResult.ref);
+        newImages.push(downloadURL);
       } catch (err) {
-        console.error(err);
+        console.error("Gallery image upload error:", err);
       }
     }
     
     form.setValue('gallery', newImages);
-    toast({ title: `${files.length} gallery image(s) uploaded successfully at maximum quality!` });
+    toast({ title: `${files.length} gallery image(s) uploaded successfully to Storage!` });
     setIsUploadingGallery(false);
   };
 

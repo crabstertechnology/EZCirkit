@@ -5,6 +5,7 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, getRedirectResult, Auth } from 'firebase/auth';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -44,10 +45,12 @@ export function getSdks(firebaseApp: FirebaseApp) {
   } catch (e) {
     firestore = getFirestore(firebaseApp);
   }
+  const storage = getStorage(firebaseApp);
   return {
     firebaseApp,
     auth,
     firestore,
+    storage,
     handleRedirectResult: () => getRedirectResult(auth),
   };
 }

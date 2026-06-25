@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useStorage } from '@/firebase';
 import { doc, collection, setDoc, getDocs } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
@@ -34,41 +35,56 @@ const tutorialSchema = z.object({
   pinout: z.string().optional(),
 });
 
-const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 600): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
+const compressToBlob = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 1600; // 1600 max width is plenty for diagrams
+        const maxHeight = 1600;
+        let width = img.width;
+        let height = img.height;
 
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
         }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.85); // High quality JPEG
+        } else {
+          resolve(file);
         }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
-      } else {
-        resolve(base64Str);
-      }
+      };
+      img.onerror = () => {
+        resolve(file);
+      };
     };
-    img.onerror = () => {
-      resolve(base64Str);
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
     };
+    reader.readAsDataURL(file);
   });
 };
 
@@ -84,29 +100,35 @@ const LEVEL_OPTIONS: TutorialLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
 const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId }) => {
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  
+  // Pre-generate the tutorial ID so it is consistent across uploads and submissions
+  const [tutorialId] = useState(() => tutorial?.id || doc(collection(firestore, '_')).id);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !storage) return;
     setIsUploadingImage(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      try {
-        const compressed = await compressImage(base64);
-        onChange(compressed);
-        toast({ title: 'Image uploaded & compressed!' });
-      } catch (err) {
-        console.error("Compression error:", err);
-        toast({ variant: 'destructive', title: 'Failed to process image.' });
-      } finally {
-        setIsUploadingImage(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const blob = await compressToBlob(file);
+      const storageRef = ref(storage, `tutorials/${chapterId}/${tutorialId}/diagram_${Date.now()}.jpg`);
+      
+      const uploadResult = await uploadBytes(storageRef, blob, {
+        contentType: 'image/jpeg'
+      });
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      onChange(downloadURL);
+      toast({ title: 'Diagram image uploaded successfully to Storage!' });
+    } catch (err) {
+      console.error("Storage upload error:", err);
+      toast({ variant: 'destructive', title: 'Failed to upload image.' });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const form = useForm<TutorialFormValues>({
@@ -206,7 +228,6 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     setIsSubmitting(true);
 
     const isEditing = !!tutorial;
-    const tutorialId = isEditing ? tutorial.id : doc(collection(firestore, '_')).id;
     const docRef = doc(firestore, `tutorialChapters/${chapterId}/tutorials`, tutorialId);
     
     const tutorialData = {
