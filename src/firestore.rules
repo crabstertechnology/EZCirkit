@@ -14,13 +14,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Function to check if the signed-in user has an 'isAdmin' flag set to true
-    // in their user document, or is the primary admin email.
     function isAdmin() {
       // Use exists() to prevent errors if the user doc or field is missing.
       return isSignedIn() && (
-        request.auth.token.email == "crabstertechnology@gmail.com" ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+        ("email" in request.auth.token && request.auth.token.email == "crabstertechnology@gmail.com") ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
       );
     }
     
