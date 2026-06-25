@@ -22,59 +22,109 @@ import { Button } from '@/components/ui/button';
 
 const FlagshipProductSection = () => {
   const [api, setApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(1); // Default to inside view index 1
+  const [currentSlide, setCurrentSlide] = useState(0);
   const { addToCart, cartItems } = useCart();
   const firestore = useFirestore();
   const router = useRouter();
 
+  // Query all products from Firestore to find the flagship product dynamically
   const productsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'products'), where('id', '==', 'pro1'), limit(1)) : null),
+    () => (firestore ? query(collection(firestore, 'products')) : null),
     [firestore]
   );
-  const { data: products } = useCollection<any>(productsQuery);
-  const product = products?.[0];
+  const { data: products, isLoading } = useCollection<any>(productsQuery);
+
+  const product = React.useMemo(() => {
+    if (!products || products.length === 0) return null;
+    return (
+      products.find(p => p.category?.toLowerCase() === 'ezcirkit') ||
+      products.find(p => p.id === 'pro1') ||
+      products.find(p => p.name?.toLowerCase().includes('ezcirkit')) ||
+      null
+    );
+  }, [products]);
+
+  // Fetch reviews for the flagship product to get dynamic rating and count
+  const reviewsQuery = useMemoFirebase(
+    () =>
+      firestore && product
+        ? query(collection(firestore, 'products', product.id || 'pro1', 'reviews'))
+        : null,
+    [firestore, product]
+  );
+  const { data: reviews } = useCollection<any>(reviewsQuery);
+
+  const averageRating = React.useMemo(() => {
+    if (!reviews || reviews.length === 0) return 4.9;
+    const total = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return Number((total / reviews.length).toFixed(1));
+  }, [reviews]);
+
+  const reviewsCount = reviews?.length ?? 412;
 
   const handleAddToCart = async () => {
     if (product) {
       await addToCart(product);
-    } else {
-      await addToCart({
-        id: 'pro1',
-        name: 'EZCirkit Electronics Learning Starter Kit',
-        price: 2499,
-        image: '/new-kit-front.png',
-      });
+      router.push('/cart');
     }
-    router.push('/cart');
   };
 
   const handleBuyNow = async () => {
-    const prod = product || {
-      id: 'pro1',
-      name: 'EZCirkit Electronics Learning Starter Kit',
-      price: 2499,
-      image: '/new-kit-front.png',
-    };
-    const productInCart = cartItems.find(item => item.id === prod.id);
-    if (!productInCart) {
-      await addToCart(prod);
+    if (product) {
+      const productInCart = cartItems.find(item => item.id === product.id);
+      if (!productInCart) {
+        await addToCart(product);
+      }
+      router.push('/checkout');
     }
-    router.push('/checkout');
   };
 
   const isOutOfStock = product ? product.stock === 0 : false;
 
+  const isKit = React.useMemo(() => {
+    if (!product) return false;
+    return (
+      product.category?.toLowerCase() === 'ezcirkit' ||
+      product.name?.toLowerCase().includes('kit')
+    );
+  }, [product]);
+
+  const carouselImages = React.useMemo(() => {
+    if (!product) return [];
+    if (isKit) {
+      return [
+        { src: product.image, alt: 'Front View' },
+        { src: '/kit-inside.png', alt: 'Inside View' },
+        { src: '/kit-back.png', alt: 'Back View' },
+      ];
+    }
+    return [
+      { src: product.image, alt: product.name },
+    ];
+  }, [product, isKit]);
+
   React.useEffect(() => {
     if (!api) return;
     
-    // Set default slide to index 1 (inside view)
-    api.scrollTo(1);
+    // Set default slide to first index
+    api.scrollTo(0);
     setCurrentSlide(api.selectedScrollSnap());
     
     api.on("select", () => {
       setCurrentSlide(api.selectedScrollSnap());
     });
+
+    const interval = setInterval(() => {
+      const count = api.scrollSnapList().length;
+      if (count > 0) {
+        const nextIndex = (api.selectedScrollSnap() + 1) % count;
+        api.scrollTo(nextIndex);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [api]);
+
   const column1Items = [
     'Arduino UNO R3',
     '20 x LEDs (5 colors)',
@@ -93,6 +143,10 @@ const FlagshipProductSection = () => {
     '65 x Jumper Wires (M-M, M-F, F-F)'
   ];
 
+  // Hide the section while loading or if the product does not exist in the database
+  if (isLoading) return null;
+  if (!product) return null;
+
   return (
     <section id="flagship-product" className="py-16 md:py-24 bg-zinc-50/50 dark:bg-zinc-950/20 border-t border-b border-border/80">
       <div className="container mx-auto px-4 md:px-6">
@@ -103,10 +157,10 @@ const FlagshipProductSection = () => {
             Flagship Product
           </p>
           <h2 className="text-3xl md:text-5xl font-black tracking-tight font-headline text-foreground">
-            The EZCirkit Starter Kit
+            {isKit ? 'The EZCirkit Starter Kit' : product.name}
           </h2>
           <p className="text-muted-foreground text-sm md:text-base max-w-prose mx-auto">
-            The single kit you need to build your first 10 electronics projects.
+            {isKit ? 'The single kit you need to build your first coding experiments.' : 'Learn by doing with premium quality components.'}
           </p>
         </div>
 
@@ -119,11 +173,7 @@ const FlagshipProductSection = () => {
               <div className="border border-border/60 rounded-3xl overflow-hidden shadow-md bg-background">
                 <Carousel setApi={setApi} className="w-full relative">
                   <CarouselContent>
-                    {[
-                      { src: '/new-kit-front.png', alt: 'Front View' },
-                      { src: '/kit-inside.png', alt: 'Inside View' },
-                      { src: '/kit-back.png', alt: 'Back View' },
-                    ].map((img, index) => (
+                    {carouselImages.map((img, index) => (
                       <CarouselItem key={index}>
                         <div className="relative aspect-square w-full bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                           <Image
@@ -138,33 +188,39 @@ const FlagshipProductSection = () => {
                       </CarouselItem>
                     ))}
                   </CarouselContent>
-                  <CarouselPrevious className="left-4 opacity-75 hover:opacity-100 z-10" />
-                  <CarouselNext className="right-4 opacity-75 hover:opacity-100 z-10" />
+                  {carouselImages.length > 1 && (
+                    <>
+                      <CarouselPrevious className="left-4 opacity-75 hover:opacity-100 z-10" />
+                      <CarouselNext className="right-4 opacity-75 hover:opacity-100 z-10" />
+                    </>
+                  )}
                 </Carousel>
               </div>
               
               {/* Thumbnail Buttons */}
-              <div className="flex gap-3 justify-center">
-                {[
-                  { label: 'Front View', slideIndex: 0 },
-                  { label: 'Inside View', slideIndex: 1 },
-                  { label: 'Back View', slideIndex: 2 },
-                ].map((btn) => (
-                  <button
-                    key={btn.slideIndex}
-                    type="button"
-                    onClick={() => api?.scrollTo(btn.slideIndex)}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-xs md:text-sm font-bold border transition-all duration-200 shadow-sm",
-                      currentSlide === btn.slideIndex
-                        ? "bg-primary/10 text-primary border-primary/40 shadow-sm"
-                        : "bg-background text-muted-foreground border-border hover:text-foreground hover:bg-zinc-50"
-                    )}
-                  >
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
+              {isKit && carouselImages.length > 1 && (
+                <div className="flex gap-3 justify-center">
+                  {[
+                    { label: 'Front View', slideIndex: 0 },
+                    { label: 'Inside View', slideIndex: 1 },
+                    { label: 'Back View', slideIndex: 2 },
+                  ].map((btn) => (
+                    <button
+                      key={btn.slideIndex}
+                      type="button"
+                      onClick={() => api?.scrollTo(btn.slideIndex)}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs md:text-sm font-bold border transition-all duration-200 shadow-sm",
+                        currentSlide === btn.slideIndex
+                          ? "bg-primary/10 text-primary border-primary/40 shadow-sm"
+                          : "bg-background text-muted-foreground border-border hover:text-foreground hover:bg-zinc-50"
+                      )}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Column: Details & Checklist */}
@@ -173,62 +229,81 @@ const FlagshipProductSection = () => {
               {/* Rating and Reviews */}
               <div className="flex items-center gap-2">
                 <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
-                  ))}
+                  {[...Array(5)].map((_, i) => {
+                    const ratingValue = i + 1;
+                    return (
+                      <Star
+                        key={i}
+                        className={cn(
+                          "h-4.5 w-4.5 text-amber-400",
+                          ratingValue <= averageRating
+                            ? "fill-amber-400"
+                            : ratingValue - 0.5 <= averageRating
+                            ? "fill-amber-400 opacity-50"
+                            : "text-muted-foreground/30"
+                        )}
+                      />
+                    );
+                  })}
                 </div>
                 <span className="text-sm font-bold text-foreground">
-                  4.9 <span className="text-muted-foreground font-normal">• 412 reviews</span>
+                  {averageRating.toFixed(1)} <span className="text-muted-foreground font-normal">• {reviewsCount} reviews</span>
                 </span>
               </div>
 
               {/* Title & Description */}
               <div className="space-y-2">
                 <h3 className="text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight">
-                  EZCirkit Electronics Learning Starter Kit
+                  {product.name}
                 </h3>
                 <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-                  Everything you need to start your electronics journey in one box. Includes Arduino UNO R3, sensors, modules, breadboard, jumper wires and a multimeter. Pair it with our free project tutorials and learn by doing.
+                  {product.description || "Everything you need to start your electronics journey in one box. Includes Arduino compatible microcontroller, high quality sensors, modules, breadboard, resistors and jumper wires."}
                 </p>
               </div>
 
               {/* Pricing */}
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-3xl font-black text-primary">₹2,499</span>
-                <span className="text-lg text-muted-foreground line-through">₹3,499</span>
-                <Badge className="bg-orange-500 hover:bg-orange-600 border-none font-bold text-white text-xs py-1 px-2.5 rounded-md uppercase tracking-wider">
-                  Save 28%
-                </Badge>
+                <span className="text-3xl font-black text-primary">₹{product.price.toLocaleString('en-IN')}</span>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <>
+                    <span className="text-lg text-muted-foreground line-through">₹{product.originalPrice.toLocaleString('en-IN')}</span>
+                    <Badge className="bg-orange-500 hover:bg-orange-600 border-none font-bold text-white text-xs py-1 px-2.5 rounded-md uppercase tracking-wider">
+                      Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                    </Badge>
+                  </>
+                )}
               </div>
 
               <hr className="border-border/80" />
 
               {/* What's Included Section */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                  What's Included
-                </h4>
-                
-                {/* 2-Column Checklist */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-foreground/80">
-                  <div className="space-y-3">
-                    {column1Items.map((item, index) => (
-                      <div key={index} className="flex items-start gap-2.5">
-                        <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span className="leading-tight">{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="space-y-3">
-                    {column2Items.map((item, index) => (
-                      <div key={index} className="flex items-start gap-2.5">
-                        <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span className="leading-tight">{item}</span>
-                      </div>
-                    ))}
+              {isKit && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                    What's Included
+                  </h4>
+                  
+                  {/* 2-Column Checklist */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-foreground/80">
+                    <div className="space-y-3">
+                      {column1Items.map((item, index) => (
+                        <div key={index} className="flex items-start gap-2.5">
+                          <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span className="leading-tight">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-3">
+                      {column2Items.map((item, index) => (
+                        <div key={index} className="flex items-start gap-2.5">
+                          <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span className="leading-tight">{item}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <ClientOnly>
                 <div className="flex flex-row gap-4 w-full pt-4">

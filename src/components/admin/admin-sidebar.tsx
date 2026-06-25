@@ -40,10 +40,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, setIsCollapsed
   }
 
   return (
-    <aside className={cn(
-      "h-screen flex-shrink-0 bg-background border-r flex flex-col transition-all duration-300 ease-in-out",
-      isCollapsed ? "w-20" : "w-64"
-    )}>
+    <aside 
+      onMouseLeave={() => setIsCollapsed(true)}
+      className={cn(
+        "h-screen flex-shrink-0 bg-background flex flex-col transition-all duration-300 ease-in-out overflow-hidden z-40",
+        isCollapsed ? "w-0 border-r-0 invisible" : "w-64 border-r"
+      )}
+    >
        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between", "p-4 h-16 border-b flex-shrink-0")}>
         {!isCollapsed && <Logo />}
         <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(!isCollapsed)}>
@@ -54,69 +57,50 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, setIsCollapsed
 
       <ScrollArea className="flex-1">
         <nav className="px-2 space-y-2 py-4">
-          <TooltipProvider delayDuration={0}>
-            {ADMIN_NAV_LINKS.map((link, index) => {
-              // Exact match for the dashboard, startsWith for others.
-              const isActive = link.href === '/admin' ? pathname === link.href : pathname.startsWith(link.href);
-              
-              if (link.href === '/') {
-                return (
-                  <React.Fragment key={link.label}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link href={link.href}>
-                            <Button
-                              variant='ghost'
-                              className={cn("w-full justify-start gap-2", isCollapsed && "justify-center")}
-                            >
-                              <link.icon className="h-5 w-5" />
-                              {!isCollapsed && link.label}
-                            </Button>
-                          </Link>
-                        </TooltipTrigger>
-                        {isCollapsed && <TooltipContent side="right">{link.label}</TooltipContent>}
-                      </Tooltip>
-                    <Separator className="my-2" />
-                  </React.Fragment>
-                )
-              }
+          {ADMIN_NAV_LINKS.map((link, index) => {
+            // Exact match for the dashboard, startsWith for others.
+            const isActive = link.href === '/admin' ? pathname === link.href : pathname.startsWith(link.href);
+            
+            if (link.href === '/') {
               return (
-                <Tooltip key={link.label}>
-                  <TooltipTrigger asChild>
-                    <Link href={link.href}>
-                      <Button
-                        variant={isActive ? 'secondary' : 'ghost'}
-                        className={cn("w-full justify-start gap-2", isCollapsed && "justify-center")}
-                      >
-                        <link.icon className="h-5 w-5" />
-                        {!isCollapsed && link.label}
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  {isCollapsed && <TooltipContent side="right">{link.label}</TooltipContent>}
-                </Tooltip>
-              );
-            })}
-          </TooltipProvider>
+                <React.Fragment key={link.label}>
+                  <Link href={link.href}>
+                    <Button
+                      variant='ghost'
+                      className={cn("w-full justify-start gap-2", isCollapsed && "justify-center")}
+                    >
+                      <link.icon className="h-5 w-5" />
+                      {!isCollapsed && link.label}
+                    </Button>
+                  </Link>
+                  <Separator className="my-2" />
+                </React.Fragment>
+              )
+            }
+            return (
+              <Link href={link.href} key={link.label}>
+                <Button
+                  variant={isActive ? 'secondary' : 'ghost'}
+                  className={cn("w-full justify-start gap-2", isCollapsed && "justify-center")}
+                >
+                  <link.icon className="h-5 w-5" />
+                  {!isCollapsed && link.label}
+                </Button>
+              </Link>
+            );
+          })}
         </nav>
       </ScrollArea>
 
       <div className="p-2 border-t flex-shrink-0">
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='ghost'
-                className={cn("w-full justify-start gap-2", isCollapsed && "justify-center")}
-                onClick={doLogout}
-              >
-                <LogOut className="h-5 w-5" />
-                {!isCollapsed && "Log Out"}
-              </Button>
-            </TooltipTrigger>
-            {isCollapsed && <TooltipContent side="right">Log Out</TooltipContent>}
-          </Tooltip>
-        </TooltipProvider>
+        <Button
+          variant='ghost'
+          className={cn("w-full justify-start gap-2", isCollapsed && "justify-center")}
+          onClick={doLogout}
+        >
+          <LogOut className="h-5 w-5" />
+          {!isCollapsed && "Log Out"}
+        </Button>
       </div>
     </aside>
   );

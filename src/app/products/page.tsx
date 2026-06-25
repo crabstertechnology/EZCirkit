@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Search, Star, Heart, ShoppingCart, SlidersHorizontal, Sparkles, X, ChevronRight, Check } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -79,6 +79,25 @@ export default function ShopPage() {
   );
   const { data: products, isLoading } = useCollection<Product>(productsQuery);
 
+  // Query reviews for the flagship product (pro1) to dynamically sync its rating/review count
+  const reviewsQuery = useMemoFirebase(
+    () =>
+      firestore
+        ? query(collection(firestore, 'products', 'pro1', 'reviews'))
+        : null,
+    [firestore]
+  );
+  const { data: reviews } = useCollection<any>(reviewsQuery);
+
+  const flagshipRating = React.useMemo(() => {
+    if (!reviews || reviews.length === 0) return { average: 4.9, count: 412 };
+    const total = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return {
+      average: Number((total / reviews.length).toFixed(1)),
+      count: reviews.length
+    };
+  }, [reviews]);
+
   const categories = [
     'All Products',
     'Sensors',
@@ -88,7 +107,8 @@ export default function ShopPage() {
     'Robotics',
     'Wires & Connectors',
     'Components',
-    'DIY Kits'
+    'DIY Kits',
+    'EZCirkit'
   ];
 
   // Client side fallback products matching the mockup
@@ -125,18 +145,10 @@ export default function ShopPage() {
     }
   ];
 
-  // Combine query results and default fallback items (ensure fallback items match the mockup details)
+  // Combine query results and default fallback items
   const displayProducts = React.useMemo(() => {
+    // If the database has products, only show database products. Otherwise, use fallbacks.
     let list = products && products.length > 0 ? [...products] : [...fallbackProducts];
-    
-    // Ensure fallback items exist in list if firestore is connected but empty
-    if (products && products.length > 0) {
-      fallbackProducts.forEach(fallback => {
-        if (!list.some(p => p.id === fallback.id)) {
-          list.push(fallback);
-        }
-      });
-    }
 
     // Filter by Category
     if (selectedCategory !== 'All Products') {
@@ -337,7 +349,7 @@ export default function ShopPage() {
                           <div className="flex items-center gap-1">
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                             <span className="text-[11px] font-bold text-muted-foreground">
-                              {p.id === 'pro1' ? '4.9 (412)' : p.id === 'pro2' ? '4.8 (1284)' : '4.7 (342)'}
+                              {p.id === 'pro1' ? `${flagshipRating.average} (${flagshipRating.count})` : p.id === 'pro2' ? '4.8 (1284)' : '4.7 (342)'}
                             </span>
                           </div>
                         </div>

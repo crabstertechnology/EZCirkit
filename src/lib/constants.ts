@@ -5,10 +5,7 @@ export const SHIPPING_COST = 0;
 
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },
-  { href: '/#brochure', label: 'Features' },
   { href: '/products', label: 'Products' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/#products', label: 'KIT' },
   { href: '/ide', label: 'EZCirkit IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
@@ -26,15 +23,15 @@ export const ADMIN_NAV_LINKS = [
 
 export const STATS = [
   { value: '50+', label: 'Experiments' },
-  { value: '35+', label: 'Components' },
-  { value: '45+', label: 'Projects' },
+  { value: '20+', label: 'Components' },
+  { value: '36+', label: 'Projects' },
   { value: '4.8★', label: 'Rating' },
 ];
 
 export const PRODUCT_FEATURES = [
-  '35+ Electronic Components',
+  '20+ Electronic Components',
   'Arduino Compatible Board',
-  '45+ Step-by-Step Projects',
+  '36+ Step-by-Step Projects',
   'High-Quality Breadboard',
   'Durable Storage Box',
   'Online Video Tutorials',

@@ -7,8 +7,8 @@ const StatsSection = ({ averageRating, isLoading }: { averageRating: number; isL
   
   const STATS = [
     { value: '50+', label: 'Tutorials' },
-    { value: '35+', label: 'Components' },
-    { value: '45+', label: 'Projects' },
+    { value: '20+', label: 'Components' },
+    { value: '36+', label: 'Projects' },
     { value: isLoading ? '...' : `${averageRating.toFixed(1)}★`, label: 'Rating' },
   ];
 

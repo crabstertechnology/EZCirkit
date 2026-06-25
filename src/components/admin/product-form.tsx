@@ -242,7 +242,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || 'Components'}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Category" />
@@ -257,6 +257,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                     <SelectItem value="Wires & Connectors">Wires & Connectors</SelectItem>
                     <SelectItem value="Components">Components</SelectItem>
                     <SelectItem value="DIY Kits">DIY Kits</SelectItem>
+                    <SelectItem value="EZCirkit">EZCirkit</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

@@ -184,29 +184,50 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
               <h3 className="text-2xl font-bold md:text-3xl">Student Success Stories</h3>
               <p className="text-muted-foreground mt-2">See what our community is creating with EZCirkit.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {videos.map((video) => {
-                const isShort = video.aspectRatio === '9:16';
-                return (
-                  <div 
-                    key={video.id} 
-                    className={cn(
-                      "w-full bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border relative group transition-all duration-300 hover:scale-[1.02]",
-                      isShort ? "aspect-[9/16] col-span-1 max-w-[320px] mx-auto" : "aspect-video md:col-span-2 lg:col-span-2 w-full"
-                    )}
+
+            {/* 16:9 landscape videos */}
+            {videos.filter(v => v.aspectRatio !== '9:16').length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {videos.filter(v => v.aspectRatio !== '9:16').map((video) => (
+                  <div
+                    key={video.id}
+                    className="w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border group transition-all duration-300 hover:scale-[1.01] bg-black"
+                    style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}
                   >
                     <iframe
-                      src={getYoutubeEmbedUrl(video.videoUrl)} 
+                      src={getYoutubeEmbedUrl(video.videoUrl)}
                       title={video.title}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
-                      className="w-full h-full"
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
                     ></iframe>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* 9:16 portrait/shorts videos */}
+            {videos.filter(v => v.aspectRatio === '9:16').length > 0 && (
+              <div className="flex flex-wrap justify-center gap-6">
+                {videos.filter(v => v.aspectRatio === '9:16').map((video) => (
+                  <div
+                    key={video.id}
+                    className="rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border group transition-all duration-300 hover:scale-[1.01] bg-black flex-shrink-0"
+                    style={{ width: '300px', height: '533px', position: 'relative' }}
+                  >
+                    <iframe
+                      src={getYoutubeEmbedUrl(video.videoUrl)}
+                      title={video.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                    ></iframe>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         

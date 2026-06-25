@@ -126,3 +126,26 @@
     linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
 }
+
+/* Sharp Edge Override for Neobrutalism/Morphism */
+button,
+input,
+select,
+textarea,
+img,
+.badge,
+.card,
+.border,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-full,
+.rounded-t-2xl,
+.rounded-b-2xl,
+.rounded-l-2xl,
+.rounded-r-2xl {
+  border-radius: 0px !important;
+}

@@ -180,7 +180,8 @@ const Header = () => {
     }
   };
 
-  const NavLinks = () => {
+  const NavLinks = ({ items }: { items?: typeof NAV_LINKS }) => {
+    const displayLinks = items || NAV_LINKS;
     const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
       setMobileMenuOpen(false);
       
@@ -213,11 +214,11 @@ const Header = () => {
 
     return (
       <>
-        {NAV_LINKS.map((link) => (
+        {displayLinks.map((link) => (
           <Link
             key={`${link.label}-${link.href}`}
             href={link.href}
-            className="group text-sm font-bold transition-all duration-200 relative text-foreground/80 hover:text-primary flex items-center gap-1.5 hover:scale-105 px-2 py-1"
+            className="group text-sm xl:text-base font-bold transition-all duration-200 relative text-foreground/80 hover:text-primary flex items-center gap-1 xl:gap-1.5 hover:scale-105 px-1.5 py-1 whitespace-nowrap"
             onClick={(e) => handleLinkClick(e, link.href)}
           >
             {getLinkIcon(link.label)}
@@ -273,7 +274,7 @@ const Header = () => {
       {
         type: 'section' as const,
         title: 'EZCirkit Compatible Kit',
-        description: 'Order the complete starter kit with 35+ components.',
+        description: 'Order the complete starter kit with 20+ components.',
         targetId: 'products',
         href: '/#products'
       },
@@ -410,7 +411,7 @@ const Header = () => {
                         <span className={cn(
                           "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider",
                           item.type === 'feature' ? "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300" :
-                          item.type === 'product' ? "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-300" :
+                          item.type === 'product' ? "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300" :
                           item.type === 'page' ? "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300" :
                           "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-300"
                         )}>
@@ -477,14 +478,29 @@ const Header = () => {
     >
       <div className="container mx-auto flex flex-col px-4 md:px-6">
         {/* Row 1: Brand & Navigation Links & Actions */}
-        <div className="flex h-16 items-center justify-between gap-4">
-          <Logo />
+        <div className="flex h-14 items-center justify-between gap-4 w-full">
+          {/* Logo (Far Left) */}
+          <div className="flex-shrink-0">
+            <Logo />
+          </div>
+
+          {/* Left Nav Links (Home, Products) */}
+          <nav className="hidden lg:flex flex-1 justify-end items-center gap-2 xl:gap-4 pr-4">
+            <NavLinks items={NAV_LINKS.slice(0, 2)} />
+          </nav>
           
-          <nav className="hidden md:flex items-center gap-4">
-            <NavLinks />
+          {/* Center SearchBar */}
+          <div className="hidden md:flex justify-center w-full max-w-[200px] lg:max-w-[280px] xl:max-w-[380px]">
+            <SearchBar />
+          </div>
+
+          {/* Right Nav Links (EZCirkit IDE, Reviews) */}
+          <nav className="hidden lg:flex flex-1 justify-start items-center gap-2 xl:gap-4 pl-4">
+            <NavLinks items={NAV_LINKS.slice(2, 4)} />
           </nav>
 
-          <div className="flex items-center gap-2">
+          {/* Action Buttons (Far Right) */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Wishlist Link Button */}
             <Button asChild variant="ghost" size="icon" className="relative">
               <Link href="/wishlist">
@@ -524,18 +540,11 @@ const Header = () => {
             </div>
           </div>
         </div>
-
-        {/* Row 2: Search Bar centered below navigation on desktop */}
-        <div className="hidden md:flex justify-center pb-7 pt-1 w-full border-t border-border/20">
-          <div className="w-full max-w-md lg:max-w-lg">
-            <SearchBar />
-          </div>
-        </div>
       </div>
 
       {/* Announcement Bar */}
       {pathname === '/' && (
-        <div className="w-full bg-[#050b07] text-zinc-300 py-1 border-t border-emerald-950/20 overflow-hidden relative">
+        <div className="w-full bg-primary text-white py-1 border-t border-primary/20 overflow-hidden relative">
           <style dangerouslySetInnerHTML={{__html: `
             @keyframes marquee {
               0% { transform: translate3d(0, 0, 0); }
@@ -547,25 +556,25 @@ const Header = () => {
               animation: marquee 35s linear infinite;
             }
           `}} />
-          <div className="flex animate-marquee text-[9px] tracking-widest font-black uppercase items-center gap-6">
-            <div className="flex items-center gap-6 shrink-0">
-              <span className="flex items-center gap-1.5"><span className="text-emerald-400">⚡</span> Free Shipping Over ₹999</span>
+          <div className="flex animate-marquee text-[9px] tracking-widest font-black uppercase items-center gap-16">
+            <div className="flex items-center gap-16 shrink-0">
+              <span className="flex items-center gap-1.5"><span className="text-white">⚡</span> Free Shipping Over ₹999</span>
               <span>•</span>
               <span>Stem Kits For Schools - Bulk Pricing</span>
               <span>•</span>
-              <span className="text-emerald-400">Made In India 🇮🇳</span>
+              <span className="text-white font-bold">Made In India 🇮🇳</span>
               <span>•</span>
               <span>10,000+ Students Learning With EZCirkit</span>
               <span>•</span>
               <span>Step-by-Step Video Tutorials</span>
               <span>•</span>
             </div>
-            <div className="flex items-center gap-6 shrink-0">
-              <span className="flex items-center gap-1.5"><span className="text-emerald-400">⚡</span> Free Shipping Over ₹999</span>
+            <div className="flex items-center gap-16 shrink-0">
+              <span className="flex items-center gap-1.5"><span className="text-white">⚡</span> Free Shipping Over ₹999</span>
               <span>•</span>
               <span>Stem Kits For Schools - Bulk Pricing</span>
               <span>•</span>
-              <span className="text-emerald-400">Made In India 🇮🇳</span>
+              <span className="text-white font-bold">Made In India 🇮🇳</span>
               <span>•</span>
               <span>10,000+ Students Learning With EZCirkit</span>
               <span>•</span>

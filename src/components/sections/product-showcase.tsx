@@ -172,7 +172,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselPrevious className="left-4" />
               <CarouselNext className="right-4" />
             </Carousel>
-            <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-[hsl(var(--color-green))] text-white border-none">
+            <Badge className="absolute top-4 left-4 py-1.5 px-3 text-base font-bold bg-primary text-white border-none">
               Save 16.7 %
             </Badge>
              {isOutOfStock && (
