@@ -56,10 +56,22 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReviews }) =
     const verifyPurchase = async () => {
         if (!firestore) return;
         const ordersRef = collection(firestore, 'users', user.uid, 'orders');
-        const q = query(ordersRef, where('status', '==', 'paid'));
+        const q = query(ordersRef, where('status', 'in', ['paid', 'shipped', 'delivered']));
         try {
             const querySnapshot = await getDocs(q);
-            setHasPurchased(!querySnapshot.empty);
+            let purchased = false;
+            
+            for (const orderDoc of querySnapshot.docs) {
+              const itemsRef = collection(firestore, 'users', user.uid, 'orders', orderDoc.id, 'items');
+              const itemsSnapshot = await getDocs(itemsRef);
+              const hasItem = itemsSnapshot.docs.some(doc => doc.data().productId === productId);
+              if (hasItem) {
+                purchased = true;
+                break;
+              }
+            }
+            
+            setHasPurchased(purchased);
         } catch (error) {
             console.error("Error verifying purchase for review:", error);
             setHasPurchased(false);
@@ -69,7 +81,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReviews }) =
     };
     verifyPurchase();
 
-  }, [user, isUserLoading, firestore, existingReviews]);
+  }, [user, isUserLoading, firestore, existingReviews, productId]);
 
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),

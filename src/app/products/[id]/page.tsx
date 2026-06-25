@@ -9,8 +9,8 @@ import {
   Truck, ArrowRightLeft, Coins, RotateCcw, Copy, 
   Download, ExternalLink, Calendar, Check, AlertCircle, Plus, Minus
 } from 'lucide-react';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, limit, where, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { doc, collection, query, limit, where, getDoc, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ interface Review {
   name: string;
   rating: number;
   comment: string;
+  userId?: string;
   createdAt?: any;
 }
 
@@ -33,6 +34,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { addToCart, cartItems } = useCart();
   const { toast } = useToast();
@@ -50,6 +52,8 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [isVerifyingPurchase, setIsVerifyingPurchase] = useState(true);
 
   // Sync wishlist from localStorage
   useEffect(() => {
@@ -81,6 +85,55 @@ export default function ProductDetailPage() {
     localStorage.setItem('wishlist', JSON.stringify(updated));
     window.dispatchEvent(new Event('wishlist-updated'));
   };
+
+  // Check if user has purchased this specific product
+  useEffect(() => {
+    if (isUserLoading || !firestore) {
+      return;
+    }
+    if (!user) {
+      setHasPurchased(false);
+      setIsVerifyingPurchase(false);
+      return;
+    }
+
+    const checkPurchaseStatus = async () => {
+      try {
+        const ordersRef = collection(firestore, 'users', user.uid, 'orders');
+        const q = query(ordersRef, where('status', 'in', ['paid', 'shipped', 'delivered']));
+        const querySnapshot = await getDocs(q);
+        
+        let purchased = false;
+        
+        // Loop through each paid order and check its items subcollection
+        for (const orderDoc of querySnapshot.docs) {
+          const itemsRef = collection(firestore, 'users', user.uid, 'orders', orderDoc.id, 'items');
+          const itemsSnapshot = await getDocs(itemsRef);
+          const hasItem = itemsSnapshot.docs.some(doc => doc.data().productId === productId);
+          if (hasItem) {
+            purchased = true;
+            break;
+          }
+        }
+        
+        setHasPurchased(purchased);
+      } catch (err) {
+        console.error("Error verifying purchase status:", err);
+        setHasPurchased(false);
+      } finally {
+        setIsVerifyingPurchase(false);
+      }
+    };
+
+    checkPurchaseStatus();
+  }, [user, isUserLoading, firestore, productId]);
+
+  // Pre-fill review name when user is logged in
+  useEffect(() => {
+    if (user?.displayName) {
+      setReviewName(user.displayName);
+    }
+  }, [user]);
 
   // Fetch product document
   const productDocRef = useMemoFirebase(
@@ -181,8 +234,8 @@ export default function ProductDetailPage() {
   // Average Rating
   const averageRating = reviews && reviews.length > 0 
     ? Number((reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1))
-    : 4.8;
-  const reviewsCount = reviews?.length || 18;
+    : 0.0;
+  const reviewsCount = reviews?.length || 0;
 
   // Handle Add To Cart
   const handleAddToCart = () => {
@@ -222,6 +275,14 @@ export default function ProductDetailPage() {
   // Review submission
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Please log in to write a review.' });
+      return;
+    }
+    if (!hasPurchased) {
+      toast({ variant: 'destructive', title: 'Only verified buyers can leave a review.' });
+      return;
+    }
     if (!reviewName || !reviewComment) {
       toast({ variant: 'destructive', title: 'Please fill all fields.' });
       return;
@@ -233,10 +294,11 @@ export default function ProductDetailPage() {
         name: reviewName,
         rating: reviewRating,
         comment: reviewComment,
+        userId: user.uid,
         createdAt: serverTimestamp()
       });
       toast({ title: 'Thank you! Your review has been published.' });
-      setReviewName('');
+      setReviewName(user.displayName || '');
       setReviewComment('');
       setReviewRating(5);
       setIsReviewModalOpen(false);
@@ -658,59 +720,107 @@ export default function ProductDetailPage() {
                   Write a review
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md rounded-2xl border-border">
-                <DialogHeader>
-                  <DialogTitle className="font-headline font-black text-lg">Submit Feedback</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleAddReview} className="space-y-4 pt-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Your Name</label>
-                    <Input 
-                      placeholder="Enter name"
-                      value={reviewName}
-                      onChange={(e) => setReviewName(e.target.value)}
-                      required
-                    />
+              {!user ? (
+                <DialogContent className="max-w-md rounded-2xl border-border text-center p-6 space-y-4">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline font-black text-lg">Submit Feedback</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Please log in to write a review for this product.</p>
+                    <Button asChild className="w-full bg-primary text-white font-bold h-11 rounded-xl">
+                      <Link href="/login">Log In</Link>
+                    </Button>
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Rating Score</label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewRating(star)}
-                          className="hover:scale-110 active:scale-95 transition-transform"
-                        >
-                          <Star 
-                            className={`h-7 w-7 ${
-                              star <= reviewRating 
-                                ? 'fill-amber-400 text-amber-400' 
-                                : 'text-zinc-300 dark:text-zinc-700'
-                            }`} 
-                          />
-                        </button>
-                      ))}
+                </DialogContent>
+              ) : isVerifyingPurchase ? (
+                <DialogContent className="max-w-md rounded-2xl border-border text-center p-6 space-y-4">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline font-black text-lg">Submit Feedback</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col items-center justify-center p-6 space-y-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="text-xs text-muted-foreground font-semibold">Verifying purchase status...</p>
+                  </div>
+                </DialogContent>
+              ) : !hasPurchased ? (
+                <DialogContent className="max-w-md rounded-2xl border-border text-center p-6 space-y-4">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline font-black text-lg">Verified Purchase Required</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Only verified buyers of <strong>{product.name}</strong> can write a review. Purchase the item to share your thoughts!</p>
+                    <Button onClick={() => setIsReviewModalOpen(false)} className="w-full bg-primary text-white font-bold h-11 rounded-xl">
+                      Close
+                    </Button>
+                  </div>
+                </DialogContent>
+              ) : reviews?.some(r => r.userId === user.uid) ? (
+                <DialogContent className="max-w-md rounded-2xl border-border text-center p-6 space-y-4">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline font-black text-lg">Feedback Already Submitted</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">You have already submitted a review for this product.</p>
+                    <Button onClick={() => setIsReviewModalOpen(false)} className="w-full bg-primary text-white font-bold h-11 rounded-xl">
+                      Close
+                    </Button>
+                  </div>
+                </DialogContent>
+              ) : (
+                <DialogContent className="max-w-md rounded-2xl border-border">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline font-black text-lg">Submit Feedback</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddReview} className="space-y-4 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Your Name</label>
+                      <Input 
+                        placeholder="Enter name"
+                        value={reviewName}
+                        onChange={(e) => setReviewName(e.target.value)}
+                        required
+                      />
                     </div>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Review Details</label>
-                    <Textarea 
-                      placeholder="Write your comment..."
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                      required
-                      className="h-24"
-                    />
-                  </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Rating Score</label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewRating(star)}
+                            className="hover:scale-110 active:scale-95 transition-transform"
+                          >
+                            <Star 
+                              className={`h-7 w-7 ${
+                                star <= reviewRating 
+                                  ? 'fill-amber-400 text-amber-400' 
+                                  : 'text-zinc-300 dark:text-zinc-700'
+                              }`} 
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  <Button type="submit" disabled={isSubmittingReview} className="w-full bg-primary text-white font-bold h-11 rounded-xl">
-                    {isSubmittingReview ? 'Submitting...' : 'Post Review'}
-                  </Button>
-                </form>
-              </DialogContent>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Review Details</label>
+                      <Textarea 
+                        placeholder="Write your comment..."
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        required
+                        className="h-24"
+                      />
+                    </div>
+
+                    <Button type="submit" disabled={isSubmittingReview} className="w-full bg-primary text-white font-bold h-11 rounded-xl">
+                      {isSubmittingReview ? 'Submitting...' : 'Post Review'}
+                    </Button>
+                  </form>
+                </DialogContent>
+              )}
             </Dialog>
           </div>
 
@@ -735,7 +845,7 @@ export default function ProductDetailPage() {
 
             <div className="md:col-span-2 space-y-2 px-2 md:px-6">
               {[5, 4, 3, 2, 1].map((stars) => {
-                const count = reviews?.filter(r => r.rating === stars).length || (stars === 5 ? Math.round(reviewsCount * 0.7) : stars === 4 ? Math.round(reviewsCount * 0.2) : 0);
+                const count = reviews?.filter(r => r.rating === stars).length || 0;
                 const percent = reviewsCount > 0 ? (count / reviewsCount) * 100 : 0;
                 return (
                   <div key={stars} className="flex items-center gap-3 text-xs font-bold">

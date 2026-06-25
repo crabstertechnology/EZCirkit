@@ -19,6 +19,8 @@ export const upsertUser = async (user: User) => {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', user.uid);
     const userDoc = await getDoc(userRef);
+    const isAdminEmail = user.email === 'crabstertechnology@gmail.com';
+
     if (!userDoc.exists()) {
         await setDoc(userRef, {
             id: user.uid,
@@ -26,8 +28,13 @@ export const upsertUser = async (user: User) => {
             displayName: user.displayName || user.email?.split('@')[0],
             photoURL: user.photoURL || '',
             createdAt: new Date().toISOString(),
-            isAdmin: false, // Default new users to not be admins
+            isAdmin: isAdminEmail, // Primary admin email gets admin access
         }, { merge: true });
+    } else {
+        const userData = userDoc.data();
+        if (isAdminEmail && !userData?.isAdmin) {
+            await setDoc(userRef, { isAdmin: true }, { merge: true });
+        }
     }
 };
 
