@@ -48,6 +48,40 @@ const Header = () => {
   const { data: userData } = useDoc<{ isAdmin?: boolean }>(userDocRef);
   const isAdmin = userData?.isAdmin ?? false;
 
+  const settingsDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'announcementBar') : null),
+    [firestore]
+  );
+  const { data: rawSettings } = useDoc<any>(settingsDocRef);
+  const announcementSettings = React.useMemo(() => {
+    if (rawSettings === undefined) return undefined; // loading state
+    if (rawSettings === null) {
+      // document does not exist, use default fallback
+      return {
+        enabled: true,
+        backgroundGradient: 'linear-gradient(90deg, #1c1917 0%, #292524 50%, #1c1917 100%)',
+        textColor: '#ffffff',
+        accentColor: '#f97316',
+        speed: 40,
+        items: [
+          { prefixIcon: '⚡', text: 'Free Shipping Over ₹999', accentText: 'Free Shipping' },
+          { prefixIcon: '', text: 'For Schools – Bulk Pricing', accentText: 'Bulk Pricing' },
+          { prefixIcon: '', text: 'Made In India 🇮🇳', accentText: '' },
+          { prefixIcon: '', text: '10,000+ Students Learning With EZCirkit', accentText: 'EZCirkit' },
+          { prefixIcon: '', text: 'Step-by-Step Video Tutorials Included', accentText: 'Video Tutorials' }
+        ]
+      };
+    }
+    return {
+      enabled: rawSettings.enabled ?? true,
+      backgroundGradient: rawSettings.backgroundGradient || 'linear-gradient(90deg, #1c1917 0%, #292524 50%, #1c1917 100%)',
+      textColor: rawSettings.textColor || '#ffffff',
+      accentColor: rawSettings.accentColor || '#f97316',
+      speed: rawSettings.speed ?? 40,
+      items: rawSettings.items || []
+    };
+  }, [rawSettings]);
+
   // Sync wishlist count from localStorage
   const updateWishlistCount = () => {
     try {
@@ -547,8 +581,14 @@ const Header = () => {
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       {/* Announcement Bar */}
-      {pathname === '/' && (
-        <div className="w-full overflow-hidden relative" style={{ background: 'linear-gradient(90deg, #1c1917 0%, #292524 50%, #1c1917 100%)', borderTop: '1px solid #44403c' }}>
+      {pathname === '/' && announcementSettings && announcementSettings.enabled && announcementSettings.items.length > 0 && (
+        <div 
+          className="w-full overflow-hidden relative" 
+          style={{ 
+            background: announcementSettings.backgroundGradient, 
+            borderTop: '1px solid rgba(255,255,255,0.1)' 
+          }}
+        >
           <style dangerouslySetInnerHTML={{__html: `
             @keyframes marquee {
               0% { transform: translate3d(0, 0, 0); }
@@ -557,38 +597,49 @@ const Header = () => {
             .animate-marquee {
               display: inline-flex;
               white-space: nowrap;
-              animation: marquee 40s linear infinite;
+              animation: marquee ${announcementSettings.speed}s linear infinite;
             }
             .marquee-dot {
-              color: #f97316;
+              color: ${announcementSettings.accentColor};
               font-size: 14px;
               line-height: 1;
             }
             .marquee-item {
-              color: #ffffff;
+              color: ${announcementSettings.textColor};
               font-size: 9px;
               font-weight: 800;
               letter-spacing: 0.12em;
               text-transform: uppercase;
             }
             .marquee-accent {
-              color: #f97316;
+              color: ${announcementSettings.accentColor};
               font-weight: 900;
             }
           `}} />
           <div className="flex animate-marquee items-center py-1.5" style={{ gap: '2.5rem' }}>
             {[0, 1].map((copy) => (
               <div key={copy} className="flex items-center shrink-0" style={{ gap: '2.5rem' }}>
-                <span className="marquee-item">⚡ <span className="marquee-accent">Free Shipping</span> Over ₹999</span>
-                <span className="marquee-dot">◆</span>
-                <span className="marquee-item">For Schools – <span className="marquee-accent">Bulk Pricing</span></span>
-                <span className="marquee-dot">◆</span>
-                <span className="marquee-item">Made In India 🇮🇳</span>
-                <span className="marquee-dot">◆</span>
-                <span className="marquee-item">10,000+ Students Learning With <span className="marquee-accent">EZCirkit</span></span>
-                <span className="marquee-dot">◆</span>
-                <span className="marquee-item">Step-by-Step <span className="marquee-accent">Video Tutorials</span> Included</span>
-                <span className="marquee-dot">◆</span>
+                {announcementSettings.items.map((item, idx) => {
+                  const parts = item.text.split(new RegExp(`(${item.accentText})`, 'gi'));
+                  return (
+                    <React.Fragment key={idx}>
+                      <span className="marquee-item">
+                        {item.prefixIcon && <span className="mr-1.5">{item.prefixIcon}</span>}
+                        <span>
+                          {parts.map((part, i) => {
+                            const isAccent = item.accentText && part.toLowerCase() === item.accentText.toLowerCase();
+                            return (
+                              <span key={i} className={isAccent ? 'marquee-accent' : undefined}>
+                                {part}
+                              </span>
+                            );
+                          })}
+                        </span>
+                      </span>
+                      <span className="marquee-dot">◆</span>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             ))}
           </div>

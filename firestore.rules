@@ -132,5 +132,12 @@ service cloud.firestore {
       // Only admins can write.
       allow write: if isAdmin();
     }
+
+    match /settings/{documentId} {
+      // Anyone can read settings.
+      allow read: if true;
+      // Only admins can write.
+      allow write: if isAdmin();
+    }
   }
 }

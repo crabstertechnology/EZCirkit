@@ -45,6 +45,11 @@ export default function ProductDetailPage() {
   const [pincode, setPincode] = useState('');
   const [pincodeStatus, setPincodeStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   
+  // Magnifier Zoom Feature State
+  const [showZoom, setShowZoom] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const [lensPos, setLensPos] = useState({ top: 0, left: 0 });
+  
   // Reviews state
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -173,6 +178,61 @@ export default function ProductDetailPage() {
       setActiveImage(product.image);
     }
   }, [product]);
+
+  // Gallery Array memoized
+  const gallery = React.useMemo(() => {
+    if (!product) return [];
+    return [product.image, ...(product.gallery || [])].filter(Boolean);
+  }, [product]);
+
+  // Auto slide gallery images every 3 seconds (pauses when user zooms / hovers)
+  useEffect(() => {
+    if (gallery.length <= 1 || showZoom) return;
+    const interval = setInterval(() => {
+      setActiveImage((current) => {
+        const currentIndex = gallery.indexOf(current);
+        if (currentIndex === -1) {
+          return gallery[0];
+        }
+        const nextIndex = (currentIndex + 1) % gallery.length;
+        return gallery[nextIndex];
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [gallery, showZoom]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+
+    // Mouse coordinates relative to container
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Lens dimensions
+    const lensWidth = 140;
+    const lensHeight = 140;
+
+    let left = x - lensWidth / 2;
+    let top = y - lensHeight / 2;
+
+    // Constrain lens inside container boundary
+    if (left < 0) left = 0;
+    if (left > rect.width - lensWidth) left = rect.width - lensWidth;
+    if (top < 0) top = 0;
+    if (top > rect.height - lensHeight) top = rect.height - lensHeight;
+
+    setLensPos({ top, left });
+
+    // Calculate percentage position
+    const maxX = rect.width - lensWidth;
+    const maxY = rect.height - lensHeight;
+
+    const pctX = maxX > 0 ? (left / maxX) * 100 : 0;
+    const pctY = maxY > 0 ? (top / maxY) * 100 : 0;
+
+    setZoomPos({ x: pctX, y: pctY });
+  };
 
   if (isProductLoading) {
     return (
@@ -310,9 +370,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Gallery Array
-  const gallery = [product.image, ...(product.gallery || [])].filter(Boolean);
-
   return (
     <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950 text-foreground pt-28 md:pt-40 pb-16">
       <div className="container mx-auto px-4 md:px-6 space-y-12">
@@ -331,18 +388,52 @@ export default function ProductDetailPage() {
           
           {/* Left Column: Image viewer */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="w-full rounded-2xl overflow-hidden bg-white border border-border/80 relative flex items-center justify-center p-6 shadow-sm" style={{ aspectRatio: '1 / 1' }}>
+            <div 
+              className="w-full rounded-2xl overflow-hidden bg-white border border-border/80 relative flex items-center justify-center p-6 shadow-sm cursor-crosshair select-none" 
+              style={{ aspectRatio: '1 / 1' }}
+              onMouseEnter={() => setShowZoom(true)}
+              onMouseLeave={() => setShowZoom(false)}
+              onMouseMove={handleMouseMove}
+            >
               <Image
                 src={activeImage || product.image}
                 alt={product.name}
                 fill
-                className="object-contain p-4 transition-transform duration-300 hover:scale-105"
+                className="object-contain p-4 select-none pointer-events-none"
                 priority
               />
               {discountPercent > 0 && (
-                <Badge className="absolute top-4 left-4 bg-red-500 hover:bg-red-600 border-none font-bold text-white text-xs py-1 px-3 rounded-md">
+                <Badge className="absolute top-4 left-4 bg-red-500 hover:bg-red-600 border-none font-bold text-white text-xs py-1 px-3 rounded-md z-10">
                   Sale {discountPercent}%
                 </Badge>
+              )}
+
+              {/* Lens Selector Overlay */}
+              {showZoom && (
+                <div 
+                  className="absolute border border-primary/50 bg-primary/10 pointer-events-none z-10 rounded-lg shadow-sm"
+                  style={{
+                    width: '140px',
+                    height: '140px',
+                    top: `${lensPos.top}px`,
+                    left: `${lensPos.left}px`,
+                    backgroundImage: 'radial-gradient(circle, rgba(59,130,246,0.15) 1px, transparent 1px)',
+                    backgroundSize: '8px 8px',
+                  }}
+                />
+              )}
+
+              {/* High-fidelity Zoom Window */}
+              {showZoom && (
+                <div 
+                  className="hidden lg:block absolute left-[104%] top-0 w-full h-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-50 rounded-2xl shadow-2xl overflow-hidden pointer-events-none"
+                  style={{
+                    backgroundImage: `url(${activeImage || product.image})`,
+                    backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                    backgroundSize: '250%', // 2.5x zoom factor
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                />
               )}
             </div>
 

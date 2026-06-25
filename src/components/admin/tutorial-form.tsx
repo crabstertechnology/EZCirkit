@@ -17,7 +17,8 @@ import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const tutorialSchema = z.object({
   title: z.string().min(3, 'Title is required.'),
@@ -34,12 +35,150 @@ const tutorialSchema = z.object({
   pinout: z.string().optional(),
 });
 
-const PUBLIC_ASSETS = [
-  { name: 'Kit Front', path: '/new-kit-front.png' },
-  { name: 'Kit Back', path: '/kit-back.png' },
-  { name: 'Kit Inside', path: '/kit-inside.png' },
-  { name: 'Logo', path: '/logo.png' }
-];
+interface Asset {
+  name: string;
+  fileName: string;
+  path: string;
+  mtime: number;
+  size: number;
+}
+
+interface AssetPickerProps {
+  onSelect: (path: string) => void;
+  trigger: React.ReactNode;
+}
+
+const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, trigger }) => {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'name-asc' | 'name-desc'>('date-desc');
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const fetchAssets = async () => {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/assets');
+          const data = await res.json();
+          if (data.assets) {
+            setAssets(data.assets);
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchAssets();
+    }
+  }, [open]);
+
+  const filteredAndSortedAssets = React.useMemo(() => {
+    let result = [...assets];
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (a) => a.name.toLowerCase().includes(q) || a.fileName.toLowerCase().includes(q)
+      );
+    }
+
+    result.sort((a, b) => {
+      if (sortBy === 'date-desc') return b.mtime - a.mtime;
+      if (sortBy === 'date-asc') return a.mtime - b.mtime;
+      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+      return 0;
+    });
+
+    return result;
+  }, [assets, search, sortBy]);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-2xl w-[95vw] rounded-2xl p-6 border-border bg-white dark:bg-zinc-950 font-sans">
+        <DialogHeader>
+          <DialogTitle className="font-headline font-black text-xl text-foreground">Asset Gallery</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex flex-col sm:flex-row gap-3 py-2 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search assets by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 rounded-xl h-10 w-full"
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+              <SelectTrigger className="rounded-xl h-10 w-full">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="date-desc">Newest First</SelectItem>
+                <SelectItem value="date-asc">Oldest First</SelectItem>
+                <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="h-64 flex flex-col items-center justify-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-xs text-muted-foreground font-semibold">Loading assets...</p>
+          </div>
+        ) : filteredAndSortedAssets.length === 0 ? (
+          <div className="h-64 border border-dashed rounded-2xl flex flex-col items-center justify-center p-6 text-center space-y-2">
+            <ImageIcon className="h-10 w-10 text-muted-foreground/60" />
+            <p className="text-sm font-bold text-foreground">No assets found</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              {search ? "Try adjusting your search keywords." : "Place image files inside your 'public' folder to populate the gallery."}
+            </p>
+          </div>
+        ) : (
+          <ScrollArea className="h-[360px] pr-2 mt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {filteredAndSortedAssets.map((asset) => (
+                <button
+                  key={asset.path}
+                  type="button"
+                  onClick={() => {
+                    onSelect(asset.path);
+                    setOpen(false);
+                  }}
+                  className="flex flex-col items-stretch p-1.5 border rounded-xl hover:border-primary hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-left group cursor-pointer bg-white dark:bg-zinc-900/20"
+                >
+                  <div className="aspect-video w-full rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/50">
+                    <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="pt-2 px-1 pb-1 space-y-0.5">
+                    <span className="text-[10px] font-bold text-foreground group-hover:text-primary transition-colors block truncate w-full">
+                      {asset.name}
+                    </span>
+                    <span className="text-[9px] font-semibold text-muted-foreground block truncate w-full">
+                      {asset.fileName}
+                    </span>
+                    <div className="flex justify-between items-center text-[8px] text-muted-foreground font-semibold pt-0.5 border-t border-zinc-100 dark:border-zinc-800">
+                      <span>{(asset.size / 1024).toFixed(0)} KB</span>
+                      <span>{new Date(asset.mtime).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const compressImageToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -278,12 +417,21 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
             <FormItem className="space-y-2">
                 <FormLabel>Diagram Image</FormLabel>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <div className="flex-1">
                       <FormControl>
                         <Input placeholder="Paste image URL or upload one" {...field} value={field.value || ''} />
                       </FormControl>
                     </div>
+                    <AssetPicker 
+                      onSelect={(path) => field.onChange(path)}
+                      trigger={
+                        <Button type="button" variant="outline" className="gap-1.5 h-10 cursor-pointer">
+                          <ImageIcon className="h-4 w-4" />
+                          <span>Gallery</span>
+                        </Button>
+                      }
+                    />
                     <div className="relative">
                       <input
                         type="file"
@@ -297,7 +445,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                         <Button
                           type="button"
                           variant="outline"
-                          className="cursor-pointer gap-1.5"
+                          className="cursor-pointer gap-1.5 h-10"
                           asChild
                           disabled={isUploadingImage}
                         >
@@ -315,29 +463,6 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                       <span>Compressing image for database...</span>
                     </div>
                   )}
-                  <div className="space-y-1.5 mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-200/80">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Or select local public asset:</span>
-                    <div className="grid grid-cols-4 gap-2">
-                      {PUBLIC_ASSETS.map((asset) => (
-                        <button
-                          key={asset.path}
-                          type="button"
-                          className={cn(
-                            "flex flex-col items-center gap-1 p-1 border rounded-md hover:border-primary/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-left group",
-                            field.value === asset.path && "border-primary bg-orange-50/50 dark:bg-orange-950/20"
-                          )}
-                          onClick={() => field.onChange(asset.path)}
-                        >
-                          <div className="w-full aspect-video rounded overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center border">
-                            <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
-                          </div>
-                          <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-foreground truncate w-full text-center">
-                            {asset.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
                   {field.value && (
                     <div className="relative border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50 max-h-48 flex items-center justify-center p-2 group">
