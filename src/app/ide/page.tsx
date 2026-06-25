@@ -23,6 +23,7 @@ export default function IdeSelectionPage() {
   const [chapters, setChapters] = useState<TutorialChapter[]>([]);
   const [allTutorials, setAllTutorials] = useState<Tutorial[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [dataLoadedOnce, setDataLoadedOnce] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<string>('All');
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -129,6 +130,7 @@ export default function IdeSelectionPage() {
         setChapters(finalChapters);
         setAllTutorials(allTutorialsList);
         setIsLoadingData(false);
+        setDataLoadedOnce(true);
       };
 
       // Clean up old listeners
@@ -351,7 +353,7 @@ export default function IdeSelectionPage() {
         )}
 
         {/* Experiment Cards Grid */}
-        {!showLoading && (
+        {!showLoading && dataLoadedOnce && (
           filteredTutorials.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredTutorials.map((tut) => (

@@ -109,7 +109,7 @@ const Header = () => {
 
   const AuthNav = () => {
     if (isUserLoading) {
-      return null;
+      return <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />;
     }
     if (user) {
       return (
@@ -471,6 +471,7 @@ const Header = () => {
 
   return (
     <header
+      suppressHydrationWarning
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
         scrolled ? 'shadow-header bg-background/90 backdrop-blur-sm' : 'bg-transparent'
@@ -478,7 +479,7 @@ const Header = () => {
     >
       <div className="container mx-auto flex flex-col px-4 md:px-6">
         {/* Row 1: Brand & Navigation Links & Actions */}
-        <div className="flex h-14 items-center justify-between gap-4 w-full">
+        <div suppressHydrationWarning className="flex h-14 items-center justify-between gap-4 w-full">
           {/* Logo (Far Left) */}
           <div className="flex-shrink-0">
             <Logo />
@@ -544,7 +545,7 @@ const Header = () => {
 
       {/* Announcement Bar */}
       {pathname === '/' && (
-        <div className="w-full bg-primary text-white py-1 border-t border-primary/20 overflow-hidden relative">
+        <div className="w-full overflow-hidden relative" style={{ background: 'linear-gradient(90deg, #1c1917 0%, #292524 50%, #1c1917 100%)', borderTop: '1px solid #44403c' }}>
           <style dangerouslySetInnerHTML={{__html: `
             @keyframes marquee {
               0% { transform: translate3d(0, 0, 0); }
@@ -553,34 +554,40 @@ const Header = () => {
             .animate-marquee {
               display: inline-flex;
               white-space: nowrap;
-              animation: marquee 35s linear infinite;
+              animation: marquee 40s linear infinite;
+            }
+            .marquee-dot {
+              color: #f97316;
+              font-size: 14px;
+              line-height: 1;
+            }
+            .marquee-item {
+              color: #ffffff;
+              font-size: 9px;
+              font-weight: 800;
+              letter-spacing: 0.12em;
+              text-transform: uppercase;
+            }
+            .marquee-accent {
+              color: #f97316;
+              font-weight: 900;
             }
           `}} />
-          <div className="flex animate-marquee text-[9px] tracking-widest font-black uppercase items-center gap-16">
-            <div className="flex items-center gap-16 shrink-0">
-              <span className="flex items-center gap-1.5"><span className="text-white">⚡</span> Free Shipping Over ₹999</span>
-              <span>•</span>
-              <span>Stem Kits For Schools - Bulk Pricing</span>
-              <span>•</span>
-              <span className="text-white font-bold">Made In India 🇮🇳</span>
-              <span>•</span>
-              <span>10,000+ Students Learning With EZCirkit</span>
-              <span>•</span>
-              <span>Step-by-Step Video Tutorials</span>
-              <span>•</span>
-            </div>
-            <div className="flex items-center gap-16 shrink-0">
-              <span className="flex items-center gap-1.5"><span className="text-white">⚡</span> Free Shipping Over ₹999</span>
-              <span>•</span>
-              <span>Stem Kits For Schools - Bulk Pricing</span>
-              <span>•</span>
-              <span className="text-white font-bold">Made In India 🇮🇳</span>
-              <span>•</span>
-              <span>10,000+ Students Learning With EZCirkit</span>
-              <span>•</span>
-              <span>Step-by-Step Video Tutorials</span>
-              <span>•</span>
-            </div>
+          <div className="flex animate-marquee items-center py-1.5" style={{ gap: '2.5rem' }}>
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex items-center shrink-0" style={{ gap: '2.5rem' }}>
+                <span className="marquee-item">⚡ <span className="marquee-accent">Free Shipping</span> Over ₹999</span>
+                <span className="marquee-dot">◆</span>
+                <span className="marquee-item">For Schools – <span className="marquee-accent">Bulk Pricing</span></span>
+                <span className="marquee-dot">◆</span>
+                <span className="marquee-item">Made In India 🇮🇳</span>
+                <span className="marquee-dot">◆</span>
+                <span className="marquee-item">10,000+ Students Learning With <span className="marquee-accent">EZCirkit</span></span>
+                <span className="marquee-dot">◆</span>
+                <span className="marquee-item">Step-by-Step <span className="marquee-accent">Video Tutorials</span> Included</span>
+                <span className="marquee-dot">◆</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
