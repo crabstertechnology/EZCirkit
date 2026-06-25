@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useScroll } from '@/hooks/use-scroll';
+import CartSidebar from '@/components/layout/cart-sidebar';
 import Logo from '@/components/shared/logo';
 import { NAV_LINKS } from '@/lib/constants';
 import { FEATURES } from '@/lib/features';
@@ -38,6 +39,7 @@ const Header = () => {
   const pathname = usePathname();
   const firestore = useFirestore();
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const userDocRef = useMemoFirebase(
     () => (!isUserLoading && user ? doc(firestore, 'users', user.uid) : null),
@@ -518,20 +520,18 @@ const Header = () => {
               </Link>
             </Button>
 
-            {/* Shopping Cart Link Button */}
-            <Button asChild variant="ghost" size="icon" className="relative">
-              <Link href="/cart">
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <Badge
-                    variant="default"
-                    className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full bg-primary-gradient p-0 text-xs text-primary-foreground"
-                  >
-                    {cartCount}
-                  </Badge>
-                )}
-                <span className="sr-only">Open Cart</span>
-              </Link>
+            {/* Shopping Cart Sidebar Button */}
+            <Button variant="ghost" size="icon" className="relative" onClick={() => setIsCartOpen(true)}>
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <Badge
+                  variant="default"
+                  className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full bg-primary p-0 text-xs text-white"
+                >
+                  {cartCount}
+                </Badge>
+              )}
+              <span className="sr-only">Open Cart</span>
             </Button>
 
             <AuthNav />
@@ -542,6 +542,9 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       {/* Announcement Bar */}
       {pathname === '/' && (

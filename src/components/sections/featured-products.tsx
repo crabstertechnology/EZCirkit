@@ -56,7 +56,7 @@ const FeaturedProducts = () => {
   if (!isLoading && (!products || products.length === 0)) return null;
 
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="py-16 md:py-24 bg-white" style={{ borderTop: '2px solid #f1f1f1', borderBottom: '2px solid #f1f1f1', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 40px -8px rgba(0,0,0,0.08)' }}>
       <div className="container mx-auto px-4 md:px-6">
 
         {/* Section Header */}
