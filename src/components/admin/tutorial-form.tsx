@@ -10,10 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useFirestore, useStorage } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, collection, setDoc, getDocs } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
@@ -36,7 +34,7 @@ const tutorialSchema = z.object({
   pinout: z.string().optional(),
 });
 
-const compressToBlob = (file: File): Promise<Blob> => {
+const compressImageToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -44,8 +42,8 @@ const compressToBlob = (file: File): Promise<Blob> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const maxWidth = 1600; // 1600 max width is plenty for diagrams
-        const maxHeight = 1600;
+        const maxWidth = 800; // Small size for extremely compact Firestore footprint
+        const maxHeight = 800;
         let width = img.width;
         let height = img.height;
 
@@ -67,19 +65,15 @@ const compressToBlob = (file: File): Promise<Blob> => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              resolve(file);
-            }
-          }, 'image/jpeg', 0.85); // High quality JPEG
+          // Convert to WebP with 0.60 quality for ultra-lightweight storage (usually 15-25 KB)
+          const base64 = canvas.toDataURL('image/webp', 0.60);
+          resolve(base64);
         } else {
-          resolve(file);
+          resolve(event.target?.result as string);
         }
       };
       img.onerror = () => {
-        resolve(file);
+        resolve(event.target?.result as string);
       };
     };
     reader.onerror = () => {
@@ -101,51 +95,24 @@ const LEVEL_OPTIONS: TutorialLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
 const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId }) => {
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [diagramProgress, setDiagramProgress] = useState(0);
   
   // Pre-generate the tutorial ID so it is consistent across uploads and submissions
   const [tutorialId] = useState(() => tutorial?.id || doc(collection(firestore, '_')).id);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
     const file = e.target.files?.[0];
-    if (!file || !storage) return;
+    if (!file) return;
     setIsUploadingImage(true);
-    setDiagramProgress(0);
     try {
-      const blob = await compressToBlob(file);
-      const storageRef = ref(storage, `tutorials/${chapterId}/${tutorialId}/diagram_${Date.now()}.jpg`);
-      
-      const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: 'image/jpeg' });
-      
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-            setDiagramProgress(progress);
-          },
-          (error) => {
-            reject(error);
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              onChange(downloadURL);
-              resolve();
-            } catch (err) {
-              reject(err);
-            }
-          }
-        );
-      });
-      
-      toast({ title: 'Diagram image uploaded successfully to Storage!' });
+      const base64 = await compressImageToBase64(file);
+      onChange(base64);
+      toast({ title: 'Diagram image processed and compressed successfully!' });
     } catch (err) {
-      console.error("Storage upload error:", err);
-      toast({ variant: 'destructive', title: 'Failed to upload image.' });
+      console.error("Compression error:", err);
+      toast({ variant: 'destructive', title: 'Failed to process image.' });
     } finally {
       setIsUploadingImage(false);
     }
@@ -336,12 +303,9 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                     </div>
                   </div>
                   {isUploadingImage && (
-                    <div className="space-y-1.5 mt-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
-                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-                        <span className="animate-pulse">Uploading diagram...</span>
-                        <span>{diagramProgress}%</span>
-                      </div>
-                      <Progress value={diagramProgress} className="h-2 w-full bg-zinc-100" />
+                    <div className="text-xs text-orange-600 dark:text-orange-400 animate-pulse mt-1.5 flex items-center gap-1.5 font-medium">
+                      <span className="h-2 w-2 rounded-full bg-orange-500 animate-ping" />
+                      <span>Compressing image for database...</span>
                     </div>
                   )}
 

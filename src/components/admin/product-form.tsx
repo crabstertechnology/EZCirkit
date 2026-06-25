@@ -97,7 +97,6 @@ interface ProductFormProps {
 const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
   const { user } = useUser();
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -162,53 +161,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     }
   }, [product, form, firestore]);
 
-  const [mainImageProgress, setMainImageProgress] = useState(0);
-  const [galleryProgress, setGalleryProgress] = useState(0);
-  const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
-  const [totalGalleryCount, setTotalGalleryCount] = useState(0);
-
-  const uploadWithProgress = (storageRef: any, blob: Blob, onProgress: (progress: number) => void): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: 'image/jpeg' });
-      uploadTask.on('state_changed', 
-        (snapshot) => {
-          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          onProgress(progress);
-        }, 
-        (error) => {
-          reject(error);
-        }, 
-        async () => {
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(downloadURL);
-          } catch (err) {
-            reject(err);
-          }
-        }
-      );
-    });
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
     const file = e.target.files?.[0];
-    if (!file || !storage) return;
+    if (!file) return;
     setIsUploadingImage(true);
-    setMainImageProgress(0);
     try {
-      const blob = await compressToBlob(file);
-      const productId = form.getValues('id') || 'temp';
-      const storageRef = ref(storage, `products/${productId}/main_image_${Date.now()}.jpg`);
-      
-      const downloadURL = await uploadWithProgress(storageRef, blob, (progress) => {
-        setMainImageProgress(progress);
-      });
-      
-      onChange(downloadURL);
-      toast({ title: 'Main image uploaded successfully to Storage!' });
+      const base64 = await compressImageToBase64(file);
+      onChange(base64);
+      toast({ title: 'Main image processed and compressed successfully!' });
     } catch (err) {
-      console.error("Storage upload error:", err);
-      toast({ variant: 'destructive', title: 'Failed to upload image.' });
+      console.error("Compression error:", err);
+      toast({ variant: 'destructive', title: 'Failed to process image.' });
     } finally {
       setIsUploadingImage(false);
     }
@@ -216,35 +179,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !storage) return;
+    if (!files || files.length === 0) return;
     setIsUploadingGallery(true);
-    setGalleryProgress(0);
-    setCurrentGalleryIndex(0);
-    setTotalGalleryCount(files.length);
     
     const currentGallery = form.getValues('gallery') || [];
     const newImages = [...currentGallery];
-    const productId = form.getValues('id') || 'temp';
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      setCurrentGalleryIndex(i);
-      setGalleryProgress(0);
       try {
-        const blob = await compressToBlob(file);
-        const storageRef = ref(storage, `products/${productId}/gallery_${Date.now()}_${i}.jpg`);
-        
-        const downloadURL = await uploadWithProgress(storageRef, blob, (progress) => {
-          setGalleryProgress(progress);
-        });
-        newImages.push(downloadURL);
+        const base64 = await compressImageToBase64(file);
+        newImages.push(base64);
       } catch (err) {
-        console.error("Gallery image upload error:", err);
+        console.error("Gallery compression error:", err);
       }
     }
     
     form.setValue('gallery', newImages);
-    toast({ title: `${files.length} gallery image(s) uploaded successfully to Storage!` });
+    toast({ title: `${files.length} gallery image(s) processed successfully!` });
     setIsUploadingGallery(false);
   };
 
@@ -511,12 +463,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                     </div>
                   </div>
                   {isUploadingImage && (
-                    <div className="space-y-1.5 mt-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
-                      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-                        <span className="animate-pulse">Uploading main image...</span>
-                        <span>{mainImageProgress}%</span>
-                      </div>
-                      <Progress value={mainImageProgress} className="h-2 w-full bg-zinc-100" />
+                    <div className="text-xs text-orange-600 dark:text-orange-400 animate-pulse mt-1.5 flex items-center gap-1.5 font-medium">
+                      <span className="h-2 w-2 rounded-full bg-orange-500 animate-ping" />
+                      <span>Compressing image for database...</span>
                     </div>
                   )}
                   <FormMessage />
@@ -542,19 +491,16 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                     <span>
                       <Plus className="h-5 w-5 text-muted-foreground" />
                       <span className="text-xs font-bold text-muted-foreground">
-                        {isUploadingGallery ? 'Uploading Gallery...' : 'Upload Multiple Gallery Images'}
+                        {isUploadingGallery ? 'Compressing...' : 'Upload Multiple Gallery Images'}
                       </span>
                     </span>
                   </Button>
                 </label>
               </div>
               {isUploadingGallery && (
-                <div className="space-y-1.5 mt-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
-                  <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-                    <span className="animate-pulse">Uploading gallery image {currentGalleryIndex + 1} of {totalGalleryCount}...</span>
-                    <span>{galleryProgress}%</span>
-                  </div>
-                  <Progress value={galleryProgress} className="h-2 w-full bg-zinc-100" />
+                <div className="text-xs text-orange-600 dark:text-orange-400 animate-pulse mt-1.5 flex items-center gap-1.5 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-orange-500 animate-ping" />
+                  <span>Compressing gallery images for database...</span>
                 </div>
               )}
 
