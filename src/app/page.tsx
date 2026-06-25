@@ -3,6 +3,7 @@
 import React from 'react';
 import HeroSection from '@/components/sections/hero';
 import FlagshipProductSection from '@/components/sections/flagship-product';
+import FeaturedProducts from '@/components/sections/featured-products';
 import Testimonials from '@/components/sections/testimonials';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
@@ -38,6 +39,7 @@ export default function Home() {
         isLoading={isLoadingReviews}
       />
       <FlagshipProductSection />
+      <FeaturedProducts />
       <Testimonials 
          reviews={reviews || []}
          averageRating={averageRating}
