@@ -27,7 +27,15 @@ const FeaturedProducts = () => {
   const firestore = useFirestore();
   const { addToCart } = useCart();
   const { toast } = useToast();
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [wishlist, setWishlist] = useState<string[]>([]);
+
+  // Sync with localStorage on mount
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('wishlist');
+      setWishlist(saved ? JSON.parse(saved) : []);
+    } catch { setWishlist([]); }
+  }, []);
 
   const productsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'products'), orderBy('name')) : null),
@@ -46,14 +54,17 @@ const FeaturedProducts = () => {
     });
   };
 
-  const toggleWishlist = (e: React.MouseEvent, id: string) => {
+  const toggleWishlist = (e: React.MouseEvent, id: string, name: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setWishlist(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+    const isIn = wishlist.includes(id);
+    const updated = isIn ? wishlist.filter(x => x !== id) : [...wishlist, id];
+    setWishlist(updated);
+    localStorage.setItem('wishlist', JSON.stringify(updated));
+    window.dispatchEvent(new Event('wishlist-updated'));
+    toast({
+      title: isIn ? 'Removed from Wishlist' : 'Added to Wishlist',
+      description: `${name} has been ${isIn ? 'removed from' : 'added to'} your wishlist.`,
     });
   };
 
@@ -106,7 +117,7 @@ const FeaturedProducts = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {products?.map((product) => {
               const discount = getDiscount(product.price, product.originalPrice);
-              const inWishlist = wishlist.has(product.id);
+              const inWishlist = wishlist.includes(product.id);
               const rating = product.rating ?? 4.8;
               const reviewCount = product.reviewCount ?? 0;
 
@@ -136,7 +147,7 @@ const FeaturedProducts = () => {
 
                     {/* Wishlist — top right */}
                     <button
-                      onClick={(e) => toggleWishlist(e, product.id)}
+                      onClick={(e) => toggleWishlist(e, product.id, product.name)}
                       aria-label="Add to wishlist"
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 dark:bg-zinc-800/90 flex items-center justify-center shadow-sm hover:scale-110 transition-transform duration-150"
                     >
