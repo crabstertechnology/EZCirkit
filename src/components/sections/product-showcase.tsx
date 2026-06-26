@@ -94,10 +94,10 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
     router.push('/cart');
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!product || product.stock <= 0) return;
     if (quantity === 0) {
-      await addToCart(product);
+      addToCart(product);
     }
     router.push('/checkout');
   };

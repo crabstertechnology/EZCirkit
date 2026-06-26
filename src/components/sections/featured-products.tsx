@@ -26,7 +26,7 @@ interface Product {
 
 const FeaturedProducts = () => {
   const firestore = useFirestore();
-  const { addToCart } = useCart();
+  const { addToCart, cartItems } = useCart();
   const { toast } = useToast();
   const router = useRouter();
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -56,11 +56,14 @@ const FeaturedProducts = () => {
     });
   };
 
-  const handleBuyNow = async (e: React.MouseEvent, product: Product) => {
+  const handleBuyNow = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.stock <= 0) return;
-    await addToCart(product);
+    const inCart = cartItems.find((item: any) => item.id === product.id);
+    if (!inCart) {
+      addToCart(product);
+    }
     router.push('/checkout');
   };
 
