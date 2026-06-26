@@ -52,12 +52,13 @@ const FlagshipProductSection = () => {
   const { data: reviews } = useCollection<any>(reviewsQuery);
 
   const averageRating = React.useMemo(() => {
-    if (!reviews || reviews.length === 0) return 4.9;
+    if (!reviews || reviews.length === 0) return null;
     const total = reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0);
     return Number((total / reviews.length).toFixed(1));
   }, [reviews]);
 
-  const reviewsCount = reviews?.length ?? 412;
+  // Real count from Firestore — 0 when no reviews, never hardcoded
+  const reviewsCount = reviews?.length ?? 0;
 
   const handleAddToCart = async () => {
     if (product) {
@@ -158,11 +159,13 @@ const FlagshipProductSection = () => {
       "itemCondition": "https://schema.org/NewCondition",
       "availability": isOutOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": averageRating,
-      "reviewCount": reviews && reviews.length > 0 ? reviews.length : reviewsCount
-    }
+    ...(averageRating !== null && reviewsCount > 0 ? {
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": averageRating,
+        "reviewCount": reviewsCount
+      }
+    } : {})
   };
 
   return (
@@ -175,8 +178,23 @@ const FlagshipProductSection = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
       />
 
-      {/* Full-width card: image left, details right — no outer padding so it stretches edge-to-edge inside container */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
+      {/* Section Header */}
+      <div className="text-center pt-10 pb-6 px-4">
+        <p className="text-xs font-extrabold uppercase tracking-widest text-primary mb-2">
+          Flagship Product
+        </p>
+        <h2 className="text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight">
+          {isKit ? 'The EZCirkit Starter Kit' : product.name}
+        </h2>
+        <p className="mt-3 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+          {isKit
+            ? 'The single kit you need to build your first coding experiments.'
+            : product.description}
+        </p>
+      </div>
+
+      {/* Product Card */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-border/70 shadow-lg bg-white dark:bg-zinc-900">
 
           {/* ── LEFT: Product Image ── */}
@@ -233,30 +251,48 @@ const FlagshipProductSection = () => {
           {/* ── RIGHT: Product Details ── */}
           <div className="flex flex-col justify-between p-6 md:p-8 gap-4">
 
-            {/* Rating */}
+            {/* Flagship Badge */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => {
-                  const ratingValue = i + 1;
-                  return (
-                    <Star
-                      key={i}
-                      className={cn(
-                        "h-4 w-4",
-                        ratingValue <= averageRating
-                          ? "fill-amber-400 text-amber-400"
-                          : ratingValue - 0.5 <= averageRating
-                          ? "fill-amber-400 text-amber-400 opacity-60"
-                          : "text-zinc-300"
-                      )}
-                    />
-                  );
-                })}
-              </div>
-              <span className="text-sm font-semibold text-foreground">
-                {averageRating.toFixed(1)}
+              <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/25 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                <svg className="w-3 h-3 fill-primary" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 4h16v2l-6 4 2 8H8l2-8-6-4V4z"/>
+                </svg>
+                Flagship Product
               </span>
-              <span className="text-sm text-muted-foreground">• {reviewsCount} reviews</span>
+            </div>
+
+            {/* Rating — only shown once Firestore data loads */}
+            <div className="flex items-center gap-2">
+              {averageRating !== null ? (
+                <>
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => {
+                      const ratingValue = i + 1;
+                      return (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "h-4 w-4",
+                            ratingValue <= averageRating
+                              ? "fill-amber-400 text-amber-400"
+                              : ratingValue - 0.5 <= averageRating
+                              ? "fill-amber-400 text-amber-400 opacity-60"
+                              : "text-zinc-300"
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    {averageRating.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">• {reviewsCount} {reviewsCount === 1 ? 'review' : 'reviews'}</span>
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {reviews === undefined ? 'Loading reviews…' : 'No reviews yet'}
+                </span>
+              )}
             </div>
 
             {/* Product Name */}
