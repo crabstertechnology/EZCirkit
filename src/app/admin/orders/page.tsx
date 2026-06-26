@@ -81,7 +81,28 @@ const OrdersPage = () => {
   const [newOrderUserId, setNewOrderUserId] = React.useState<string>('');
   const [newOrderTotal, setNewOrderTotal] = React.useState<string>('');
   const [newOrderProductId, setNewOrderProductId] = React.useState<string>('none');
-  const [isAddingOrder, setIsAddingOrder] = React.useState(false);
+    const [isAddingOrder, setIsAddingOrder] = React.useState(false);
+
+  // Safe date helper for cached items/Timestamps
+  const parseDate = (dateObj) => {
+    if (!dateObj) return new Date(0);
+    if (typeof dateObj.toDate === 'function') return dateObj.toDate();
+    if (dateObj.seconds !== undefined) return new Date(dateObj.seconds * 1000);
+    return new Date(dateObj);
+  };
+
+  // Load from localStorage cache immediately on client-side mount
+  React.useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_admin_orders_cache');
+      if (cached) {
+        setAllOrders(JSON.parse(cached));
+        setIsLoading(false);
+      }
+    } catch (e) {
+      console.error("Error loading orders cache:", e);
+    }
+  }, []);
 
   const usersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'users') : null),
@@ -96,28 +117,44 @@ const OrdersPage = () => {
   const { data: allProducts } = useCollection<Product>(productsQuery);
 
 
-  React.useEffect(() => {
+    React.useEffect(() => {
     if (allUsers && firestore) {
       const fetchAllOrders = async () => {
         setIsLoading(true);
-        let aggregatedOrders: Order[] = [];
-        for (const user of allUsers) {
-           const ordersRef = collection(firestore, 'users', user.id, 'orders');
-           const orderSnap = await import('firebase/firestore').then(m => m.getDocs(ordersRef));
-           orderSnap.forEach(doc => {
-             const orderData = doc.data() as Omit<Order, 'id'>;
-             if (orderData.createdAt) { // Guard against missing createdAt
-                aggregatedOrders.push({
-                  ...orderData,
-                  id: doc.id,
-                  userName: user.displayName,
-                  userEmail: user.email,
-                } as Order);
-             }
-           });
+        try {
+          // Fetch orders for all users in parallel
+          const promises = allUsers.map(async (user) => {
+            const ordersRef = collection(firestore, 'users', user.id, 'orders');
+            const orderSnap = await import('firebase/firestore').then(m => m.getDocs(ordersRef));
+            const userOrders = [];
+            orderSnap.forEach(doc => {
+              const orderData = doc.data();
+              if (orderData.createdAt) {
+                 userOrders.push({
+                   ...orderData,
+                   id: doc.id,
+                   userName: user.displayName,
+                   userEmail: user.email,
+                 });
+              }
+            });
+            return userOrders;
+          });
+
+          const results = await Promise.all(promises);
+          const aggregatedOrders = results.flat();
+          
+          setAllOrders(aggregatedOrders);
+          try {
+            localStorage.setItem('ez_admin_orders_cache', JSON.stringify(aggregatedOrders));
+          } catch (e) {
+            console.error("Error saving orders cache:", e);
+          }
+        } catch (err) {
+          console.error("Error fetching all orders in parallel:", err);
+        } finally {
+          setIsLoading(false);
         }
-        setAllOrders(aggregatedOrders);
-        setIsLoading(false);
       }
       fetchAllOrders();
     }
@@ -138,7 +175,7 @@ const OrdersPage = () => {
     // Apply sorting
     switch (sortOption) {
         case 'date_asc':
-            filtered.sort((a, b) => a.createdAt.toDate().getTime() - b.createdAt.toDate().getTime());
+            filtered.sort((a, b) => parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime());
             break;
         case 'status_asc':
             filtered.sort((a, b) => {
@@ -156,7 +193,7 @@ const OrdersPage = () => {
             break;
         case 'date_desc':
         default:
-            filtered.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+            filtered.sort((a, b) => parseDate(b.createdAt).getTime() - parseDate(a.createdAt).getTime());
             break;
     }
 
@@ -305,7 +342,7 @@ const OrdersPage = () => {
                         <div className="text-sm text-muted-foreground">{order.userEmail}</div>
                       </TableCell>
                       <TableCell>
-                        {order.createdAt ? format(order.createdAt.toDate(), 'PPP p') : 'N/A'}
+                        {order.createdAt ? format(parseDate(order.createdAt), 'PPP p') : 'N/A'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
@@ -389,7 +426,7 @@ const OrdersPage = () => {
                       </div>
                     </CardContent>
                      <CardFooter className="text-xs text-muted-foreground">
-                        {order.createdAt ? format(order.createdAt.toDate(), 'PPP p') : 'N/A'}
+                        {order.createdAt ? format(parseDate(order.createdAt), 'PPP p') : 'N/A'}
                     </CardFooter>
                   </Card>
                ))}

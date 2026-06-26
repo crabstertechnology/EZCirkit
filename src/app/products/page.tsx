@@ -77,7 +77,38 @@ export default function ShopPage() {
     () => (firestore ? collection(firestore, 'products') : null),
     [firestore]
   );
-  const { data: products, isLoading } = useCollection<Product>(productsQuery);
+  const { data: products, isLoading: isFirestoreLoading } = useCollection<Product>(productsQuery);
+
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [isLocalLoading, setIsLocalLoading] = useState(true);
+
+  // Load products cache from localStorage immediately on mount
+  React.useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_shop_products_cache');
+      if (cached) {
+        setLocalProducts(JSON.parse(cached));
+        setIsLocalLoading(false);
+      }
+    } catch (e) {
+      console.error("Error loading products cache:", e);
+    }
+  }, []);
+
+  // Sync cache when Firestore data changes
+  React.useEffect(() => {
+    if (products) {
+      setLocalProducts(products);
+      setIsLocalLoading(false);
+      try {
+        localStorage.setItem('ez_shop_products_cache', JSON.stringify(products));
+      } catch (e) {
+        console.error("Error saving products cache:", e);
+      }
+    }
+  }, [products]);
+
+  const isLoading = isFirestoreLoading && isLocalLoading;
 
   // Query reviews for the flagship product (pro1) to dynamically sync its rating/review count
   const reviewsQuery = useMemoFirebase(
@@ -114,7 +145,7 @@ export default function ShopPage() {
   // Combine query results and default fallback items
   const displayProducts = React.useMemo(() => {
     // Show only database products listed by the admin.
-    let list = products ? [...products] : [];
+    let list = [...localProducts];
 
     // Filter by Category
     if (selectedCategory !== 'All Products') {

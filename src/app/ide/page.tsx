@@ -24,6 +24,22 @@ export default function IdeSelectionPage() {
   const [allTutorials, setAllTutorials] = useState<Tutorial[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataLoadedOnce, setDataLoadedOnce] = useState(false);
+
+  // Load IDE selection cache on client mount to make loading instant
+  useEffect(() => {
+    try {
+      const cachedChapters = localStorage.getItem('ez_ide_chapters_cache');
+      const cachedTutorials = localStorage.getItem('ez_ide_tutorials_cache');
+      if (cachedChapters && cachedTutorials) {
+        setChapters(JSON.parse(cachedChapters));
+        setAllTutorials(JSON.parse(cachedTutorials));
+        setIsLoadingData(false);
+        setDataLoadedOnce(true);
+      }
+    } catch (e) {
+      console.error("Error loading IDE cache:", e);
+    }
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<string>('All');
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -131,6 +147,12 @@ export default function IdeSelectionPage() {
         setAllTutorials(allTutorialsList);
         setIsLoadingData(false);
         setDataLoadedOnce(true);
+        try {
+          localStorage.setItem('ez_ide_chapters_cache', JSON.stringify(finalChapters));
+          localStorage.setItem('ez_ide_tutorials_cache', JSON.stringify(allTutorialsList));
+        } catch (e) {
+          console.error("Error saving IDE cache:", e);
+        }
       };
 
       // Clean up old listeners

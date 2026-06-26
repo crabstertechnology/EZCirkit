@@ -5,11 +5,25 @@ import Link from 'next/link';
 import { Clock, ArrowRight, Code2, FlaskConical } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, getDocs, collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ExperimentsShowcase() {
   const firestore = useFirestore();
   const [allExperiments, setAllExperiments] = useState<any[]>([]);
   const [isLoadingExps, setIsLoadingExps] = useState(true);
+
+  // Load from localStorage cache immediately on client-side mount to make loading instant
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_experiments_cache');
+      if (cached) {
+        setAllExperiments(JSON.parse(cached));
+        setIsLoadingExps(false);
+      }
+    } catch (e) {
+      console.error("Error loading experiments cache:", e);
+    }
+  }, []);
 
   const settingsDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'homepage') : null),
@@ -32,20 +46,26 @@ export default function ExperimentsShowcase() {
         const chaptersSnap = await getDocs(collection(firestore, 'tutorialChapters'));
         const chaptersData = chaptersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        const loadedTuts: any[] = [];
-        for (const ch of chaptersData) {
+        // Fetch all chapter tutorials in parallel
+        const promises = chaptersData.map(async (ch) => {
           const tutsSnap = await getDocs(collection(firestore, `tutorialChapters/${ch.id}/tutorials`));
-          tutsSnap.docs.forEach(doc => {
-            loadedTuts.push({
-              id: doc.id,
-              chapterId: ch.id,
-              ...doc.data()
-            });
-          });
-        }
+          return tutsSnap.docs.map(doc => ({
+            id: doc.id,
+            chapterId: ch.id,
+            ...doc.data()
+          }));
+        });
+        
+        const results = await Promise.all(promises);
+        const loadedTuts = results.flat();
         
         if (active) {
           setAllExperiments(loadedTuts);
+          try {
+            localStorage.setItem('ez_experiments_cache', JSON.stringify(loadedTuts));
+          } catch (e) {
+            console.error("Error saving experiments cache:", e);
+          }
         }
       } catch (err) {
         console.error("Error loading homepage experiments:", err);
@@ -84,9 +104,32 @@ export default function ExperimentsShowcase() {
     return (
       <section className="bg-zinc-50/50 dark:bg-zinc-950 py-16 md:py-24 border-t border-border/60">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-3 text-xs text-muted-foreground font-semibold">Loading experiments...</p>
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+            <div className="space-y-3 w-full md:max-w-2xl">
+              <div className="h-6 w-32 bg-primary/10 rounded-full animate-pulse" />
+              <div className="h-10 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+              <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse shrink-0" />
+          </div>
+
+          {/* Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col rounded-2xl overflow-hidden border border-border/60 bg-white dark:bg-zinc-900 space-y-5 p-5"
+              >
+                <div className="aspect-[16/10] w-full bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-5 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  <div className="h-4 w-5/6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                </div>
+                <div className="h-10 w-full bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
+              </div>
+            ))}
           </div>
         </div>
       </section>

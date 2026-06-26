@@ -48,7 +48,38 @@ const AdminTestimonialsPage = () => {
     () => (firestore ? query(collection(firestore, 'testimonialVideos'), orderBy('order', 'asc')) : null),
     [firestore]
   );
-  const { data: videos, isLoading } = useCollection<TestimonialVideo>(videosQuery);
+  const { data: videos, isLoading: isFirestoreLoading } = useCollection<TestimonialVideo>(videosQuery);
+
+  const [localVideos, setLocalVideos] = useState<TestimonialVideo[]>([]);
+  const [isLocalLoading, setIsLocalLoading] = useState(true);
+
+  // Load testimonial videos from localStorage cache on client-side mount
+  React.useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_admin_testimonials_cache');
+      if (cached) {
+        setLocalVideos(JSON.parse(cached));
+        setIsLocalLoading(false);
+      }
+    } catch (e) {
+      console.error("Error loading testimonials cache:", e);
+    }
+  }, []);
+
+  // Sync cache with Firestore data
+  React.useEffect(() => {
+    if (videos) {
+      setLocalVideos(videos);
+      setIsLocalLoading(false);
+      try {
+        localStorage.setItem('ez_admin_testimonials_cache', JSON.stringify(videos));
+      } catch (e) {
+        console.error("Error saving testimonials cache:", e);
+      }
+    }
+  }, [videos]);
+
+  const isLoading = isFirestoreLoading && isLocalLoading;
 
   const handleDelete = (videoId: string) => {
     if (!firestore) return;
@@ -100,11 +131,11 @@ const AdminTestimonialsPage = () => {
         </CardHeader>
         <CardContent>
           {isLoading && <p className="text-center py-8">Loading videos...</p>}
-          {!isLoading && videos?.length === 0 && (
+          {!isLoading && localVideos?.length === 0 && (
             <p className="text-center py-8 text-muted-foreground">No video testimonials found. Click "Add Testimonial Video" to get started.</p>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos?.map((video) => {
+            {localVideos?.map((video) => {
               const isShort = video.aspectRatio === '9:16';
               return (
                 <Card key={video.id} className="overflow-hidden">

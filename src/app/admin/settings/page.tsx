@@ -63,6 +63,19 @@ const SettingsPage = () => {
   const [allExperiments, setAllExperiments] = useState<any[]>([]);
   const [isLoadingExps, setIsLoadingExps] = useState(true);
 
+  // Load from localStorage cache immediately on client-side mount to avoid blocking UI
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_experiments_cache');
+      if (cached) {
+        setAllExperiments(JSON.parse(cached));
+        setIsLoadingExps(false);
+      }
+    } catch (e) {
+      console.error("Error loading settings experiments cache:", e);
+    }
+  }, []);
+
   const isLoading = isLoadingSettings || isLoadingHomepage || isLoadingExps;
   
   const [settings, setSettings] = useState<AnnouncementBarSettings>(DEFAULT_SETTINGS);
@@ -100,20 +113,26 @@ const SettingsPage = () => {
         const chaptersSnap = await getDocs(collection(firestore, 'tutorialChapters'));
         const chaptersData = chaptersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        const loadedTuts: any[] = [];
-        for (const ch of chaptersData) {
+        // Fetch all chapter tutorials in parallel
+        const promises = chaptersData.map(async (ch) => {
           const tutsSnap = await getDocs(collection(firestore, `tutorialChapters/${ch.id}/tutorials`));
-          tutsSnap.docs.forEach(doc => {
-            loadedTuts.push({
-              id: doc.id,
-              chapterId: ch.id,
-              ...doc.data()
-            });
-          });
-        }
+          return tutsSnap.docs.map(doc => ({
+            id: doc.id,
+            chapterId: ch.id,
+            ...doc.data()
+          }));
+        });
+        
+        const results = await Promise.all(promises);
+        const loadedTuts = results.flat();
         
         if (active) {
           setAllExperiments(loadedTuts);
+          try {
+            localStorage.setItem('ez_experiments_cache', JSON.stringify(loadedTuts));
+          } catch (e) {
+            console.error("Error saving settings experiments cache:", e);
+          }
         }
       } catch (err) {
         console.error("Error loading settings experiments:", err);

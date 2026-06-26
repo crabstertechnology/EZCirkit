@@ -45,14 +45,45 @@ const UsersPage = () => {
     () => (firestore ? collection(firestore, 'users') : null),
     [firestore]
   );
-  const { data: users, isLoading } = useCollection<User>(usersQuery);
+  const { data: users, isLoading: isFirestoreLoading } = useCollection<User>(usersQuery);
+
+  const [localUsers, setLocalUsers] = React.useState<User[]>([]);
+  const [isLocalLoading, setIsLocalLoading] = React.useState(true);
+
+  // Load users cache from localStorage immediately on mount
+  React.useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_admin_users_cache');
+      if (cached) {
+        setLocalUsers(JSON.parse(cached));
+        setIsLocalLoading(false);
+      }
+    } catch (e) {
+      console.error("Error loading users cache:", e);
+    }
+  }, []);
+
+  // Sync cache when Firestore data changes
+  React.useEffect(() => {
+    if (users) {
+      setLocalUsers(users);
+      setIsLocalLoading(false);
+      try {
+        localStorage.setItem('ez_admin_users_cache', JSON.stringify(users));
+      } catch (e) {
+        console.error("Error saving users cache:", e);
+      }
+    }
+  }, [users]);
+
+  const isLoading = isFirestoreLoading && isLocalLoading;
 
   const filteredAndSortedUsers = React.useMemo(() => {
-    if (!users) return [];
+    if (!localUsers) return [];
 
     // Filter first
     const lowercasedQuery = searchQuery.toLowerCase();
-    let filtered = users.filter(user =>
+    let filtered = localUsers.filter(user =>
       user.displayName?.toLowerCase().includes(lowercasedQuery) ||
       user.email?.toLowerCase().includes(lowercasedQuery) ||
       (user.isAdmin && 'admin'.includes(lowercasedQuery)) ||
@@ -84,7 +115,7 @@ const UsersPage = () => {
     }
 
     return filtered;
-  }, [users, searchQuery, sortOption]);
+  }, [localUsers, searchQuery, sortOption]);
 
 
   const getInitials = (name: string | null | undefined) => {

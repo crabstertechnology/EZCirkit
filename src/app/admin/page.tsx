@@ -51,27 +51,64 @@ const AdminDashboardPage = () => {
   const [allOrders, setAllOrders] = React.useState<Order[]>([]);
   const [isAggregatingOrders, setIsAggregatingOrders] = React.useState(true);
 
+  // Safe date helper for cached items/Timestamps
+  const parseDate = (dateObj: any): Date => {
+    if (!dateObj) return new Date(0);
+    if (typeof dateObj.toDate === 'function') return dateObj.toDate();
+    if (dateObj.seconds !== undefined) return new Date(dateObj.seconds * 1000);
+    return new Date(dateObj);
+  };
+
+  // Load from localStorage cache immediately on client-side mount
+  React.useEffect(() => {
+    try {
+      const cached = localStorage.getItem('ez_admin_dashboard_orders_cache');
+      if (cached) {
+        setAllOrders(JSON.parse(cached));
+        setIsAggregatingOrders(false);
+      }
+    } catch (e) {
+      console.error("Error loading dashboard orders cache:", e);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (allUsersWithOrders && firestore) {
       const fetchAllOrders = async () => {
         setIsAggregatingOrders(true);
-        let aggregatedOrders: Order[] = [];
-        for (const u of allUsersWithOrders) {
-           const ordersRef = collection(firestore, 'users', u.id, 'orders');
-           const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(10));
-           const orderSnap = await import('firebase/firestore').then(m => m.getDocs(q));
-           orderSnap.forEach(doc => {
-             aggregatedOrders.push({
+        try {
+          // Fetch orders for all users in parallel
+          const promises = allUsersWithOrders.map(async (u) => {
+            const ordersRef = collection(firestore, 'users', u.id, 'orders');
+            const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(10));
+            const orderSnap = await import('firebase/firestore').then(m => m.getDocs(q));
+            const userOrders: Order[] = [];
+            orderSnap.forEach(doc => {
+              userOrders.push({
                 id: doc.id,
                 ...(doc.data() as Omit<Order, 'id'>),
                 userName: u.displayName,
                 userEmail: u.email
-             });
-           });
+              });
+            });
+            return userOrders;
+          });
+
+          const results = await Promise.all(promises);
+          const aggregatedOrders = results.flat();
+          aggregatedOrders.sort((a, b) => parseDate(b.createdAt).getTime() - parseDate(a.createdAt).getTime());
+          
+          setAllOrders(aggregatedOrders);
+          try {
+            localStorage.setItem('ez_admin_dashboard_orders_cache', JSON.stringify(aggregatedOrders));
+          } catch (e) {
+            console.error("Error saving dashboard orders cache:", e);
+          }
+        } catch (err) {
+          console.error("Error aggregating dashboard orders:", err);
+        } finally {
+          setIsAggregatingOrders(false);
         }
-        aggregatedOrders.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
-        setAllOrders(aggregatedOrders);
-        setIsAggregatingOrders(false);
       }
       fetchAllOrders();
     }
@@ -153,7 +190,7 @@ const AdminDashboardPage = () => {
                       <div className="text-sm text-muted-foreground max-w-[200px] truncate">{order.userEmail}</div>
                     </TableCell>
                     <TableCell>
-                      {order.createdAt ? format(order.createdAt.toDate(), 'PPP') : 'N/A'}
+                      {order.createdAt ? format(parseDate(order.createdAt), 'PPP') : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
@@ -179,7 +216,7 @@ const AdminDashboardPage = () => {
                 </CardHeader>
                 <CardContent className="flex flex-wrap justify-between items-center gap-y-2 text-sm">
                     <div className="text-muted-foreground">
-                        {order.createdAt ? format(order.createdAt.toDate(), 'PPP') : 'N/A'}
+                        {order.createdAt ? format(parseDate(order.createdAt), 'PPP') : 'N/A'}
                     </div>
                     <div className="flex items-center gap-x-4 gap-y-2">
                         <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{order.status}</Badge>
