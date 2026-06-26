@@ -203,6 +203,10 @@ export default function ProductDetailPage() {
   }, [gallery, showZoom]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      if (showZoom) setShowZoom(false);
+      return;
+    }
     const container = e.currentTarget;
     const rect = container.getBoundingClientRect();
 
@@ -388,7 +392,7 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
 
           {/* ── LEFT: Image Gallery ── */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
 
             {/* Vertical thumbnails */}
             {gallery.length > 1 && (
@@ -412,9 +416,13 @@ export default function ProductDetailPage() {
             {/* Main Image */}
             <div
               ref={imageContainerRef}
-              className="flex-1 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 relative cursor-crosshair select-none border border-border/60"
+              className="w-full sm:flex-1 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 relative lg:cursor-crosshair cursor-default select-none border border-border/60"
               style={{ aspectRatio: '1 / 1' }}
-              onMouseEnter={() => setShowZoom(true)}
+              onMouseEnter={() => {
+                if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+                  setShowZoom(true);
+                }
+              }}
               onMouseLeave={() => setShowZoom(false)}
               onMouseMove={handleMouseMove}
             >
@@ -430,7 +438,7 @@ export default function ProductDetailPage() {
                 </span>
               )}
               {/* Zoom lens */}
-              {showZoom && (
+              {showZoom && typeof window !== 'undefined' && window.innerWidth >= 1024 && (
                 <div
                   className="absolute border-2 border-primary/50 bg-primary/5 pointer-events-none z-10 rounded-md"
                   style={{ width: 140, height: 140, top: lensPos.top, left: lensPos.left }}
