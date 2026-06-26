@@ -274,8 +274,10 @@ const Header = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(-1);
+    const [results, setResults] = useState<any[]>([]);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const debounceRef = React.useRef<ReturnType<typeof setTimeout>>();
 
     React.useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
@@ -299,110 +301,55 @@ const Header = () => {
       return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    const searchItems = [
-      {
-        type: 'page' as const,
-        title: 'EZCirkit IDE',
-        description: 'Browser-based Arduino code editor and uploader.',
-        href: '/ide'
-      },
-      {
-        type: 'page' as const,
-        title: 'Products / Components Explorer',
-        description: 'Explore individual components included in the EZCirkit kit.',
-        href: '/products'
-      },
-      {
-        type: 'section' as const,
-        title: 'EZCirkit Compatible Kit',
-        description: 'Order the complete starter kit with 20+ components.',
-        targetId: 'products',
-        href: '/#products'
-      },
-      {
-        type: 'section' as const,
-        title: 'User Reviews & Ratings',
-        description: 'Read reviews and average ratings from other students.',
-        targetId: 'testimonials',
-        href: '/#testimonials'
-      },
-      {
-        type: 'section' as const,
-        title: 'Download Brochure',
-        description: 'Get the detailed 4-page educational starter kit PDF.',
-        targetId: 'brochure',
-        href: '/#brochure'
-      },
-      ...FEATURES.map((feat, index) => ({
-        type: 'feature' as const,
-        title: feat.title,
-        description: feat.description,
-        targetId: 'brochure',
-        href: '/#brochure'
-      })),
-      ...COMPONENTS_DATA.map((comp) => ({
-        type: 'product' as const,
-        title: comp.name,
-        description: comp.description,
-        targetId: comp.id,
-        href: `/products`
-      }))
-    ];
+    // Live search against Firestore products
+    React.useEffect(() => {
+      clearTimeout(debounceRef.current);
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) { setResults([]); return; }
 
-    const filtered = searchQuery.trim() === ''
-      ? []
-      : searchItems.filter(item =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+      debounceRef.current = setTimeout(async () => {
+        if (!firestore) return;
+        try {
+          const { collection: col, getDocs: gd, query: qry, orderBy: ob } = await import('firebase/firestore');
+          const snap = await gd(qry(col(firestore, 'products'), ob('name')));
+          const matched = snap.docs
+            .map(d => ({ id: d.id, ...d.data() as any }))
+            .filter((p: any) =>
+              p.name?.toLowerCase().includes(q) ||
+              p.category?.toLowerCase().includes(q) ||
+              p.description?.toLowerCase().includes(q)
+            )
+            .slice(0, 6);
+          setResults(matched);
+        } catch (err) {
+          console.error('Search error:', err);
+        }
+      }, 250);
+
+      return () => clearTimeout(debounceRef.current);
+    }, [searchQuery]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIndex(prev => (prev < filtered.length - 1 ? prev + 1 : 0));
+        setActiveIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIndex(prev => (prev > 0 ? prev - 1 : filtered.length - 1));
+        setActiveIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
       } else if (e.key === 'Enter') {
-        if (activeIndex >= 0 && filtered[activeIndex]) {
-          handleSearchItemClick(filtered[activeIndex]);
-        } else if (filtered.length > 0) {
-          handleSearchItemClick(filtered[0]);
-        }
+        const target = activeIndex >= 0 ? results[activeIndex] : results[0];
+        if (target) handleSelect(target);
       } else if (e.key === 'Escape') {
         setIsOpen(false);
         inputRef.current?.blur();
       }
     };
 
-    const handleSearchItemClick = (item: typeof searchItems[0]) => {
+    const handleSelect = (product: any) => {
       setSearchQuery('');
       setIsOpen(false);
       setMobileMenuOpen(false);
-
-      if (item.href) {
-        const isSamePage = pathname === item.href || (pathname === '/' && item.href === '/');
-        const isHashLink = item.href.includes('#') || item.targetId;
-
-        if (isHashLink && isSamePage && item.targetId) {
-          const element = document.getElementById(item.targetId);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('animate-card-highlight');
-            if (pathname === '/products') {
-              (element as HTMLElement).click();
-            }
-            setTimeout(() => {
-              element.classList.remove('animate-card-highlight');
-            }, 3000);
-          }
-        } else {
-          if (item.targetId) {
-            sessionStorage.setItem('highlight-target', item.targetId);
-          }
-          router.push(item.href);
-        }
-      }
+      router.push(`/products/${product.id}`);
     };
 
     return (
@@ -412,7 +359,7 @@ const Header = () => {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search features, pages, components..."
+            placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -431,42 +378,57 @@ const Header = () => {
         </div>
 
         {isOpen && searchQuery.trim() !== '' && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-[320px] overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
-            {filtered.length > 0 ? (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-[360px] overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+            {results.length > 0 ? (
               <div className="p-1">
-                {filtered.map((item, index) => {
+                {results.map((product, index) => {
                   const isActive = index === activeIndex;
+                  const discount = product.originalPrice && product.originalPrice > product.price
+                    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+                    : null;
                   return (
                     <button
-                      key={index}
-                      onClick={() => handleSearchItemClick(item)}
+                      key={product.id}
+                      onClick={() => handleSelect(product)}
                       className={cn(
-                        "w-full text-left px-3 py-2.5 rounded-lg flex flex-col transition-colors",
-                        isActive ? "bg-primary/10" : "hover:bg-muted text-foreground"
+                        'w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 transition-colors',
+                        isActive ? 'bg-primary/10' : 'hover:bg-muted'
                       )}
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <span className={cn("font-semibold text-sm", isActive ? "text-primary font-bold" : "text-foreground")}>
-                          {item.title}
-                        </span>
-                        <span className={cn(
-                          "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider",
-                          item.type === 'feature' ? "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300" :
-                          item.type === 'product' ? "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300" :
-                          item.type === 'page' ? "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300" :
-                          "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-300"
-                        )}>
-                          {item.type}
-                        </span>
+                      {/* Thumbnail */}
+                      <div className="w-10 h-10 rounded-lg border border-border bg-zinc-50 flex-shrink-0 overflow-hidden">
+                        <img
+                          src={product.image || '/logo.png'}
+                          alt={product.name}
+                          className="w-full h-full object-contain p-0.5"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                        />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.description}</p>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className={cn('text-sm font-semibold truncate', isActive ? 'text-primary' : 'text-foreground')}>
+                          {product.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ₹{product.price?.toLocaleString('en-IN')}
+                          {product.originalPrice && product.originalPrice > product.price && (
+                            <span className="ml-1.5 line-through text-zinc-400">₹{product.originalPrice?.toLocaleString('en-IN')}</span>
+                          )}
+                        </p>
+                      </div>
+                      {/* Discount badge */}
+                      {discount && (
+                        <span className="text-[10px] font-black bg-[#ff6c00] text-white px-1.5 py-0.5 rounded-sm flex-shrink-0">
+                          -{discount}%
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
             ) : (
               <div className="p-6 text-center text-sm text-muted-foreground">
-                No results found for "{searchQuery}"
+                No products found for "{searchQuery}"
               </div>
             )}
           </div>
