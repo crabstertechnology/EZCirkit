@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Heart, ShoppingCart, Star } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
@@ -27,6 +28,7 @@ const FeaturedProducts = () => {
   const firestore = useFirestore();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const router = useRouter();
   const [wishlist, setWishlist] = useState<string[]>([]);
 
   // Sync with localStorage on mount
@@ -52,6 +54,14 @@ const FeaturedProducts = () => {
       title: 'Added to cart!',
       description: `${product.name} has been added to your cart.`,
     });
+  };
+
+  const handleBuyNow = async (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock <= 0) return;
+    await addToCart(product);
+    router.push('/checkout');
   };
 
   const toggleWishlist = (e: React.MouseEvent, id: string, name: string) => {
@@ -207,6 +217,16 @@ const FeaturedProducts = () => {
                       <ShoppingCart className="h-3.5 w-3.5" />
                       {product.stock <= 0 ? 'Out of Stock' : 'Add'}
                     </button>
+
+                    {/* Buy Now Button */}
+                    {product.stock > 0 && (
+                      <button
+                        onClick={(e) => handleBuyNow(e, product)}
+                        className="mt-1 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold bg-[#ff6c00] hover:bg-[#e05f00] text-white transition-colors duration-200"
+                      >
+                        Buy Now
+                      </button>
+                    )}
                   </div>
                 </Link>
               );

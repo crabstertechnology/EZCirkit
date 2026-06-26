@@ -199,6 +199,20 @@ export default function ShopPage() {
     });
   };
 
+  const handleBuyNow = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    if (product.stock <= 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This component is currently unavailable.",
+        variant: "destructive"
+      });
+      return;
+    }
+    addToCart(product);
+    router.push('/checkout');
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-foreground">
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-24 pb-12">
@@ -386,6 +400,14 @@ export default function ShopPage() {
                           <ShoppingCart className="h-3 w-3" />
                           {p.stock <= 0 ? 'Out of Stock' : 'Add'}
                         </button>
+                        {p.stock > 0 && (
+                          <button
+                            onClick={(e) => handleBuyNow(e, p)}
+                            className="mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#ff6c00] hover:bg-[#e05f00] text-white transition-colors"
+                          >
+                            Buy Now
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
