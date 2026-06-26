@@ -67,11 +67,11 @@ const FlagshipProductSection = () => {
     }
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (product) {
       const productInCart = cartItems.find((item: any) => item.id === product.id);
       if (!productInCart) {
-        await addToCart(product);
+        addToCart(product);
       }
       router.push('/checkout');
     }
@@ -198,19 +198,18 @@ const FlagshipProductSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-border/70 shadow-lg bg-white dark:bg-zinc-900">
 
           {/* ── LEFT: Product Image ── */}
-          <div className="bg-zinc-50 dark:bg-zinc-800 overflow-hidden flex flex-col">
+          <div className="bg-zinc-50 dark:bg-zinc-800 overflow-hidden flex flex-col justify-center">
             {/* Image grows to fill all available space */}
-            <div className="flex-1 relative">
-              <Carousel setApi={setApi} className="w-full h-full">
-                <CarouselContent className="h-full">
+            <div className="flex-1 relative flex items-center justify-center min-h-[350px]">
+              <Carousel setApi={setApi} className="w-full">
+                <CarouselContent>
                   {carouselImages.map((img, index) => (
-                    <CarouselItem key={index} className="h-full">
+                    <CarouselItem key={index}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={img.src}
                         alt={img.alt}
-                        className="w-full h-full object-cover block"
-                        style={{ minHeight: '320px' }}
+                        className="w-full h-auto max-h-[480px] object-contain block mx-auto p-4"
                         loading={index === 0 ? 'eager' : 'lazy'}
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = '/new-kit-front.png';
@@ -226,30 +225,30 @@ const FlagshipProductSection = () => {
                   </>
                 )}
               </Carousel>
+
+              {/* Slide dots */}
+              {isKit && carouselImages.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+                  {carouselImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => api?.scrollTo(idx)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-200",
+                        currentSlide === idx
+                          ? "bg-primary w-5"
+                          : "bg-zinc-300 dark:bg-zinc-600 w-1.5"
+                      )}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Slide dots */}
-            {isKit && carouselImages.length > 1 && (
-              <div className="flex justify-center gap-1.5 pt-3 pb-1">
-                {carouselImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => api?.scrollTo(idx)}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-200",
-                      currentSlide === idx
-                        ? "bg-primary w-5"
-                        : "bg-zinc-300 dark:bg-zinc-600 w-1.5"
-                    )}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-
             {/* Trust highlights — fills the empty space below the image */}
-            <div className="grid grid-cols-2 gap-px bg-border/40 border-t border-border/40">
+            <div className="grid grid-cols-2 gap-px bg-border/40 border-t border-border/40 mt-auto">
               {[
                 { icon: '🇮🇳', label: 'Made in India' },
                 { icon: '📘', label: 'Free Tutorials' },

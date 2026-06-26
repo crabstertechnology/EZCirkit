@@ -33,7 +33,7 @@ declare global {
 }
 
 const CheckoutPage = () => {
-  const { cartItems, cartTotal, cartSubtotal, cartCount, clearCart } = useCart();
+  const { cartItems, cartTotal, cartSubtotal, cartCount, clearCart, isLoading: isCartLoading } = useCart();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -266,7 +266,7 @@ const CheckoutPage = () => {
     setIsProcessingPayment(false);
   };
 
-  if (cartCount === 0 && !isLoadingAddresses && !isUserLoading) {
+  if (cartCount === 0 && !isLoadingAddresses && !isUserLoading && !isCartLoading) {
     return (
       <div className="container mx-auto px-4 md:px-6 pt-24 pb-16 md:pt-40 md:pb-24 text-center">
         <h1 className="text-2xl font-semibold">Your cart is empty.</h1>

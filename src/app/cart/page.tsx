@@ -10,9 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 const CartPage = () => {
-  const { cartItems, cartCount, cartTotal, cartSubtotal, shippingCost, addToCart, decrementItem, removeFromCart } = useCart();
+  const { cartItems, cartCount, cartTotal, cartSubtotal, shippingCost, addToCart, decrementItem, removeFromCart, isLoading: isCartLoading } = useCart();
 
-  if (cartCount === 0) {
+  if (cartCount === 0 && !isCartLoading) {
     return (
       <div className="container mx-auto px-4 md:px-6 pt-24 pb-16 md:pt-40 md:pb-24">
         <div className="max-w-2xl mx-auto text-center">

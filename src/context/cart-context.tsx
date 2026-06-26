@@ -66,11 +66,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const { data: cartItems, isLoading } = useCollection<CartItem>(cartColQuery);
 
+  const [optimisticCart, setOptimisticCart] = React.useState<CartItem[] | null>(null);
+
+  // Sync optimistic cart with Firestore updates
+  React.useEffect(() => {
+    if (cartItems) {
+      setOptimisticCart(cartItems);
+    }
+  }, [cartItems]);
+
+  const displayItems = optimisticCart ?? cartItems ?? [];
+
   const cartCount =
-    cartItems?.reduce((acc, item) => acc + item.quantity, 0) ?? 0;
+    displayItems.reduce((acc, item) => acc + item.quantity, 0);
   
   const cartSubtotal =
-    cartItems?.reduce((acc, item) => acc + item.price * item.quantity, 0) ?? 0;
+    displayItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   
   const shippingCost = cartCount > 0 ? SHIPPING_COST : 0;
   
@@ -87,6 +98,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
         return;
       }
+
+      // Optimistically update cart state immediately
+      setOptimisticCart((prev) => {
+        const current = prev || [];
+        const existing = current.find(item => item.id === product.id);
+        if (existing) {
+          return current.map(item =>
+            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          );
+        }
+        return [...current, { ...product, quantity: 1 }];
+      });
+
       const cartItemRef = doc(firestore, 'users', user.uid, 'cart', product.id);
       try {
         await setDoc(
@@ -106,25 +130,48 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
       } catch (e) {
         console.error('Error adding to cart:', e);
+        // Rollback on error by resetting to actual db state
+        if (cartItems) setOptimisticCart(cartItems);
       }
     },
-    [user, firestore, toast]
+    [user, firestore, toast, cartItems]
   );
 
   const decrementItem = useCallback(
     async (productId: string) => {
       if (!user || !firestore) return;
+
+      // Optimistically decrement or remove item
+      setOptimisticCart((prev) => {
+        const current = prev || [];
+        const existing = current.find(item => item.id === productId);
+        if (existing) {
+          if (existing.quantity > 1) {
+            return current.map(item =>
+              item.id === productId ? { ...item, quantity: item.quantity - 1 } : item
+            );
+          }
+          return current.filter(item => item.id !== productId);
+        }
+        return current;
+      });
+
       const cartItemRef = doc(firestore, 'users', user.uid, 'cart', productId);
       const currentItem = cartItems?.find(item => item.id === productId);
 
-      if (currentItem && currentItem.quantity > 1) {
-        await setDoc(
-          cartItemRef,
-          { quantity: increment(-1) },
-          { merge: true }
-        );
-      } else {
-        await deleteDoc(cartItemRef);
+      try {
+        if (currentItem && currentItem.quantity > 1) {
+          await setDoc(
+            cartItemRef,
+            { quantity: increment(-1) },
+            { merge: true }
+          );
+        } else {
+          await deleteDoc(cartItemRef);
+        }
+      } catch (e) {
+        console.error('Error decrementing cart item:', e);
+        if (cartItems) setOptimisticCart(cartItems);
       }
     },
     [user, firestore, cartItems]
@@ -133,30 +180,48 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const removeFromCart = useCallback(
     async (productId: string) => {
       if (!user || !firestore) return;
-      const cartItemRef = doc(firestore, 'users', user.uid, 'cart', productId);
-      await deleteDoc(cartItemRef);
-      toast({
-        title: 'Removed from cart',
-        variant: 'destructive',
+
+      // Optimistically remove item from cart
+      setOptimisticCart((prev) => {
+        const current = prev || [];
+        return current.filter(item => item.id !== productId);
       });
+
+      const cartItemRef = doc(firestore, 'users', user.uid, 'cart', productId);
+      try {
+        await deleteDoc(cartItemRef);
+        toast({
+          title: 'Removed from cart',
+          variant: 'destructive',
+        });
+      } catch (e) {
+        console.error('Error removing cart item:', e);
+        if (cartItems) setOptimisticCart(cartItems);
+      }
     },
-    [user, firestore, toast]
+    [user, firestore, toast, cartItems]
   );
 
   const clearCart = useCallback(() => {
     if (!user || !firestore || !cartItems) return;
+
+    setOptimisticCart([]);
+
     const batch = writeBatch(firestore);
     cartItems.forEach(item => {
       const docRef = doc(firestore, 'users', user.uid, 'cart', item.id);
       batch.delete(docRef);
     });
     // This is now non-blocking
-    batch.commit().catch(e => console.error("Failed to clear cart", e));
+    batch.commit().catch(e => {
+      console.error("Failed to clear cart", e);
+      if (cartItems) setOptimisticCart(cartItems);
+    });
   }, [user, firestore, cartItems]);
 
 
   const value = {
-    cartItems: cartItems ?? [],
+    cartItems: displayItems,
     addToCart,
     removeFromCart,
     decrementItem,
@@ -165,7 +230,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     cartTotal,
     cartSubtotal,
     shippingCost,
-    isLoading: isUserLoading || isLoading,
+    isLoading: isUserLoading || (isLoading && !optimisticCart),
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
