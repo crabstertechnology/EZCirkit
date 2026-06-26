@@ -8,11 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles, AlertCircle, Save, Undo, FlaskConical, LayoutGrid } from 'lucide-react';
-import { PROJECTS_DATA } from '@/lib/projects';
+import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles, AlertCircle, Save, Undo, FlaskConical, LayoutGrid, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AnnouncementItem {
   text: string;
@@ -60,7 +60,10 @@ const SettingsPage = () => {
   const { data: remoteSettings, isLoading: isLoadingSettings } = useDoc<AnnouncementBarSettings>(settingsDocRef);
   const { data: remoteHomepage, isLoading: isLoadingHomepage } = useDoc<{ selectedExperiments?: string[] }>(homepageDocRef);
 
-  const isLoading = isLoadingSettings || isLoadingHomepage;
+  const [allExperiments, setAllExperiments] = useState<any[]>([]);
+  const [isLoadingExps, setIsLoadingExps] = useState(true);
+
+  const isLoading = isLoadingSettings || isLoadingHomepage || isLoadingExps;
   
   const [settings, setSettings] = useState<AnnouncementBarSettings>(DEFAULT_SETTINGS);
   const [selectedExps, setSelectedExps] = useState<string[]>([]);
@@ -84,6 +87,48 @@ const SettingsPage = () => {
       setSelectedExps(remoteHomepage.selectedExperiments || []);
     }
   }, [remoteHomepage]);
+
+  useEffect(() => {
+    if (!firestore) {
+      setIsLoadingExps(false);
+      return;
+    }
+    
+    let active = true;
+    const loadExperiments = async () => {
+      try {
+        const chaptersSnap = await getDocs(collection(firestore, 'tutorialChapters'));
+        const chaptersData = chaptersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const loadedTuts: any[] = [];
+        for (const ch of chaptersData) {
+          const tutsSnap = await getDocs(collection(firestore, `tutorialChapters/${ch.id}/tutorials`));
+          tutsSnap.docs.forEach(doc => {
+            loadedTuts.push({
+              id: doc.id,
+              chapterId: ch.id,
+              ...doc.data()
+            });
+          });
+        }
+        
+        if (active) {
+          setAllExperiments(loadedTuts);
+        }
+      } catch (err) {
+        console.error("Error loading settings experiments:", err);
+      } finally {
+        if (active) {
+          setIsLoadingExps(false);
+        }
+      }
+    };
+
+    loadExperiments();
+    return () => {
+      active = false;
+    };
+  }, [firestore]);
 
   const handleSave = async () => {
     if (!firestore) return;
@@ -465,7 +510,7 @@ const SettingsPage = () => {
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {PROJECTS_DATA.map((proj) => {
+                {allExperiments.map((proj) => {
                   const isSelected = selectedExps.includes(proj.id);
                   return (
                     <div
@@ -486,15 +531,9 @@ const SettingsPage = () => {
                     >
                       <div className="space-y-2">
                         <div className="flex justify-between items-start gap-2">
-                          <span className={cn(
-                            "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded",
-                            proj.difficulty === 'Beginner'
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : proj.difficulty === 'Intermediate'
-                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                              : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                          )}>
-                            {proj.difficulty}
+                          <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {proj.duration || '5 mins'}
                           </span>
                           <Switch
                             checked={isSelected}
@@ -514,10 +553,6 @@ const SettingsPage = () => {
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {proj.description}
                         </p>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5 pt-2 border-t">
-                        <LayoutGrid className="h-3.5 w-3.5" />
-                        <span>{proj.components.length} components</span>
                       </div>
                     </div>
                   );
