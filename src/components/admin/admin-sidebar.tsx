@@ -41,10 +41,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, setIsCollapsed
 
   return (
     <aside 
-      onMouseLeave={() => setIsCollapsed(true)}
+      onMouseLeave={() => {
+        if (window.innerWidth >= 1024) {
+          setIsCollapsed(true);
+        }
+      }}
       className={cn(
-        "h-screen flex-shrink-0 bg-background flex flex-col transition-all duration-300 ease-in-out overflow-hidden z-40",
-        isCollapsed ? "w-0 border-r-0 invisible" : "w-64 border-r"
+        "fixed inset-y-0 left-0 lg:static h-screen flex-shrink-0 bg-background flex flex-col transition-all duration-300 ease-in-out overflow-hidden z-50",
+        isCollapsed 
+          ? "-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0 lg:invisible" 
+          : "translate-x-0 w-64 border-r shadow-2xl lg:shadow-none"
       )}
     >
        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between", "p-4 h-16 border-b flex-shrink-0")}>
