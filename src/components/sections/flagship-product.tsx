@@ -198,38 +198,39 @@ const FlagshipProductSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-border/70 shadow-lg bg-white dark:bg-zinc-900">
 
           {/* ── LEFT: Product Image ── */}
-          <div className="bg-zinc-50 dark:bg-zinc-800 overflow-hidden">
-            <Carousel setApi={setApi} className="w-full">
-              <CarouselContent>
-                {carouselImages.map((img, index) => (
-                  <CarouselItem key={index}>
-                    {/* Use a plain <img> so there are zero Next.js domain / fill constraints */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img.src}
-                      alt={img.alt}
-                      width={700}
-                      height={700}
-                      className="w-full aspect-square object-cover block"
-                      loading={index === 0 ? 'eager' : 'lazy'}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = '/new-kit-front.png';
-                      }}
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {carouselImages.length > 1 && (
-                <>
-                  <CarouselPrevious className="left-3 opacity-70 hover:opacity-100 z-10" />
-                  <CarouselNext className="right-3 opacity-70 hover:opacity-100 z-10" />
-                </>
-              )}
-            </Carousel>
+          <div className="bg-zinc-50 dark:bg-zinc-800 overflow-hidden flex flex-col">
+            {/* Image grows to fill all available space */}
+            <div className="flex-1 relative">
+              <Carousel setApi={setApi} className="w-full h-full">
+                <CarouselContent className="h-full">
+                  {carouselImages.map((img, index) => (
+                    <CarouselItem key={index} className="h-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.src}
+                        alt={img.alt}
+                        className="w-full h-full object-cover block"
+                        style={{ minHeight: '320px' }}
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/new-kit-front.png';
+                        }}
+                      />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {carouselImages.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-3 opacity-70 hover:opacity-100 z-10" />
+                    <CarouselNext className="right-3 opacity-70 hover:opacity-100 z-10" />
+                  </>
+                )}
+              </Carousel>
+            </div>
 
             {/* Slide dots */}
             {isKit && carouselImages.length > 1 && (
-              <div className="flex justify-center gap-1.5 py-2">
+              <div className="flex justify-center gap-1.5 pt-3 pb-1">
                 {carouselImages.map((_, idx) => (
                   <button
                     key={idx}
@@ -246,6 +247,24 @@ const FlagshipProductSection = () => {
                 ))}
               </div>
             )}
+
+            {/* Trust highlights — fills the empty space below the image */}
+            <div className="grid grid-cols-2 gap-px bg-border/40 border-t border-border/40">
+              {[
+                { icon: '🇮🇳', label: 'Made in India' },
+                { icon: '📘', label: 'Free Tutorials' },
+                { icon: '🔰', label: 'Beginner Friendly' },
+                { icon: '🛠️', label: '30-Day Support' },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-zinc-900 text-xs font-semibold text-foreground/70"
+                >
+                  <span className="text-base leading-none">{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* ── RIGHT: Product Details ── */}
