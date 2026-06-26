@@ -169,188 +169,206 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950 text-foreground pt-28 md:pt-40 pb-16">
-      <div className="container mx-auto px-4 md:px-6 space-y-12">
-        
-        {/* Page Header */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs md:text-sm font-extrabold uppercase tracking-widest text-primary">
-            <span>Shop</span>
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-foreground">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-24 pb-12">
+
+        {/* Compact Page Header */}
+        <div className="flex items-center justify-between py-4 border-b border-border/60 mb-6">
+          <div className="flex items-center gap-3">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary">Shop</p>
+            <span className="text-border">|</span>
+            <h1 className="text-xl font-black text-foreground">All Products</h1>
+            {!isLoading && (
+              <span className="text-xs text-muted-foreground font-medium">
+                ({displayProducts.length} {displayProducts.length === 1 ? 'product' : 'products'})
+              </span>
+            )}
           </div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight font-headline text-slate-900 dark:text-zinc-50">
-            All Products
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-xl">
-            Browse our curated catalog of electronics components and kits.
-          </p>
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-background border border-border/80 text-xs font-bold rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option>Featured</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+            </select>
+          </div>
         </div>
 
-        <hr className="border-border/60" />
+        {/* Main Grid */}
+        <div className="flex gap-6 items-start">
 
-        {/* Main Grid View */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Sidebar Filter Section */}
-          <div className="lg:col-span-3 space-y-8 lg:sticky lg:top-28">
-            {/* Search Box */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                Search
-              </h3>
-              <div className="relative flex items-center">
-                <Search className="absolute left-3.5 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
-                <Input
+          {/* ── Sidebar ── */}
+          <aside className="hidden lg:flex flex-col gap-5 w-44 flex-shrink-0 sticky top-24">
+
+            {/* Search */}
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">Search</p>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <input
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 rounded-xl border-border bg-background"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
             </div>
 
             {/* Categories */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                Categories
-              </h3>
-              <div className="flex flex-col gap-1.5">
-                {categories.map((category) => {
-                  const isSelected = selectedCategory === category;
-                  return (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={cn(
-                        "w-full text-left px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 tracking-wide",
-                        isSelected
-                          ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
-                          : "text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                      )}
-                    >
-                      {category}
-                    </button>
-                  );
-                })}
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">Categories</p>
+              <div className="flex flex-col gap-0.5">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                      selectedCategory === cat
+                        ? 'bg-primary/10 text-primary font-bold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          </aside>
 
-          {/* Right Product Grid Area */}
-          <div className="lg:col-span-9 space-y-6">
-            
-            {/* Controls Bar */}
-            <div className="flex justify-between items-center gap-4 flex-wrap">
-              <p className="text-xs md:text-sm font-bold text-muted-foreground">
-                {displayProducts.length} {displayProducts.length === 1 ? 'product' : 'products'}
-              </p>
-              
-              <div className="flex items-center gap-3">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-background border border-border/80 text-xs md:text-sm font-bold rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          {/* ── Product Grid ── */}
+          <div className="flex-1 min-w-0">
+
+            {/* Mobile search + filter bar */}
+            <div className="flex lg:hidden gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            </div>
+
+            {/* Mobile categories row */}
+            <div className="flex lg:hidden gap-1.5 overflow-x-auto pb-2 mb-4">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    'flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors',
+                    selectedCategory === cat
+                      ? 'bg-primary text-white border-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  )}
                 >
-                  <option>Featured</option>
-                  <option>Price: Low to High</option>
-                  <option>Price: High to Low</option>
-                </select>
-              </div>
+                  {cat}
+                </button>
+              ))}
             </div>
 
-            {/* Products Grid */}
             {isLoading ? (
-              <div className="py-12 text-center text-muted-foreground">
-                Loading products...
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="rounded-xl border border-border/60 overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-zinc-100 dark:bg-zinc-800" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-3.5 bg-zinc-100 dark:bg-zinc-800 rounded w-3/4" />
+                      <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded w-1/2" />
+                      <div className="h-8 bg-zinc-100 dark:bg-zinc-800 rounded mt-1" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : displayProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {displayProducts.map((p) => {
                   const discount = getDiscountPercent(p.price, p.originalPrice);
                   const isWishlisted = wishlist.includes(p.id);
-                  
+
                   return (
-                    <Card
+                    <div
                       key={p.id}
                       onClick={() => router.push(`/products/${p.id}`)}
-                      className="group cursor-pointer border border-border/60 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden flex flex-col justify-between"
+                      className="group cursor-pointer flex flex-col rounded-xl overflow-hidden border border-border/60 bg-white dark:bg-zinc-900 hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 transition-shadow duration-300"
                     >
-                      {/* Image header container */}
-                      <div className="w-full aspect-[4/3] bg-zinc-100 dark:bg-zinc-900 relative flex items-center justify-center border-b border-border/50 overflow-hidden">
-                        <Image
-                          src={p.image === '/1.jpg' ? '/new-kit-front.png' : p.image}
+                      {/* Image */}
+                      <div className="relative aspect-square w-full overflow-hidden bg-zinc-50 dark:bg-zinc-800">
+                        <img
+                          src={p.image === '/1.jpg' ? '/new-kit-front.png' : (p.image || '/logo.png')}
                           alt={p.name}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                          className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                         />
-                        
-                        {/* Discount overlay badge */}
                         {discount && (
-                          <Badge className="absolute top-3 left-3 bg-orange-500 hover:bg-orange-600 border-none font-bold text-white text-[9px] py-0.5 px-2 rounded-md">
+                          <span className="absolute top-2 left-2 bg-[#ff6c00] text-white text-[10px] font-black px-1.5 py-0.5 rounded-sm">
                             -{discount}%
-                          </Badge>
+                          </span>
                         )}
-
-                        {/* Wishlist button */}
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWishlist(p.id, p.name);
-                          }}
-                          className="absolute top-3 right-3 p-2 rounded-full bg-background border border-border/80 shadow-sm hover:scale-110 active:scale-95 transition-all text-muted-foreground hover:text-red-500 z-10 animate-fade-in"
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id, p.name); }}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+                          aria-label="Wishlist"
                         >
-                          <Heart className={cn("h-4 w-4 transition-colors", isWishlisted ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+                          <Heart className={cn('h-3 w-3 transition-colors', isWishlisted ? 'fill-red-500 text-red-500' : 'text-zinc-400')} />
                         </button>
                       </div>
 
-                      {/* Info details */}
-                      <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                        <div className="space-y-1.5">
-                          <h3 className="font-black text-sm leading-snug group-hover:text-primary transition-colors text-foreground line-clamp-2">
-                            {p.name}
-                          </h3>
-                          
-                          {/* Rating fallback */}
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                            <span className="text-[11px] font-bold text-muted-foreground">
-                              {p.id === 'pro1' ? `${flagshipRating.average} (${flagshipRating.count})` : p.id === 'pro2' ? '4.8 (1284)' : '4.7 (342)'}
-                            </span>
-                          </div>
+                      {/* Info */}
+                      <div className="flex flex-col flex-1 p-2.5 gap-1">
+                        <h3 className="text-[11px] font-bold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                          {p.name}
+                        </h3>
+                        <div className="flex items-center gap-0.5">
+                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                          <span className="text-[10px] font-semibold text-muted-foreground">
+                            {p.id === 'pro1' ? `${flagshipRating.average}` : '4.8'}
+                          </span>
                         </div>
-
-                        {/* Price & Add to Cart button */}
-                        <div className="flex items-center justify-between pt-1 border-t border-border/40">
-                          <div className="flex flex-col">
-                            <span className="text-base font-black text-primary">₹{p.price}</span>
-                            {p.originalPrice && (
-                              <span className="text-[10px] text-muted-foreground line-through">₹{p.originalPrice}</span>
-                            )}
-                          </div>
-
-                          <Button
-                            size="sm"
-                            className="bg-primary hover:bg-primary/95 text-white font-extrabold rounded-lg gap-1 px-3 py-1.5 h-8 text-[11px] uppercase tracking-wider"
-                            onClick={(e) => handleAddToCart(e, p)}
-                            disabled={p.stock <= 0}
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
-                            Add
-                          </Button>
+                        <div className="flex items-center gap-1.5 mt-auto pt-1">
+                          <span className="text-sm font-black text-foreground">₹{p.price.toLocaleString('en-IN')}</span>
+                          {p.originalPrice && p.originalPrice > p.price && (
+                            <span className="text-[10px] text-muted-foreground line-through">₹{p.originalPrice.toLocaleString('en-IN')}</span>
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
+                        <button
+                          onClick={(e) => handleAddToCart(e, p)}
+                          disabled={p.stock <= 0}
+                          className={cn(
+                            'mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors',
+                            p.stock <= 0
+                              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed'
+                              : 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-white'
+                          )}
+                        >
+                          <ShoppingCart className="h-3 w-3" />
+                          {p.stock <= 0 ? 'Out of Stock' : 'Add'}
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="p-16 text-center border border-dashed rounded-3xl text-muted-foreground text-sm font-semibold max-w-md mx-auto">
-                No products found matching those search criteria.
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <p className="text-sm text-muted-foreground font-medium">No products found for "{searchQuery || selectedCategory}"</p>
+                <button onClick={() => { setSearchQuery(''); setSelectedCategory('All Products'); }} className="mt-3 text-xs text-primary font-bold hover:underline">
+                  Clear filters
+                </button>
               </div>
             )}
           </div>
-
         </div>
 
       </div>
