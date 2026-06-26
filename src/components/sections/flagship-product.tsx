@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { Star, Check, ShoppingCart, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/carousel";
 import { useCart } from '@/context/cart-context';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, limit, where } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import ClientOnly from '../shared/client-only';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,6 @@ const FlagshipProductSection = () => {
   const firestore = useFirestore();
   const router = useRouter();
 
-  // Query all products from Firestore to find the flagship product dynamically
   const productsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'products')) : null),
     [firestore]
@@ -37,14 +35,13 @@ const FlagshipProductSection = () => {
   const product = React.useMemo(() => {
     if (!products || products.length === 0) return null;
     return (
-      products.find(p => p.category?.toLowerCase() === 'ezcirkit') ||
-      products.find(p => p.id === 'pro1') ||
-      products.find(p => p.name?.toLowerCase().includes('ezcirkit')) ||
+      products.find((p: any) => p.category?.toLowerCase() === 'ezcirkit') ||
+      products.find((p: any) => p.id === 'pro1') ||
+      products.find((p: any) => p.name?.toLowerCase().includes('ezcirkit')) ||
       null
     );
   }, [products]);
 
-  // Fetch reviews for the flagship product to get dynamic rating and count
   const reviewsQuery = useMemoFirebase(
     () =>
       firestore && product
@@ -56,7 +53,7 @@ const FlagshipProductSection = () => {
 
   const averageRating = React.useMemo(() => {
     if (!reviews || reviews.length === 0) return 4.9;
-    const total = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    const total = reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0);
     return Number((total / reviews.length).toFixed(1));
   }, [reviews]);
 
@@ -71,7 +68,7 @@ const FlagshipProductSection = () => {
 
   const handleBuyNow = async () => {
     if (product) {
-      const productInCart = cartItems.find(item => item.id === product.id);
+      const productInCart = cartItems.find((item: any) => item.id === product.id);
       if (!productInCart) {
         await addToCart(product);
       }
@@ -91,29 +88,27 @@ const FlagshipProductSection = () => {
 
   const carouselImages = React.useMemo(() => {
     if (!product) return [];
+    // Guard: treat empty string same as missing
+    const primaryImg = product.image && product.image.trim() !== '' ? product.image : '/new-kit-front.png';
     if (isKit) {
       return [
-        { src: product.image, alt: 'Front View' },
+        { src: primaryImg, alt: 'Front View' },
         { src: '/kit-inside.png', alt: 'Inside View' },
         { src: '/kit-back.png', alt: 'Back View' },
       ];
     }
     return [
-      { src: product.image, alt: product.name },
+      { src: primaryImg, alt: product.name },
     ];
   }, [product, isKit]);
 
   React.useEffect(() => {
     if (!api) return;
-    
-    // Set default slide to first index
     api.scrollTo(0);
     setCurrentSlide(api.selectedScrollSnap());
-    
     api.on("select", () => {
       setCurrentSlide(api.selectedScrollSnap());
     });
-
     const interval = setInterval(() => {
       const count = api.scrollSnapList().length;
       if (count > 0) {
@@ -121,7 +116,6 @@ const FlagshipProductSection = () => {
         api.scrollTo(nextIndex);
       }
     }, 3000);
-
     return () => clearInterval(interval);
   }, [api]);
 
@@ -131,7 +125,9 @@ const FlagshipProductSection = () => {
     '0.96" OLED Display',
     '5V Relay Module',
     'Active & Passive Buzzers',
-    'Digital Multimeter'
+    'Digital Multimeter',
+    '830-point Breadboard',
+    'Instruction Booklet & Project Guide',
   ];
 
   const column2Items = [
@@ -140,10 +136,10 @@ const FlagshipProductSection = () => {
     'Soil Moisture Sensor',
     'Mini Submersible Water Pump',
     '4 x Push Buttons',
-    '65 x Jumper Wires (M-M, M-F, F-F)'
+    '65 x Jumper Wires (M-M, M-F, F-F)',
+    'USB-B Cable',
   ];
 
-  // Hide the section while loading or if the product does not exist in the database
   if (isLoading) return null;
   if (!product) return null;
 
@@ -153,10 +149,7 @@ const FlagshipProductSection = () => {
     "name": product.name,
     "image": product.image || "/new-kit-front.png",
     "description": product.description || "EZCirkit STEM Starter Kit for learning electronics.",
-    "brand": {
-      "@type": "Brand",
-      "name": "EZCirkit"
-    },
+    "brand": { "@type": "Brand", "name": "EZCirkit" },
     "offers": {
       "@type": "Offer",
       "url": "https://ezcirkit.crabster.in",
@@ -173,201 +166,191 @@ const FlagshipProductSection = () => {
   };
 
   return (
-    <section id="flagship-product" className="py-16 md:py-24 bg-zinc-50/50 dark:bg-zinc-950/20 border-t border-b border-border/80">
+    <section
+      id="flagship-product"
+      className="bg-white dark:bg-zinc-950 border-t border-b border-border/60"
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
       />
-      <div className="container mx-auto px-4 md:px-6">
-        
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
-          <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-primary">
-            Flagship Product
-          </p>
-          <h2 className="text-3xl md:text-5xl font-black tracking-tight font-headline text-foreground">
-            {isKit ? 'The EZCirkit Starter Kit' : product.name}
-          </h2>
-          <p className="text-muted-foreground text-sm md:text-base max-w-prose mx-auto">
-            {isKit ? 'The single kit you need to build your first coding experiments.' : 'Learn by doing with premium quality components.'}
-          </p>
-        </div>
 
-        {/* Flagship Card Wrapper */}
-        <div className="max-w-5xl mx-auto bg-background border border-border/80 rounded-3xl shadow-xl shadow-zinc-200/50 dark:shadow-none overflow-hidden p-6 md:p-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left Column: Swipable Carousel with Thumbnail Navigation */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="border border-border/60 rounded-3xl overflow-hidden shadow-md bg-background">
-                <Carousel setApi={setApi} className="w-full relative">
-                  <CarouselContent>
-                    {carouselImages.map((img, index) => (
-                      <CarouselItem key={index}>
-                        <div className="relative aspect-square w-full bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
-                          <Image
-                            src={img.src}
-                            alt={img.alt}
-                            width={600}
-                            height={600}
-                            priority
-                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.01]"
-                          />
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  {carouselImages.length > 1 && (
-                    <>
-                      <CarouselPrevious className="left-4 opacity-75 hover:opacity-100 z-10" />
-                      <CarouselNext className="right-4 opacity-75 hover:opacity-100 z-10" />
-                    </>
-                  )}
-                </Carousel>
+      {/* Full-width card: image left, details right — no outer padding so it stretches edge-to-edge inside container */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-border/70 shadow-lg bg-white dark:bg-zinc-900">
+
+          {/* ── LEFT: Product Image ── */}
+          <div className="bg-zinc-50 dark:bg-zinc-800 overflow-hidden">
+            <Carousel setApi={setApi} className="w-full">
+              <CarouselContent>
+                {carouselImages.map((img, index) => (
+                  <CarouselItem key={index}>
+                    {/* Use a plain <img> so there are zero Next.js domain / fill constraints */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.src}
+                      alt={img.alt}
+                      width={700}
+                      height={700}
+                      className="w-full aspect-square object-cover block"
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/new-kit-front.png';
+                      }}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {carouselImages.length > 1 && (
+                <>
+                  <CarouselPrevious className="left-3 opacity-70 hover:opacity-100 z-10" />
+                  <CarouselNext className="right-3 opacity-70 hover:opacity-100 z-10" />
+                </>
+              )}
+            </Carousel>
+
+            {/* Slide dots */}
+            {isKit && carouselImages.length > 1 && (
+              <div className="flex justify-center gap-1.5 py-2">
+                {carouselImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => api?.scrollTo(idx)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-200",
+                      currentSlide === idx
+                        ? "bg-primary w-5"
+                        : "bg-zinc-300 dark:bg-zinc-600 w-1.5"
+                    )}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
               </div>
-              
-              {/* Thumbnail Buttons */}
-              {isKit && carouselImages.length > 1 && (
-                <div className="flex gap-3 justify-center">
-                  {[
-                    { label: 'Front View', slideIndex: 0 },
-                    { label: 'Inside View', slideIndex: 1 },
-                    { label: 'Back View', slideIndex: 2 },
-                  ].map((btn) => (
-                    <button
-                      key={btn.slideIndex}
-                      type="button"
-                      onClick={() => api?.scrollTo(btn.slideIndex)}
+            )}
+          </div>
+
+          {/* ── RIGHT: Product Details ── */}
+          <div className="flex flex-col justify-between p-6 md:p-8 gap-4">
+
+            {/* Rating */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5">
+                {[...Array(5)].map((_, i) => {
+                  const ratingValue = i + 1;
+                  return (
+                    <Star
+                      key={i}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-xs md:text-sm font-bold border transition-all duration-200 shadow-sm",
-                        currentSlide === btn.slideIndex
-                          ? "bg-primary/10 text-primary border-primary/40 shadow-sm"
-                          : "bg-background text-muted-foreground border-border hover:text-foreground hover:bg-zinc-50"
+                        "h-4 w-4",
+                        ratingValue <= averageRating
+                          ? "fill-amber-400 text-amber-400"
+                          : ratingValue - 0.5 <= averageRating
+                          ? "fill-amber-400 text-amber-400 opacity-60"
+                          : "text-zinc-300"
                       )}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
+                    />
+                  );
+                })}
+              </div>
+              <span className="text-sm font-semibold text-foreground">
+                {averageRating.toFixed(1)}
+              </span>
+              <span className="text-sm text-muted-foreground">• {reviewsCount} reviews</span>
+            </div>
+
+            {/* Product Name */}
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-foreground leading-tight">
+                {product.name}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                {product.description ||
+                  "Everything you need to start your electronics journey in one box. Includes Arduino UNO R3, sensors, modules, breadboard, jumper wires and a multimeter. Pair it with our free project tutorials and learn by doing."}
+              </p>
+            </div>
+
+            {/* Pricing */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-3xl font-black text-foreground">
+                ₹{product.price.toLocaleString('en-IN')}
+              </span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <>
+                  <span className="text-base text-muted-foreground line-through">
+                    ₹{product.originalPrice.toLocaleString('en-IN')}
+                  </span>
+                  <Badge className="bg-orange-500 hover:bg-orange-500 border-none font-bold text-white text-xs px-2.5 py-1 rounded-md uppercase tracking-wide">
+                    Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                  </Badge>
+                </>
               )}
             </div>
 
-            {/* Right Column: Details & Checklist */}
-            <div className="lg:col-span-6 space-y-6">
-              
-              {/* Rating and Reviews */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => {
-                    const ratingValue = i + 1;
-                    return (
-                      <Star
-                        key={i}
-                        className={cn(
-                          "h-4.5 w-4.5 text-amber-400",
-                          ratingValue <= averageRating
-                            ? "fill-amber-400"
-                            : ratingValue - 0.5 <= averageRating
-                            ? "fill-amber-400 opacity-50"
-                            : "text-muted-foreground/30"
-                        )}
-                      />
-                    );
-                  })}
-                </div>
-                <span className="text-sm font-bold text-foreground">
-                  {averageRating.toFixed(1)} <span className="text-muted-foreground font-normal">• {reviewsCount} reviews</span>
-                </span>
-              </div>
+            {/* Divider */}
+            <div className="border-t border-border/60" />
 
-              {/* Title & Description */}
-              <div className="space-y-2">
-                <h3 className="text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight">
-                  {product.name}
-                </h3>
-                <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-                  {product.description || "Everything you need to start your electronics journey in one box. Includes Arduino compatible microcontroller, high quality sensors, modules, breadboard, resistors and jumper wires."}
+            {/* What's Included */}
+            {isKit && (
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-2.5">
+                  What's Included
                 </p>
-              </div>
-
-              {/* Pricing */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-3xl font-black text-primary">₹{product.price.toLocaleString('en-IN')}</span>
-                {product.originalPrice && product.originalPrice > product.price && (
-                  <>
-                    <span className="text-lg text-muted-foreground line-through">₹{product.originalPrice.toLocaleString('en-IN')}</span>
-                    <Badge className="bg-orange-500 hover:bg-orange-600 border-none font-bold text-white text-xs py-1 px-2.5 rounded-md uppercase tracking-wider">
-                      Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                    </Badge>
-                  </>
-                )}
-              </div>
-
-              <hr className="border-border/80" />
-
-              {/* What's Included Section */}
-              {isKit && (
-                <div className="space-y-4">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                    What's Included
-                  </h4>
-                  
-                  {/* 2-Column Checklist */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-foreground/80">
-                    <div className="space-y-3">
-                      {column1Items.map((item, index) => (
-                        <div key={index} className="flex items-start gap-2.5">
-                          <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <span className="leading-tight">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-3">
-                      {column2Items.map((item, index) => (
-                        <div key={index} className="flex items-start gap-2.5">
-                          <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <span className="leading-tight">{item}</span>
-                        </div>
-                      ))}
-                    </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  <div className="space-y-1.5">
+                    {column1Items.map((item, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-[1px]" />
+                        <span className="text-xs text-foreground/80 leading-snug">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5">
+                    {column2Items.map((item, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-[1px]" />
+                        <span className="text-xs text-foreground/80 leading-snug">{item}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              <ClientOnly>
-                <div className="flex flex-row gap-4 w-full pt-4">
+            {/* CTA Buttons */}
+            <ClientOnly>
+              <div className="flex gap-3 w-full">
+                <Button
+                  id="flagship-add-to-cart"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className="flex-1 bg-zinc-900 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-white font-semibold rounded-xl h-12 flex items-center justify-center gap-2 transition-colors duration-200"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  <span>Add to Cart</span>
+                </Button>
+
+                {!isOutOfStock && (
                   <Button
-                    onClick={handleAddToCart}
-                    disabled={isOutOfStock}
-                    className="flex-1 bg-[#1a1a1a] hover:bg-[#2d2d2d] text-white font-semibold rounded-lg py-3 px-6 h-12 flex items-center justify-center gap-2 transition-colors duration-200"
+                    id="flagship-buy-now"
+                    onClick={handleBuyNow}
+                    className="flex-1 bg-[#ff6c00] hover:bg-[#e05f00] text-white font-semibold rounded-xl h-12 flex items-center justify-center gap-2 transition-colors duration-200"
                   >
-                    <ShoppingCart className="h-5 w-5" />
-                    <span>Add to Cart</span>
+                    <span>Buy Now</span>
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
-                  
-                  {!isOutOfStock && (
-                    <Button
-                      onClick={handleBuyNow}
-                      className="flex-1 bg-[#ff6c00] hover:bg-[#e05f00] text-white font-semibold rounded-lg py-3 px-6 h-12 flex items-center justify-center gap-2 transition-colors duration-200"
-                    >
-                      <span>Buy Now</span>
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  )}
-                </div>
-                
-                {isOutOfStock && (
-                  <p className="text-sm text-destructive font-semibold text-center mt-2">
-                    Out of Stock
-                  </p>
                 )}
-              </ClientOnly>
+              </div>
 
-            </div>
+              {isOutOfStock && (
+                <p className="text-sm text-destructive font-semibold text-center mt-1">
+                  Currently Out of Stock
+                </p>
+              )}
+            </ClientOnly>
 
           </div>
         </div>
-
       </div>
     </section>
   );
