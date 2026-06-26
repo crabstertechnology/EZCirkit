@@ -11,7 +11,8 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles, AlertCircle, Save, Undo } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles, AlertCircle, Save, Undo, FlaskConical, LayoutGrid } from 'lucide-react';
+import { PROJECTS_DATA } from '@/lib/projects';
 
 interface AnnouncementItem {
   text: string;
@@ -51,10 +52,18 @@ const SettingsPage = () => {
     () => (firestore ? doc(firestore, 'settings', 'announcementBar') : null),
     [firestore]
   );
+  const homepageDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'homepage') : null),
+    [firestore]
+  );
 
-  const { data: remoteSettings, isLoading } = useDoc<AnnouncementBarSettings>(settingsDocRef);
+  const { data: remoteSettings, isLoading: isLoadingSettings } = useDoc<AnnouncementBarSettings>(settingsDocRef);
+  const { data: remoteHomepage, isLoading: isLoadingHomepage } = useDoc<{ selectedExperiments?: string[] }>(homepageDocRef);
+
+  const isLoading = isLoadingSettings || isLoadingHomepage;
   
   const [settings, setSettings] = useState<AnnouncementBarSettings>(DEFAULT_SETTINGS);
+  const [selectedExps, setSelectedExps] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -70,14 +79,21 @@ const SettingsPage = () => {
     }
   }, [remoteSettings]);
 
+  useEffect(() => {
+    if (remoteHomepage) {
+      setSelectedExps(remoteHomepage.selectedExperiments || []);
+    }
+  }, [remoteHomepage]);
+
   const handleSave = async () => {
     if (!firestore) return;
     setIsSaving(true);
     try {
       await setDoc(doc(firestore, 'settings', 'announcementBar'), settings);
+      await setDoc(doc(firestore, 'settings', 'homepage'), { selectedExperiments: selectedExps });
       toast({
         title: 'Settings Saved',
-        description: 'Announcement bar settings updated successfully.',
+        description: 'All settings updated successfully.',
       });
     } catch (error: any) {
       toast({
@@ -159,6 +175,7 @@ const SettingsPage = () => {
       <Tabs defaultValue="announcement" className="w-full">
         <TabsList className="bg-muted p-1 rounded-2xl mb-6">
           <TabsTrigger value="announcement" className="rounded-xl px-4 py-2 font-bold transition-all">Announcement Bar</TabsTrigger>
+          <TabsTrigger value="homepage" className="rounded-xl px-4 py-2 font-bold transition-all">Homepage Experiments</TabsTrigger>
           <TabsTrigger value="general" className="rounded-xl px-4 py-2 font-bold transition-all">General Settings</TabsTrigger>
         </TabsList>
 
@@ -428,6 +445,86 @@ const SettingsPage = () => {
             </div>
 
           </div>
+        </TabsContent>
+
+        <TabsContent value="homepage" className="space-y-6 animate-in fade-in duration-200">
+          <Card className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
+            <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/30 border-b border-zinc-100 dark:border-zinc-800 py-5">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <FlaskConical className="h-5 w-5 text-primary" />
+                    <span>Select Homepage Experiments</span>
+                  </CardTitle>
+                  <CardDescription>Choose which projects to display in the learning carousel/grid on the homepage.</CardDescription>
+                </div>
+                <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-black">
+                  {selectedExps.length} selected
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {PROJECTS_DATA.map((proj) => {
+                  const isSelected = selectedExps.includes(proj.id);
+                  return (
+                    <div
+                      key={proj.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedExps(selectedExps.filter(id => id !== proj.id));
+                        } else {
+                          setSelectedExps([...selectedExps, proj.id]);
+                        }
+                      }}
+                      className={cn(
+                        "group cursor-pointer p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-4 hover:shadow-md",
+                        isSelected
+                          ? "bg-primary/5 border-primary shadow-sm"
+                          : "bg-background border-border/80 hover:border-zinc-400"
+                      )}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className={cn(
+                            "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded",
+                            proj.difficulty === 'Beginner'
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : proj.difficulty === 'Intermediate'
+                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                          )}>
+                            {proj.difficulty}
+                          </span>
+                          <Switch
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedExps([...selectedExps, proj.id]);
+                              } else {
+                                setSelectedExps(selectedExps.filter(id => id !== proj.id));
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">
+                          {proj.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {proj.description}
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5 pt-2 border-t">
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                        <span>{proj.components.length} components</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="general" className="space-y-6 animate-in fade-in duration-200">

@@ -5,6 +5,7 @@ import HeroSection from '@/components/sections/hero';
 import FlagshipProductSection from '@/components/sections/flagship-product';
 import FeaturedProducts from '@/components/sections/featured-products';
 import Testimonials from '@/components/sections/testimonials';
+import ExperimentsShowcase from '@/components/sections/experiments-showcase';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { Review } from '@/components/sections/testimonials';
@@ -39,6 +40,7 @@ export default function Home() {
         isLoading={isLoadingReviews}
       />
       <FlagshipProductSection />
+      <ExperimentsShowcase />
       <FeaturedProducts />
       <Testimonials 
          reviews={reviews || []}
