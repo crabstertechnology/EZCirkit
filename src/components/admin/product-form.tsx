@@ -31,10 +31,11 @@ interface AssetPickerProps {
   onSelect: (path: string) => void;
   onSelectMultiple?: (paths: string[]) => void;
   multiple?: boolean;
+  excludePaths?: string[];
   trigger: React.ReactNode;
 }
 
-const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, onSelectMultiple, multiple = false, trigger }) => {
+const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, onSelectMultiple, multiple = false, excludePaths = [], trigger }) => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -66,6 +67,10 @@ const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, onSelectMultiple, m
   const filteredAndSortedAssets = React.useMemo(() => {
     let result = [...assets];
 
+    if (excludePaths.length > 0) {
+      result = result.filter((a) => !excludePaths.includes(a.path));
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -82,7 +87,7 @@ const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, onSelectMultiple, m
     });
 
     return result;
-  }, [assets, search, sortBy]);
+  }, [assets, search, sortBy, excludePaths]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -663,6 +668,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                       <Input placeholder="Paste image URL or upload one" {...field} />
                     </FormControl>
                     <AssetPicker 
+                      excludePaths={[
+                        form.watch('image'),
+                        ...(form.watch('gallery') || [])
+                      ].filter(Boolean)}
                       onSelect={(path) => field.onChange(path)}
                       trigger={
                         <Button type="button" variant="outline" className="gap-1.5 h-10 cursor-pointer">
@@ -726,6 +735,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                 </label>
                 <AssetPicker
                   multiple={true}
+                  excludePaths={[
+                    form.watch('image'),
+                    ...(form.watch('gallery') || [])
+                  ].filter(Boolean)}
                   onSelectMultiple={(paths) => {
                     const current = form.getValues('gallery') || [];
                     const updated = [...current];
