@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
@@ -307,6 +307,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const productsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'products') : null),
+    [firestore]
+  );
+  const { data: allProducts } = useCollection<any>(productsQuery);
+
+  const allUsedImages = React.useMemo(() => {
+    if (!allProducts) return [];
+    const paths = new Set<string>();
+    allProducts.forEach((p: any) => {
+      if (product && p.id === product.id) return;
+      if (p.image) paths.add(p.image);
+      if (p.gallery && Array.isArray(p.gallery)) {
+        p.gallery.forEach((img: string) => {
+          if (img) paths.add(img);
+        });
+      }
+    });
+    return Array.from(paths);
+  }, [allProducts, product]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
@@ -670,7 +691,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                     <AssetPicker 
                       excludePaths={[
                         form.watch('image'),
-                        ...(form.watch('gallery') || [])
+                        ...(form.watch('gallery') || []),
+                        ...allUsedImages
                       ].filter(Boolean)}
                       onSelect={(path) => field.onChange(path)}
                       trigger={
@@ -737,7 +759,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                   multiple={true}
                   excludePaths={[
                     form.watch('image'),
-                    ...(form.watch('gallery') || [])
+                    ...(form.watch('gallery') || []),
+                    ...allUsedImages
                   ].filter(Boolean)}
                   onSelectMultiple={(paths) => {
                     const current = form.getValues('gallery') || [];
