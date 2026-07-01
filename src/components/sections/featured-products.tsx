@@ -141,13 +141,13 @@ const FeaturedProducts = () => {
                   className="group flex flex-col rounded-xl overflow-hidden border border-border/60 bg-white dark:bg-zinc-900 hover:shadow-lg hover:shadow-zinc-200/60 dark:hover:shadow-zinc-900/60 transition-shadow duration-300"
                 >
                   {/* Image */}
-                  <div className="relative aspect-square w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                  <div className="relative aspect-square w-full overflow-hidden bg-zinc-50 dark:bg-zinc-800">
                     <img
                       src={product.image || '/logo.png'}
                       alt={product.name}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
                       onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                     />
 

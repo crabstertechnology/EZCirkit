@@ -354,7 +354,7 @@ export default function ShopPage() {
                           src={p.image === '/1.jpg' ? '/kit/new-kit-front.png' : (p.image || '/logo.png')}
                           alt={p.name}
                           loading="lazy"
-                          className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
+                          className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
                           onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                         />
                         {discount && (

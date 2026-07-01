@@ -180,7 +180,7 @@ export default function WishlistPage() {
                       <img
                         src={product.image || '/logo.png'}
                         alt={product.name}
-                        className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.04]"
+                        className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                       />
                       {/* Discount badge */}

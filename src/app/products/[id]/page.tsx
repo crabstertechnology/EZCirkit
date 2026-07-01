@@ -1021,9 +1021,9 @@ export default function ProductDetailPage() {
                   const disc = p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
                   return (
                     <Card key={p.id} className="group border border-border/60 hover:shadow-lg transition-all rounded-2xl overflow-hidden flex flex-col justify-between cursor-pointer" onClick={() => router.push(`/products/${p.id}`)}>
-                      <div className="aspect-[4/3] bg-zinc-100 w-full relative flex items-center justify-center p-2 border-b">
-                        <img src={p.image} alt={p.name} className="w-full h-full object-contain p-2 transition-transform group-hover:scale-105" />
-                        {disc > 0 && <Badge className="absolute top-2 left-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-[9px] py-0.5 px-1.5 rounded">-{disc}%</Badge>}
+                      <div className="relative aspect-square bg-zinc-50 dark:bg-zinc-800 w-full overflow-hidden border-b">
+                        <img src={p.image} alt={p.name} className="absolute inset-0 w-full h-full object-contain p-2 transition-transform group-hover:scale-105" />
+                        {disc > 0 && <Badge className="absolute top-2 left-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-[9px] py-0.5 px-1.5 rounded border-none">-{disc}%</Badge>}
                       </div>
                       <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                         <h4 className="text-xs md:text-sm font-black text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">{p.name}</h4>
