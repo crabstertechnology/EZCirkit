@@ -11,7 +11,7 @@ import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
-import { Upload, X, Image as ImageIcon, Plus, Search } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Plus, Search, Check } from 'lucide-react';
 import type { Product } from '@/app/admin/products/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,18 +29,22 @@ interface Asset {
 
 interface AssetPickerProps {
   onSelect: (path: string) => void;
+  onSelectMultiple?: (paths: string[]) => void;
+  multiple?: boolean;
   trigger: React.ReactNode;
 }
 
-const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, trigger }) => {
+const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, onSelectMultiple, multiple = false, trigger }) => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'name-asc' | 'name-desc'>('date-desc');
   const [open, setOpen] = useState(false);
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
+      setSelectedPaths([]);
       const fetchAssets = async () => {
         setLoading(true);
         try {
@@ -129,35 +133,87 @@ const AssetPicker: React.FC<AssetPickerProps> = ({ onSelect, trigger }) => {
         ) : (
           <ScrollArea className="h-[360px] pr-2 mt-2">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {filteredAndSortedAssets.map((asset) => (
-                <button
-                  key={asset.path}
-                  type="button"
-                  onClick={() => {
-                    onSelect(asset.path);
-                    setOpen(false);
-                  }}
-                  className="flex flex-col items-stretch p-1.5 border rounded-xl hover:border-primary hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-left group cursor-pointer bg-white dark:bg-zinc-900/20"
-                >
-                  <div className="aspect-video w-full rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/50">
-                    <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
-                  </div>
-                  <div className="pt-2 px-1 pb-1 space-y-0.5">
-                    <span className="text-[10px] font-bold text-foreground group-hover:text-primary transition-colors block truncate w-full">
-                      {asset.name}
-                    </span>
-                    <span className="text-[9px] font-semibold text-muted-foreground block truncate w-full">
-                      {asset.fileName}
-                    </span>
-                    <div className="flex justify-between items-center text-[8px] text-muted-foreground font-semibold pt-0.5 border-t border-zinc-100 dark:border-zinc-800">
-                      <span>{(asset.size / 1024).toFixed(0)} KB</span>
-                      <span>{new Date(asset.mtime).toLocaleDateString()}</span>
+              {filteredAndSortedAssets.map((asset) => {
+                const isSelected = selectedPaths.includes(asset.path);
+                return (
+                  <button
+                    key={asset.path}
+                    type="button"
+                    onClick={() => {
+                      if (multiple) {
+                        setSelectedPaths((prev) =>
+                          prev.includes(asset.path)
+                            ? prev.filter((p) => p !== asset.path)
+                            : [...prev, asset.path]
+                        );
+                      } else {
+                        onSelect(asset.path);
+                        setOpen(false);
+                      }
+                    }}
+                    className={cn(
+                      "flex flex-col items-stretch p-1.5 border rounded-xl hover:border-primary hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-left group cursor-pointer bg-white dark:bg-zinc-900/20",
+                      isSelected ? "border-primary ring-2 ring-primary/20 bg-zinc-50 dark:bg-zinc-900" : "border-zinc-200 dark:border-zinc-800"
+                    )}
+                  >
+                    <div className="aspect-video w-full rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200/50 relative">
+                      <img src={asset.path} alt={asset.name} className="max-h-full max-w-full object-contain" />
+                      {multiple && (
+                        <div className={cn(
+                          "absolute top-1.5 right-1.5 h-5 w-5 rounded-md border flex items-center justify-center transition-all",
+                          isSelected
+                            ? "bg-primary border-primary text-white"
+                            : "bg-white/80 dark:bg-zinc-900/80 border-zinc-300 dark:border-zinc-700"
+                        )}>
+                          {isSelected && (
+                            <Check className="h-3 w-3 stroke-[3]" />
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </button>
-              ))}
+                    <div className="pt-2 px-1 pb-1 space-y-0.5">
+                      <span className="text-[10px] font-bold text-foreground group-hover:text-primary transition-colors block truncate w-full">
+                        {asset.name}
+                      </span>
+                      <span className="text-[9px] font-semibold text-muted-foreground block truncate w-full">
+                        {asset.fileName}
+                      </span>
+                      <div className="flex justify-between items-center text-[8px] text-muted-foreground font-semibold pt-0.5 border-t border-zinc-100 dark:border-zinc-800">
+                        <span>{(asset.size / 1024).toFixed(0)} KB</span>
+                        <span>{new Date(asset.mtime).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </ScrollArea>
+        )}
+
+        {multiple && (
+          <div className="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (onSelectMultiple) {
+                  onSelectMultiple(selectedPaths);
+                }
+                setOpen(false);
+              }}
+              disabled={selectedPaths.length === 0}
+              className="rounded-xl bg-primary text-white hover:bg-primary/95"
+            >
+              Add Selected ({selectedPaths.length})
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -669,6 +725,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                   </Button>
                 </label>
                 <AssetPicker
+                  multiple={true}
+                  onSelectMultiple={(paths) => {
+                    const current = form.getValues('gallery') || [];
+                    const updated = [...current];
+                    let addedCount = 0;
+                    paths.forEach(path => {
+                      if (!updated.includes(path)) {
+                        if (updated.length < 5) {
+                          updated.push(path);
+                          addedCount++;
+                        }
+                      }
+                    });
+                    form.setValue('gallery', updated);
+                    if (addedCount > 0) {
+                      toast({ title: `Added ${addedCount} asset(s) to gallery.` });
+                    }
+                    if (updated.length >= 5 && paths.length > addedCount) {
+                      toast({ variant: 'destructive', title: 'Gallery is full (max 5 images).' });
+                    }
+                  }}
                   onSelect={(path) => addAssetToGallery(path)}
                   trigger={
                     <Button type="button" variant="outline" className="border-dashed border-2 py-6 h-auto flex flex-col gap-1 items-center justify-center cursor-pointer px-8">
