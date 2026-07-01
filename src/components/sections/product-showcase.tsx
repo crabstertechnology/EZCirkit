@@ -60,7 +60,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
   
   const getDisplayImage = (imgUrl?: string) => {
     if (!imgUrl || imgUrl === '/1.jpg') {
-      return '/new-kit-front.png';
+      return '/kit/new-kit-front.png';
     }
     return imgUrl;
   };
@@ -75,13 +75,13 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
     {
       id: 'product-slide-2',
       description: 'EZCirkit Starter Kit Inside Components View',
-      imageUrl: '/kit-inside.png',
+      imageUrl: '/kit/kit-inside.png',
       imageHint: 'product inside'
     },
     {
       id: 'product-slide-3',
       description: 'EZCirkit Starter Kit Back Box View',
-      imageUrl: '/kit-back.png',
+      imageUrl: '/kit/kit-back.png',
       imageHint: 'product back'
     },
   ];

@@ -84,7 +84,7 @@ const OrdersPage = () => {
     const [isAddingOrder, setIsAddingOrder] = React.useState(false);
 
   // Safe date helper for cached items/Timestamps
-  const parseDate = (dateObj) => {
+  const parseDate = (dateObj: any) => {
     if (!dateObj) return new Date(0);
     if (typeof dateObj.toDate === 'function') return dateObj.toDate();
     if (dateObj.seconds !== undefined) return new Date(dateObj.seconds * 1000);
@@ -126,7 +126,7 @@ const OrdersPage = () => {
           const promises = allUsers.map(async (user) => {
             const ordersRef = collection(firestore, 'users', user.id, 'orders');
             const orderSnap = await import('firebase/firestore').then(m => m.getDocs(ordersRef));
-            const userOrders = [];
+            const userOrders: any[] = [];
             orderSnap.forEach(doc => {
               const orderData = doc.data();
               if (orderData.createdAt) {

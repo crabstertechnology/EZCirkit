@@ -10,29 +10,46 @@ export async function GET() {
       return NextResponse.json({ assets: [] });
     }
 
-    const files = fs.readdirSync(publicDir);
-    const assets = [];
-
+    const assets: any[] = [];
     // Supported image extensions
     const imgExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'];
 
-    for (const file of files) {
-      const filePath = path.join(publicDir, file);
-      const stat = fs.statSync(filePath);
+    function scanDir(dirPath: string, relativePrefix = '') {
+      const files = fs.readdirSync(dirPath);
+      for (const file of files) {
+        // Skip editor folder
+        if (file === 'editor' && relativePrefix === '') continue;
 
-      if (stat.isFile()) {
-        const ext = path.extname(file).toLowerCase();
-        if (imgExtensions.includes(ext)) {
-          assets.push({
-            name: file.replace(ext, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-            fileName: file,
-            path: `/${file}`,
-            mtime: stat.mtimeMs,
-            size: stat.size
-          });
+        const filePath = path.join(dirPath, file);
+        const stat = fs.statSync(filePath);
+        const relPath = relativePrefix ? `${relativePrefix}/${file}` : file;
+
+        if (stat.isDirectory()) {
+          scanDir(filePath, relPath);
+        } else if (stat.isFile()) {
+          const ext = path.extname(file).toLowerCase();
+          if (imgExtensions.includes(ext)) {
+            // Clean up name for presentation: split on dashes or underscores
+            const cleanName = file
+              .replace(ext, '')
+              .split(/[_-]/)
+              .filter(Boolean)
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+
+            assets.push({
+              name: cleanName,
+              fileName: file,
+              path: `/${relPath}`,
+              mtime: stat.mtimeMs,
+              size: stat.size
+            });
+          }
         }
       }
     }
+
+    scanDir(publicDir);
 
     return NextResponse.json({ assets });
   } catch (error: any) {
@@ -40,3 +57,4 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to list assets' }, { status: 500 });
   }
 }
+

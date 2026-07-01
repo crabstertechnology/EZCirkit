@@ -90,12 +90,12 @@ const FlagshipProductSection = () => {
   const carouselImages = React.useMemo(() => {
     if (!product) return [];
     // Guard: treat empty string same as missing
-    const primaryImg = product.image && product.image.trim() !== '' ? product.image : '/new-kit-front.png';
+    const primaryImg = product.image && product.image.trim() !== '' ? product.image : '/kit/new-kit-front.png';
     if (isKit) {
       return [
         { src: primaryImg, alt: 'Front View' },
-        { src: '/kit-inside.png', alt: 'Inside View' },
-        { src: '/kit-back.png', alt: 'Back View' },
+        { src: '/kit/kit-inside.png', alt: 'Inside View' },
+        { src: '/kit/kit-back.png', alt: 'Back View' },
       ];
     }
     return [
@@ -148,7 +148,7 @@ const FlagshipProductSection = () => {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": product.name,
-    "image": product.image || "/new-kit-front.png",
+    "image": product.image || "/kit/new-kit-front.png",
     "description": product.description || "EZCirkit STEM Starter Kit for learning electronics.",
     "brand": { "@type": "Brand", "name": "EZCirkit" },
     "offers": {
@@ -212,7 +212,7 @@ const FlagshipProductSection = () => {
                         className="w-full h-auto max-h-[480px] object-contain block mx-auto p-4"
                         loading={index === 0 ? 'eager' : 'lazy'}
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = '/new-kit-front.png';
+                          (e.currentTarget as HTMLImageElement).src = '/kit/new-kit-front.png';
                         }}
                       />
                     </CarouselItem>

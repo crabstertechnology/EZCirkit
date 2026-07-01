@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     siteName: 'EZCirkit',
     images: [
       {
-        url: '/new-kit-front.png',
+        url: '/kit/new-kit-front.png',
         width: 1200,
         height: 630,
         alt: 'EZCirkit STEM Starter Kit',
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'EZCirkit – Learn Electronics Made Easy | Crabster Technology',
     description: 'Learn electronics easily with hands-on STEM kits, Arduino projects and interactive tutorials.',
-    images: ['/new-kit-front.png'],
+    images: ['/kit/new-kit-front.png'],
     creator: '@crabstertech',
   },
   robots: {

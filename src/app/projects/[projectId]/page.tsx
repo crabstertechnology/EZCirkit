@@ -66,7 +66,7 @@ export default function ProjectDetailPage() {
         id: PRODUCT_ID,
         name: 'EZCirkit Starter Kit',
         price: 2499,
-        image: '/new-kit-front.png',
+        image: '/kit/new-kit-front.png',
         description: 'The single kit you need to build your first 10 electronics projects.'
       });
       router.push('/checkout');

@@ -586,14 +586,14 @@ const Header = () => {
           <div className="flex animate-marquee items-center py-1.5" style={{ gap: '2.5rem' }}>
             {[0, 1].map((copy) => (
               <div key={copy} className="flex items-center shrink-0" style={{ gap: '2.5rem' }}>
-                {announcementSettings.items.map((item, idx) => {
+                {announcementSettings.items.map((item: any, idx: number) => {
                   const parts = item.text.split(new RegExp(`(${item.accentText})`, 'gi'));
                   return (
                     <React.Fragment key={idx}>
                       <span className="marquee-item">
                         {item.prefixIcon && <span className="mr-1.5">{item.prefixIcon}</span>}
                         <span>
-                          {parts.map((part, i) => {
+                          {parts.map((part: string, i: number) => {
                             const isAccent = item.accentText && part.toLowerCase() === item.accentText.toLowerCase();
                             return (
                               <span key={i} className={isAccent ? 'marquee-accent' : undefined}>

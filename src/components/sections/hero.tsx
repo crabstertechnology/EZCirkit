@@ -77,7 +77,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
           <div className="relative lg:col-span-6 flex justify-center lg:justify-end items-center w-full">
             <div className="relative animate-float max-w-[600px] w-full">
               <Image
-                src="/new-kit-front.png"
+                src="/kit/new-kit-front.png"
                 alt="EZCirkit Starter Kit board"
                 width={600}
                 height={500}
