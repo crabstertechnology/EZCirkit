@@ -144,7 +144,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
               <CarouselContent>
                 {productImages.map((image, index) => (
                   <CarouselItem key={index}>
-                    <div className="aspect-w-4 aspect-h-3">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden">
                       <Image
                         src={image.imageUrl}
                         alt={image.description}
@@ -157,7 +157,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
                   </CarouselItem>
                 ))}
                 <CarouselItem>
-                   <div className="aspect-w-4 aspect-h-3">
+                   <div className="relative aspect-[4/3] w-full overflow-hidden">
                       <iframe
                         src="https://www.youtube.com/embed/gV7zBtKObMo"
                         title="YouTube video player"

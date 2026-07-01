@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindAnimate from 'tailwindcss-animate';
 
 export default {
   darkMode: ['class'],
@@ -102,9 +103,6 @@ export default {
     },
   },
   plugins: [
-    require('tailwindcss-animate'),
-    require('@tailwindcss/aspect-ratio')({
-      strategy: 'className',
-    }),
+    tailwindAnimate,
   ],
 } satisfies Config;
