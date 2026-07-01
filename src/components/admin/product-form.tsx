@@ -318,7 +318,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     if (!allProducts) return [];
     const paths = new Set<string>();
     allProducts.forEach((p: any) => {
-      if (product && p.id === product.id) return;
       if (p.image) paths.add(p.image);
       if (p.gallery && Array.isArray(p.gallery)) {
         p.gallery.forEach((img: string) => {
@@ -327,7 +326,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
       }
     });
     return Array.from(paths);
-  }, [allProducts, product]);
+  }, [allProducts]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
