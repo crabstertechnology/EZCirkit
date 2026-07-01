@@ -357,7 +357,7 @@ export default function ShopPage() {
                           className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
                           onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                         />
-                        {discount && (
+                        {!!discount && discount > 0 && (
                           <span className="absolute top-2 left-2 bg-[#ff6c00] text-white text-[10px] font-black px-1.5 py-0.5 rounded-sm">
                             -{discount}%
                           </span>

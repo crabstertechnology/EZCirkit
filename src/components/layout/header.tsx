@@ -417,7 +417,7 @@ const Header = () => {
                         </p>
                       </div>
                       {/* Discount badge */}
-                      {discount && (
+                      {!!discount && discount > 0 && (
                         <span className="text-[10px] font-black bg-[#ff6c00] text-white px-1.5 py-0.5 rounded-sm flex-shrink-0">
                           -{discount}%
                         </span>

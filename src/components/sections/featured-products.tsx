@@ -152,7 +152,7 @@ const FeaturedProducts = () => {
                     />
 
                     {/* Discount badge — top left */}
-                    {discount && (
+                    {!!discount && discount > 0 && (
                       <span className="absolute top-2.5 left-2.5 bg-[#ff6c00] text-white text-[10px] font-black px-2 py-0.5 rounded-sm">
                         -{discount}%
                       </span>
