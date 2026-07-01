@@ -267,8 +267,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
       features: '',
       specifications: '',
       additionalResources: '',
-      warranty: '',
-      shipping: '',
+      warranty: '7 Days replacement against manufacturing defects.',
+      shipping: 'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
       gallery: [],
     },
   });
@@ -302,8 +302,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
         features: '',
         specifications: '',
         additionalResources: '',
-        warranty: '',
-        shipping: '',
+        warranty: '7 Days replacement against manufacturing defects.',
+        shipping: 'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
         gallery: [],
       });
     }
@@ -571,7 +571,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                   <FormItem>
                     <FormLabel>Warranty Terms</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="e.g. 6 Months warranty against manufacturing defects." {...field} className="h-20 text-xs" />
+                      <Textarea placeholder="e.g. 7 Days replacement against manufacturing defects." {...field} className="h-20 text-xs" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -584,7 +584,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                   <FormItem>
                     <FormLabel>Shipping & Delivery Info</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="e.g. Dispatched in 24 hours. Free delivery for orders above ₹999." {...field} className="h-20 text-xs" />
+                      <Textarea placeholder="e.g. Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage." {...field} className="h-20 text-xs" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

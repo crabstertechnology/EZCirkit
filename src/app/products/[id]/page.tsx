@@ -797,7 +797,7 @@ export default function ProductDetailPage() {
             <TabsContent value="warranty" className="p-6 border border-border/60 rounded-2xl bg-white dark:bg-zinc-950/20 space-y-4">
               <h3 className="text-base font-black uppercase tracking-wider text-foreground">Warranty Terms</h3>
               <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                {product.warranty || "Warranty coverage varies by manufacturer. Basic cover for component failures applies."}
+                {product.warranty || "7 Days replacement against manufacturing defects."}
               </p>
             </TabsContent>
 
@@ -805,7 +805,7 @@ export default function ProductDetailPage() {
             <TabsContent value="shipping" className="p-6 border border-border/60 rounded-2xl bg-white dark:bg-zinc-950/20 space-y-4">
               <h3 className="text-base font-black uppercase tracking-wider text-foreground">Shipping and Delivery</h3>
               <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                {product.shipping || "Fast, tracked shipping on all orders. Free shipping is automatically applied for purchases exceeding ₹999."}
+                {product.shipping || "Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage."}
               </p>
             </TabsContent>
           </Tabs>
