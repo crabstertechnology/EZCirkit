@@ -426,6 +426,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                       <SelectContent>
                         <SelectItem value="Sensors">Sensors</SelectItem>
                         <SelectItem value="Arduino Boards">Arduino Boards</SelectItem>
+                        <SelectItem value="Development Boards">Development Boards</SelectItem>
                         <SelectItem value="Displays">Displays</SelectItem>
                         <SelectItem value="Power Modules">Power Modules</SelectItem>
                         <SelectItem value="Robotics">Robotics</SelectItem>

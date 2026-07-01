@@ -133,6 +133,7 @@ export default function ShopPage() {
     'All Products',
     'Sensors',
     'Arduino Boards',
+    'Development Boards',
     'Displays',
     'Power Modules',
     'Robotics',
