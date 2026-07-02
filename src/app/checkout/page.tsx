@@ -116,8 +116,8 @@ const CheckoutPage = () => {
             premium = sortedCouriers[1] || cheapest;
           }
 
-          const stdRate = Math.ceil(cheapest.rate);
-          const premRate = Math.ceil(premium.rate);
+          const stdRate = Math.ceil(cheapest.rate * 1.18);
+          const premRate = Math.ceil(premium.rate * 1.18);
 
           setStandardCourier({
             id: cheapest.courier_company_id,
