@@ -121,6 +121,7 @@ const OrderDetailsComponent = () => {
   const [isAssigningAwb, setIsAssigningAwb] = useState(false);
   const [isSchedulingPickup, setIsSchedulingPickup] = useState(false);
   const [isGeneratingDocument, setIsGeneratingDocument] = useState<'manifest' | 'label' | 'invoice' | null>(null);
+  const [selectedCourierId, setSelectedCourierId] = useState<number | null>(null);
   
   const [trackingData, setTrackingData] = useState<any | null>(null);
   const [isFetchingTracking, setIsFetchingTracking] = useState(false);
@@ -242,7 +243,7 @@ const OrderDetailsComponent = () => {
   };
 
   // Shiprocket integration operations
-  const handleCreateShiprocketOrder = async () => {
+  const handleCreateShiprocketOrder = async (customCourierId?: number) => {
     if (!order || !orderItems || !user || !orderDocRef) return;
     setIsCreatingOrder(true);
     try {
@@ -292,14 +293,14 @@ const OrderDetailsComponent = () => {
       let shiprocketStatus = res.status || 'NEW';
 
       try {
-        const courierId = order.courierId && order.courierId > 15 ? order.courierId : undefined;
+        const finalCourierId = customCourierId || (order.courierId && order.courierId > 15 ? order.courierId : undefined);
         const awbResponse = await fetch('/api/shiprocket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'assign-awb',
             shipment_id: res.shipment_id,
-            ...(courierId ? { courier_id: courierId } : {}),
+            ...(finalCourierId ? { courier_id: finalCourierId } : {}),
           }),
         });
 
@@ -798,16 +799,80 @@ const OrderDetailsComponent = () => {
                     </div>
                   </div>
                   
+                  {/* Courier Rate Checker for Admin */}
+                  <div className="space-y-3 pt-2 border-t border-border mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase">Courier Selection</span>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCheckServiceability}
+                        disabled={isCheckingServiceability || isCreatingOrder}
+                        className="h-8 text-xs font-medium"
+                      >
+                        {isCheckingServiceability ? (
+                          <>
+                            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            Checking...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="mr-1 h-3.5 w-3.5" />
+                            Check Rates
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {serviceabilityError && (
+                      <p className="text-xs text-destructive">{serviceabilityError}</p>
+                    )}
+
+                    {serviceableCouriers.length > 0 && (
+                      <div className="border border-border p-2 space-y-2 bg-muted/40 max-h-48 overflow-y-auto rounded-sm">
+                        {serviceableCouriers.map((courier: any) => {
+                          const isSelected = selectedCourierId === courier.courier_company_id;
+                          return (
+                            <div 
+                              key={courier.courier_company_id} 
+                              onClick={() => setSelectedCourierId(courier.courier_company_id)}
+                              className={`flex items-center justify-between p-2 border cursor-pointer rounded-sm transition-colors text-xs ${
+                                isSelected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <input 
+                                  type="radio" 
+                                  checked={isSelected}
+                                  onChange={() => setSelectedCourierId(courier.courier_company_id)}
+                                  className="text-primary focus:ring-primary h-3.5 w-3.5"
+                                />
+                                <div>
+                                  <p className="font-semibold text-foreground">{courier.courier_name}</p>
+                                  <p className="text-muted-foreground text-[10px]">
+                                    Rate: ₹{courier.rate} | Delivery: {courier.etd || '3-5 days'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   <Button 
-                    className="w-full bg-primary-gradient" 
-                    onClick={handleCreateShiprocketOrder}
-                    disabled={isCreatingOrder}
+                    className="w-full bg-primary-gradient mt-2" 
+                    onClick={() => handleCreateShiprocketOrder(selectedCourierId || undefined)}
+                    disabled={isCreatingOrder || isCheckingServiceability}
                   >
                     {isCreatingOrder ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Pushing to Shiprocket...
                       </>
+                    ) : selectedCourierId ? (
+                      `Book Order with ${serviceableCouriers.find((c: any) => c.courier_company_id === selectedCourierId)?.courier_name || 'Selected Courier'}`
                     ) : (
                       'Book Order on Shiprocket'
                     )}
