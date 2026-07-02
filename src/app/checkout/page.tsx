@@ -44,11 +44,22 @@ const CheckoutPage = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   
+  interface CourierOption {
+    id: number;
+    name: string;
+    rate: number;
+    etd: string;
+    type: 'standard' | 'premium';
+  }
+
   // Dynamic Shiprocket Rates states
   const [shippingOption, setShippingOption] = useState<'standard' | 'premium'>('standard');
   const [shippingCharge, setShippingCharge] = useState<number>(49);
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [ratesError, setRatesError] = useState<string | null>(null);
+
+  const [courierList, setCourierList] = useState<CourierOption[]>([]);
+  const [selectedCourier, setSelectedCourier] = useState<CourierOption | null>(null);
 
   const [standardCourier, setStandardCourier] = useState<{ id?: number; name: string; rate: number; etd: string }>({
     name: 'Standard (Surface mode)',
@@ -106,62 +117,86 @@ const CheckoutPage = () => {
         const couriers = res.data?.available_courier_companies || [];
         
         if (couriers.length > 0) {
-          // 1. Standard: Find cheapest courier
-          const sortedCouriers = [...couriers].sort((a: any, b: any) => a.rate - b.rate);
-          const cheapest = sortedCouriers[0];
-          
-          // 2. Premium: Find cheapest air/express courier
-          const expressCouriers = couriers.filter((c: any) => 
-            /air|express|bluedart|priority/i.test(c.courier_name)
-          );
-          
-          let premium = expressCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
-          if (!premium) {
-            premium = sortedCouriers[1] || cheapest;
+          // Map and calculate rates for all returned couriers
+          const mappedCouriers: CourierOption[] = couriers.map((c: any) => {
+            const isAir = /air|express|bluedart|priority/i.test(c.courier_name);
+            const type: 'standard' | 'premium' = isAir ? 'premium' : 'standard';
+            const rate = calculateShippingCharge(cartSubtotal, c.rate, selectedAddress.state, isAir);
+            return {
+              id: c.courier_company_id,
+              name: c.courier_name,
+              rate: rate,
+              etd: c.etd ? `Upto ${c.etd}` : (isAir ? '2-4 days' : '4-7 days'),
+              type: type
+            };
+          });
+
+          // Filter out inactive/unwanted couriers using allowedCouriers whitelist
+          let filteredCouriers = mappedCouriers;
+          if (SHIPPING_CONFIG.allowedCouriers && SHIPPING_CONFIG.allowedCouriers.length > 0) {
+            filteredCouriers = mappedCouriers.filter(c => 
+              SHIPPING_CONFIG.allowedCouriers.some(allowed => 
+                c.name.toLowerCase().includes(allowed.toLowerCase())
+              )
+            );
           }
 
-          const stdRate = calculateShippingCharge(cartSubtotal, cheapest.rate, selectedAddress.state, false);
-          const premRate = calculateShippingCharge(cartSubtotal, premium.rate, selectedAddress.state, true);
+          // If no allowed couriers are serviceable, fallback to all returned couriers
+          if (filteredCouriers.length === 0) {
+            filteredCouriers = mappedCouriers;
+          }
 
-          setStandardCourier({
-            id: cheapest.courier_company_id,
-            name: `Standard (${cheapest.courier_name})`,
-            rate: stdRate,
-            etd: cheapest.etd ? `Upto ${cheapest.etd}` : '4-7 days',
-          });
+          // Sort by rate (cheapest first)
+          filteredCouriers.sort((a, b) => a.rate - b.rate);
 
-          setPremiumCourier({
-            id: premium.courier_company_id,
-            name: `Premium (${premium.courier_name})`,
-            rate: premRate,
-            etd: premium.etd ? `Upto ${premium.etd}` : '2-4 days',
-          });
+          setCourierList(filteredCouriers);
 
-          // Set dynamic shipping charge
-          if (shippingOption === 'standard') {
-            setShippingCharge(stdRate);
-          } else {
-            setShippingCharge(premRate);
+          // Select the cheapest one by default
+          if (filteredCouriers.length > 0) {
+            const defaultCourier = filteredCouriers[0];
+            setSelectedCourier(defaultCourier);
+            setShippingCharge(defaultCourier.rate);
+            setShippingOption(defaultCourier.type);
           }
         } else {
           // Fallback to defaults
-          const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state, false);
-          const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state, true);
-          setStandardCourier({ name: 'Standard (Surface mode)', rate: stdRate, etd: 'Upto 7 days' });
-          setPremiumCourier({ name: 'Premium (Bluedart)', rate: premRate, etd: '2-4 days' });
-          setShippingCharge(shippingOption === 'standard' ? stdRate : premRate);
+          applyFallbackCouriers();
         }
       } catch (err: any) {
         console.error('Error fetching shipping rates:', err);
         setRatesError('Unable to load live courier rates. Default rates applied.');
-        const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state, false);
-        const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state, true);
-        setStandardCourier({ name: 'Standard (Surface mode)', rate: stdRate, etd: 'Upto 7 days' });
-        setPremiumCourier({ name: 'Premium (Bluedart)', rate: premRate, etd: '2-4 days' });
-        setShippingCharge(shippingOption === 'standard' ? stdRate : premRate);
+        applyFallbackCouriers();
       } finally {
         setIsLoadingRates(false);
       }
+    };
+
+    const applyFallbackCouriers = () => {
+      const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress?.state, false);
+      const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress?.state, true);
+      
+      const fallbackList: CourierOption[] = [
+        {
+          id: 10,
+          name: 'Standard Shipping (Surface)',
+          rate: stdRate,
+          etd: 'Upto 7 days',
+          type: 'standard'
+        },
+        {
+          id: 11,
+          name: 'Premium Shipping (Express Air)',
+          rate: premRate,
+          etd: '2-4 days',
+          type: 'premium'
+        }
+      ];
+
+      setCourierList(fallbackList);
+      const defaultCourier = fallbackList[0];
+      setSelectedCourier(defaultCourier);
+      setShippingCharge(defaultCourier.rate);
+      setShippingOption('standard');
     };
 
     fetchShippingRates();
@@ -183,7 +218,7 @@ const CheckoutPage = () => {
   const createShiprocketShipment = async (orderId: string, razorpayPaymentId: string) => {
     if (!selectedAddress || !user) return;
     
-    const courierId = shippingOption === 'standard' ? standardCourier.id : premiumCourier.id;
+    const courierId = selectedCourier ? selectedCourier.id : (shippingOption === 'standard' ? standardCourier.id : premiumCourier.id);
     
     const shipmentData = {
       orderId: orderId,
@@ -341,7 +376,7 @@ const CheckoutPage = () => {
       status: 'paid',
       paymentId: paymentId,
       shippingAddress: shippingDetails,
-      shippingOption: shippingOption,
+      shippingOption: selectedCourier ? `${selectedCourier.type} (${selectedCourier.name})` : shippingOption,
       shippingCharge: shippingCharge,
       shiprocket: shiprocketResponse ? {
         order_id: shiprocketResponse.order_id,
@@ -516,45 +551,37 @@ const CheckoutPage = () => {
                     </div>
                   )}
 
-                  {/* Option 1: Standard */}
-                  <div 
-                    className={`p-4 flex items-center justify-between cursor-pointer border-b border-border hover:bg-muted/10 transition-colors ${shippingOption === 'standard' ? 'bg-muted/20' : ''}`}
-                    onClick={() => handleShippingOptionChange('standard')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="radio" 
-                        checked={shippingOption === 'standard'} 
-                        onChange={() => handleShippingOptionChange('standard')} 
-                        className="text-primary focus:ring-primary h-4 w-4"
-                      />
-                      <div className="text-xs">
-                        <p className="font-semibold text-foreground capitalize">{standardCourier.name}</p>
-                        <p className="text-muted-foreground text-[10px] mt-0.5">{standardCourier.etd}</p>
+                  {courierList.map((courier, index) => (
+                    <div 
+                      key={courier.id + '-' + index}
+                      className={`p-4 flex items-center justify-between cursor-pointer hover:bg-muted/10 transition-colors ${index < courierList.length - 1 ? 'border-b border-border' : ''} ${selectedCourier?.id === courier.id ? 'bg-muted/20' : ''}`}
+                      onClick={() => {
+                        setSelectedCourier(courier);
+                        setShippingCharge(courier.rate);
+                        setShippingOption(courier.type);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="radio" 
+                          checked={selectedCourier?.id === courier.id} 
+                          onChange={() => {
+                            setSelectedCourier(courier);
+                            setShippingCharge(courier.rate);
+                            setShippingOption(courier.type);
+                          }} 
+                          className="text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <div className="text-xs">
+                          <p className="font-semibold text-foreground capitalize">{courier.name}</p>
+                          <p className="text-muted-foreground text-[10px] mt-0.5">{courier.etd}</p>
+                        </div>
                       </div>
+                      <span className="text-sm font-bold text-foreground">
+                        {courier.rate === 0 ? '₹0.00' : `₹${courier.rate.toLocaleString()}.00`}
+                      </span>
                     </div>
-                    <span className="text-sm font-bold text-foreground">₹{standardCourier.rate.toLocaleString()}.00</span>
-                  </div>
-                  
-                  {/* Option 2: Premium */}
-                  <div 
-                    className={`p-4 flex items-center justify-between cursor-pointer hover:bg-muted/10 transition-colors ${shippingOption === 'premium' ? 'bg-muted/20' : ''}`}
-                    onClick={() => handleShippingOptionChange('premium')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="radio" 
-                        checked={shippingOption === 'premium'} 
-                        onChange={() => handleShippingOptionChange('premium')} 
-                        className="text-primary focus:ring-primary h-4 w-4"
-                      />
-                      <div className="text-xs">
-                        <p className="font-semibold text-foreground capitalize">{premiumCourier.name}</p>
-                        <p className="text-muted-foreground text-[10px] mt-0.5">{premiumCourier.etd}</p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold text-foreground">₹{premiumCourier.rate.toLocaleString()}.00</span>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -7,8 +7,9 @@ export const SHIPPING_CONFIG = {
   // - 'FLAT': Flat shipping rate below threshold, free above threshold.
   // - 'DYNAMIC': Real-time quotes from Shiprocket + custom safety margin.
   // - 'ZONE': Fixed charges based on Indian states / regions.
-  strategy: 'FLAT' as 'FLAT' | 'DYNAMIC' | 'ZONE',
+  strategy: 'DYNAMIC' as 'FLAT' | 'DYNAMIC' | 'ZONE',
   pickupPincode: '641019', // Coimbatore, Tamil Nadu
+  allowedCouriers: ['DTDC Surface', 'DTDC Air 500gm'] as string[], // Only show these active courier partners on checkout. Leave empty [] to show all.
 
   // FLAT RATE SETTINGS
   flatRate: 79,             // Default shipping fee (₹)
