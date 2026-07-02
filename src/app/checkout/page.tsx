@@ -117,47 +117,69 @@ const CheckoutPage = () => {
         const couriers = res.data?.available_courier_companies || [];
         
         if (couriers.length > 0) {
-          // Map and calculate rates for all returned couriers
-          const mappedCouriers: CourierOption[] = couriers.map((c: any) => {
-            const isAir = /air|express|bluedart|priority/i.test(c.courier_name);
-            const type: 'standard' | 'premium' = isAir ? 'premium' : 'standard';
-            const rate = calculateShippingCharge(cartSubtotal, c.rate, selectedAddress.state, isAir);
-            return {
-              id: c.courier_company_id,
-              name: c.courier_name,
-              rate: rate,
-              etd: c.etd ? `Upto ${c.etd}` : (isAir ? '2-4 days' : '4-7 days'),
-              type: type
-            };
-          });
-
-          // Filter out inactive/unwanted couriers using allowedCouriers whitelist
-          let filteredCouriers = mappedCouriers;
+          // Filter couriers based on allowed whitelist first
+          let allowedRawCouriers = couriers;
           if (SHIPPING_CONFIG.allowedCouriers && SHIPPING_CONFIG.allowedCouriers.length > 0) {
-            filteredCouriers = mappedCouriers.filter(c => 
+            allowedRawCouriers = couriers.filter((c: any) => 
               SHIPPING_CONFIG.allowedCouriers.some(allowed => 
-                c.name.toLowerCase().includes(allowed.toLowerCase())
+                c.courier_name.toLowerCase().includes(allowed.toLowerCase())
               )
             );
           }
 
-          // If no allowed couriers are serviceable, fallback to all returned couriers
-          if (filteredCouriers.length === 0) {
-            filteredCouriers = mappedCouriers;
+          // If no allowed couriers match, fallback to all returned couriers
+          if (allowedRawCouriers.length === 0) {
+            allowedRawCouriers = couriers;
           }
 
-          // Sort by rate (cheapest first)
-          filteredCouriers.sort((a, b) => a.rate - b.rate);
+          // Separate into surface and air
+          const surfaceCouriers = allowedRawCouriers.filter((c: any) => 
+            !/air|express|bluedart|priority/i.test(c.courier_name)
+          );
+          const airCouriers = allowedRawCouriers.filter((c: any) => 
+            /air|express|bluedart|priority/i.test(c.courier_name)
+          );
 
-          setCourierList(filteredCouriers);
-
-          // Select the cheapest one by default
-          if (filteredCouriers.length > 0) {
-            const defaultCourier = filteredCouriers[0];
-            setSelectedCourier(defaultCourier);
-            setShippingCharge(defaultCourier.rate);
-            setShippingOption(defaultCourier.type);
+          // Find cheapest standard (surface)
+          let cheapestSurface = surfaceCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
+          if (!cheapestSurface) {
+            cheapestSurface = allowedRawCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
           }
+
+          // Find cheapest premium (air)
+          let cheapestAir = airCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
+          if (!cheapestAir) {
+            cheapestAir = allowedRawCouriers.sort((a: any, b: any) => a.rate - b.rate)[1] || cheapestSurface;
+          }
+
+          // Calculate final prices using your strategies / thresholds
+          const stdRate = calculateShippingCharge(cartSubtotal, cheapestSurface.rate, selectedAddress.state, false);
+          const premRate = calculateShippingCharge(cartSubtotal, cheapestAir.rate, selectedAddress.state, true);
+
+          const list: CourierOption[] = [
+            {
+              id: cheapestSurface.courier_company_id,
+              name: `Standard (Surface mode | Upto 7* days)`,
+              rate: stdRate,
+              etd: cheapestSurface.etd ? `Upto ${cheapestSurface.etd}` : 'Upto 7 days',
+              type: 'standard'
+            },
+            {
+              id: cheapestAir.courier_company_id,
+              name: `Premium (Bluedart | 2-4* days)`,
+              rate: premRate,
+              etd: cheapestAir.etd ? `Upto ${cheapestAir.etd}` : '2-4 days',
+              type: 'premium'
+            }
+          ];
+
+          setCourierList(list);
+
+          // Select the cheapest Standard option by default
+          const defaultCourier = list[0];
+          setSelectedCourier(defaultCourier);
+          setShippingCharge(defaultCourier.rate);
+          setShippingOption('standard');
         } else {
           // Fallback to defaults
           applyFallbackCouriers();
@@ -178,14 +200,14 @@ const CheckoutPage = () => {
       const fallbackList: CourierOption[] = [
         {
           id: 10,
-          name: 'Standard Shipping (Surface)',
+          name: 'Standard (Surface mode | Upto 7* days)',
           rate: stdRate,
           etd: 'Upto 7 days',
           type: 'standard'
         },
         {
           id: 11,
-          name: 'Premium Shipping (Express Air)',
+          name: 'Premium (Bluedart | 2-4* days)',
           rate: premRate,
           etd: '2-4 days',
           type: 'premium'
