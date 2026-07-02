@@ -61,8 +61,8 @@ service cloud.firestore {
         // A user can create their own order, ensuring the userId in the document matches THEIR OWN auth uid. Admins can create orders for anyone.
         allow create: if isAdmin() || (isOwner(userId) && request.resource.data.userId == request.auth.uid);
         
-        // Admins can update the status, but other fields are immutable for others.
-        allow update: if isAdmin() && isChangingOrderStatus();
+        // Admins can update the order document.
+        allow update: if isAdmin();
         
         // ALLOW ADMINS TO DELETE ORDERS
         allow delete: if isAdmin();
