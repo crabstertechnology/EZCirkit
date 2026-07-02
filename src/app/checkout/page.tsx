@@ -409,8 +409,8 @@ const CheckoutPage = () => {
         courier_name: shiprocketResponse.courier_name,
         created_at: new Date().toISOString(),
       } : {
-        status: 'creation_failed',
-        error: 'Shiprocket processing pending.'
+        status: 'pending',
+        error: 'Shiprocket booking pending.'
       }
     });
 
