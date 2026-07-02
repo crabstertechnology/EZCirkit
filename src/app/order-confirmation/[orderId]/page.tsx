@@ -1,7 +1,6 @@
-
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle, Home, Truck } from 'lucide-react';
+import { CheckCircle, Home, Truck, Loader2, RefreshCw, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -48,11 +47,13 @@ interface Order {
     shiprocket?: ShiprocketData;
 }
 
-
 const OrderConfirmationPage = () => {
   const { orderId } = useParams();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+
+  const [trackingData, setTrackingData] = useState<any | null>(null);
+  const [isFetchingTracking, setIsFetchingTracking] = useState(false);
 
   const orderDocRef = useMemoFirebase(
     () => (user && orderId ? doc(firestore, 'users', user.uid, 'orders', orderId as string) : null),
@@ -70,12 +71,41 @@ const OrderConfirmationPage = () => {
   
   const subtotal = order ? order.total : 0;
 
+  // Auto-fetch tracking if AWB exists
+  useEffect(() => {
+    if (order?.shiprocket?.awb_code && !trackingData && !isFetchingTracking) {
+      handleFetchTracking();
+    }
+  }, [order?.shiprocket?.awb_code]);
+
+  const handleFetchTracking = async () => {
+    if (!order?.shiprocket?.awb_code) return;
+    setIsFetchingTracking(true);
+    try {
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'track',
+          awb_code: order.shiprocket.awb_code,
+        }),
+      });
+
+      if (response.ok) {
+        const res = await response.json();
+        setTrackingData(res.tracking_data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch customer order tracking:', error);
+    } finally {
+      setIsFetchingTracking(false);
+    }
+  };
+
   const getShiprocketTrackingUrl = (awb: string | undefined) => {
     if (!awb) return '#';
-    // This is a generic tracking URL format, adjust if Shiprocket provides a different one
     return `https://shiprocket.co/tracking/${awb}`;
-  }
-
+  };
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading your order details...</div>;
@@ -113,7 +143,7 @@ const OrderConfirmationPage = () => {
                  <div className="space-y-1 md:text-right">
                     <p className="text-muted-foreground">Order Date</p>
                     <p className="font-medium">{order.createdAt ? format(order.createdAt.toDate(), 'PPP') : 'Processing...'}</p>
-                </div>
+                 </div>
             </div>
           
             {/* Items Ordered Section */}
@@ -165,16 +195,20 @@ const OrderConfirmationPage = () => {
 
             {/* Shipment Details */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Shipment Details</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary animate-pulse" />
+                      Shipment details
+                    </CardTitle>
+                    {order.shiprocket?.status && (
+                      <Badge variant="secondary" className="capitalize">
+                        {order.shiprocket.status}
+                      </Badge>
+                    )}
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                    {order.shiprocket && order.shiprocket.status !== 'creation_failed' ? (
                     <>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Shiprocket Status</span>
-                        <Badge variant="secondary" className="capitalize">{order.shiprocket.status}</Badge>
-                      </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Courier</span>
                         <span>{order.shiprocket.courier_name || 'Not Assigned'}</span>
@@ -183,17 +217,52 @@ const OrderConfirmationPage = () => {
                         <span className="text-muted-foreground">Tracking ID (AWB)</span>
                         <span className="font-mono text-xs">{order.shiprocket.awb_code || 'Not Assigned'}</span>
                       </div>
-                       {order.shiprocket.awb_code && (
-                         <Button asChild className="w-full mt-2">
+                      
+                      {/* Tracking Timeline */}
+                      {order.shiprocket.awb_code && (
+                        <div className="mt-4 space-y-3 pt-4 border-t border-border">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Live Journey Status</span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6" 
+                              onClick={handleFetchTracking} 
+                              disabled={isFetchingTracking}
+                            >
+                              <RefreshCw className={`h-3 w-3 ${isFetchingTracking ? 'animate-spin' : ''}`} />
+                            </Button>
+                          </div>
+                          
+                          <div className="space-y-3 pl-2 border-l border-border ml-2 text-xs">
+                            {trackingData?.shipment_track_activities && trackingData.shipment_track_activities.length > 0 ? (
+                              trackingData.shipment_track_activities.map((act: any, idx: number) => (
+                                <div key={idx} className="relative pl-4">
+                                  <div className="absolute -left-[13px] top-1.5 h-2 w-2 bg-primary border border-background" />
+                                  <p className="font-semibold text-foreground capitalize">{act.activity}</p>
+                                  <p className="text-muted-foreground text-[10px]">
+                                    {act.date} {act.location ? `| ${act.location}` : ''}
+                                  </p>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">
+                                {isFetchingTracking ? 'Fetching latest journey updates...' : 'Package is prepared and awaiting courier pickup.'}
+                              </p>
+                            )}
+                          </div>
+
+                          <Button asChild className="w-full mt-2" variant="outline">
                             <a href={getShiprocketTrackingUrl(order.shiprocket.awb_code)} target="_blank" rel="noopener noreferrer">
-                              <Truck className="mr-2 h-4 w-4" /> Track Package
+                              <Truck className="mr-2 h-4 w-4" /> Track on Courier Portal
                             </a>
                           </Button>
-                       )}
+                        </div>
+                      )}
                     </>
                    ) : (
-                     <p className="text-center text-muted-foreground">
-                       Your order is being processed. Shipment details will appear here soon.
+                     <p className="text-center text-muted-foreground py-2">
+                       Your order is being processed. Shipment tracking timeline will appear here once booked.
                      </p>
                    )}
                 </CardContent>

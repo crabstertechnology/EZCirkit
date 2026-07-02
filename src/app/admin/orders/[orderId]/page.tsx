@@ -26,7 +26,20 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Truck, Trash2 } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Truck, 
+  Trash2, 
+  Loader2, 
+  RefreshCw, 
+  CheckCircle2, 
+  AlertTriangle, 
+  FileText, 
+  Calendar, 
+  Search, 
+  Package, 
+  ExternalLink 
+} from 'lucide-react';
 import type { User } from '@/app/admin/users/page';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +63,12 @@ interface ShiprocketData {
   courier_name?: string;
   created_at: string;
   error?: string;
+  manifest_generated?: boolean;
+  manifest_url?: string;
+  label_generated?: boolean;
+  label_url?: string;
+  invoice_url?: string;
+  pickup_scheduled?: boolean;
 }
 
 interface Order {
@@ -78,10 +97,10 @@ interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  productId?: string;
 }
 
 const ORDER_STATUSES: Order['status'][] = ['paid', 'shipped', 'delivered', 'cancelled'];
-
 
 const OrderDetailsComponent = () => {
   const { orderId } = useParams();
@@ -92,6 +111,19 @@ const OrderDetailsComponent = () => {
   const { toast } = useToast();
 
   const [currentStatus, setCurrentStatus] = useState<Order['status'] | undefined>();
+  
+  // Shiprocket states
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [isCheckingServiceability, setIsCheckingServiceability] = useState(false);
+  const [serviceableCouriers, setServiceableCouriers] = useState<any[]>([]);
+  const [serviceabilityError, setServiceabilityError] = useState<string | null>(null);
+  const [isAssigningAwb, setIsAssigningAwb] = useState(false);
+  const [isSchedulingPickup, setIsSchedulingPickup] = useState(false);
+  const [isGeneratingDocument, setIsGeneratingDocument] = useState<'manifest' | 'label' | 'invoice' | null>(null);
+  
+  const [trackingData, setTrackingData] = useState<any | null>(null);
+  const [isFetchingTracking, setIsFetchingTracking] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
 
   const userDocRef = useMemoFirebase(
     () => (userId ? doc(firestore, 'users', userId) : null),
@@ -107,10 +139,9 @@ const OrderDetailsComponent = () => {
 
   React.useEffect(() => {
     if (order) {
-        setCurrentStatus(order.status)
+      setCurrentStatus(order.status);
     }
   }, [order]);
-
 
   const itemsCollectionRef = useMemoFirebase(
     () => (userId && orderId ? collection(firestore, 'users', userId, 'orders', orderId as string, 'items') : null),
@@ -120,14 +151,21 @@ const OrderDetailsComponent = () => {
 
   const isLoading = isLoadingUser || isLoadingOrder || isLoadingItems;
 
+  // Auto-fetch tracking if AWB exists
+  React.useEffect(() => {
+    if (order?.shiprocket?.awb_code && !trackingData && !isFetchingTracking) {
+      handleFetchTracking();
+    }
+  }, [order?.shiprocket?.awb_code]);
+
   const handleStatusChange = (newStatus: Order['status']) => {
     if (!orderDocRef) return;
     updateDocumentNonBlocking(orderDocRef, { status: newStatus });
     toast({
-        title: "Order Status Updated",
-        description: `Order has been marked as ${newStatus}.`,
-    })
-  }
+      title: "Order Status Updated",
+      description: `Order has been marked as ${newStatus}.`,
+    });
+  };
 
   const handleDeleteOrder = () => {
     if (!orderDocRef) return;
@@ -139,12 +177,339 @@ const OrderDetailsComponent = () => {
     });
     router.replace('/admin/orders');
   };
-  
+
+  // Shiprocket integration operations
+  const handleCreateShiprocketOrder = async () => {
+    if (!order || !orderItems || !user || !orderDocRef) return;
+    setIsCreatingOrder(true);
+    try {
+      const orderDateStr = order.createdAt?.toDate 
+        ? format(order.createdAt.toDate(), 'yyyy-MM-dd') 
+        : new Date().toISOString().split('T')[0];
+
+      const orderData = {
+        orderId: order.id,
+        orderDate: orderDateStr,
+        billingCustomerName: order.shippingAddress?.name || user.displayName || 'Customer',
+        billingAddress: order.shippingAddress?.addressLine1 || '',
+        billingCity: order.shippingAddress?.city || '',
+        billingPincode: order.shippingAddress?.postalCode || '',
+        billingState: order.shippingAddress?.state || '',
+        billingCountry: order.shippingAddress?.country || 'India',
+        billingEmail: user.email || 'customer@example.com',
+        billingPhone: order.shippingAddress?.phone || '0000000000',
+        orderItems: orderItems.map(item => ({
+          name: item.name,
+          sku: item.productId || item.id,
+          units: item.quantity,
+          selling_price: item.price,
+        })),
+        paymentMethod: 'Prepaid',
+        subTotal: order.total,
+        weight: 0.5,
+      };
+
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-order',
+          orderData,
+        }),
+      });
+
+      const res = await response.json();
+      if (!response.ok) {
+        throw new Error(res.details || res.error || 'Failed to create order on Shiprocket');
+      }
+
+      await updateDocumentNonBlocking(orderDocRef, {
+        shiprocket: {
+          order_id: res.order_id,
+          shipment_id: res.shipment_id,
+          status: res.status || 'NEW',
+          created_at: new Date().toISOString(),
+        }
+      });
+
+      toast({
+        title: "Shiprocket Order Created",
+        description: `Shiprocket Order ID: ${res.order_id}`,
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: "Shiprocket Error",
+        description: error.message || 'Failed to create Shiprocket order',
+      });
+    } finally {
+      setIsCreatingOrder(false);
+    }
+  };
+
+  const handleCheckServiceability = async () => {
+    if (!order?.shippingAddress?.postalCode) return;
+    setIsCheckingServiceability(true);
+    setServiceabilityError(null);
+    try {
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'serviceability',
+          delivery_postcode: order.shippingAddress.postalCode,
+          weight: 0.5,
+          cod: 0,
+        }),
+      });
+
+      const res = await response.json();
+      if (!response.ok) {
+        throw new Error(res.details || res.error || 'Failed to fetch serviceability');
+      }
+
+      const couriers = res.data?.available_courier_companies || [];
+      setServiceableCouriers(couriers);
+      if (couriers.length === 0) {
+        setServiceabilityError('No serviceable couriers found for this pincode.');
+      }
+    } catch (error: any) {
+      console.error(error);
+      setServiceabilityError(error.message || 'Failed to fetch serviceability');
+    } finally {
+      setIsCheckingServiceability(false);
+    }
+  };
+
+  const handleAssignAwb = async (courierId?: number) => {
+    if (!order?.shiprocket?.shipment_id || !orderDocRef) return;
+    setIsAssigningAwb(true);
+    try {
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'assign-awb',
+          shipment_id: order.shiprocket.shipment_id,
+          courier_id: courierId,
+        }),
+      });
+
+      const res = await response.json();
+      if (!response.ok) {
+        throw new Error(res.details || res.error || 'Failed to assign AWB');
+      }
+
+      const awbData = res.response?.data;
+      const awb_code = awbData?.awb_code || res.awb_code;
+      const courier_name = awbData?.courier_name || res.courier_name;
+
+      if (!awb_code) {
+        throw new Error(awbData?.awb_assign_error || 'AWB Assignment failed or is pending.');
+      }
+
+      await updateDocumentNonBlocking(orderDocRef, {
+        shiprocket: {
+          ...order.shiprocket,
+          awb_code,
+          courier_name: courier_name || 'Delhivery',
+          status: 'AWB Assigned',
+        }
+      });
+
+      toast({
+        title: "AWB Assigned Successfully",
+        description: `AWB: ${awb_code} assigned via ${courier_name || 'Delhivery'}`,
+      });
+      setServiceableCouriers([]);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: "AWB Assignment Error",
+        description: error.message || 'Failed to assign AWB',
+      });
+    } finally {
+      setIsAssigningAwb(false);
+    }
+  };
+
+  const handleRequestPickup = async () => {
+    if (!order?.shiprocket?.shipment_id || !orderDocRef) return;
+    setIsSchedulingPickup(true);
+    try {
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'pickup',
+          shipment_id: order.shiprocket.shipment_id,
+        }),
+      });
+
+      const res = await response.json();
+      if (!response.ok) {
+        throw new Error(res.details || res.error || 'Failed to schedule pickup');
+      }
+
+      await updateDocumentNonBlocking(orderDocRef, {
+        shiprocket: {
+          ...order.shiprocket,
+          pickup_scheduled: true,
+          status: 'Pickup Scheduled',
+        }
+      });
+
+      toast({
+        title: "Pickup Scheduled",
+        description: "Shipment pickup request has been successfully generated.",
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: "Pickup Error",
+        description: error.message || 'Failed to schedule pickup',
+      });
+    } finally {
+      setIsSchedulingPickup(false);
+    }
+  };
+
+  const handleGenerateDocument = async (docType: 'manifest' | 'label' | 'invoice') => {
+    if (!order?.shiprocket || !orderDocRef) return;
+    setIsGeneratingDocument(docType);
+    try {
+      let action = '';
+      let bodyData: any = {};
+      
+      if (docType === 'manifest') {
+        // Step 1: Generate Manifest first
+        const genResponse = await fetch('/api/shiprocket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'manifest-generate',
+            shipment_id: order.shiprocket.shipment_id,
+          }),
+        });
+        const genRes = await genResponse.json();
+        if (!genResponse.ok) {
+          console.warn("Manifest generate returned status:", genRes);
+        }
+
+        action = 'manifest-print';
+        bodyData = { action, shipment_id: order.shiprocket.shipment_id };
+      } else if (docType === 'label') {
+        action = 'label-generate';
+        bodyData = { action, shipment_id: order.shiprocket.shipment_id };
+      } else if (docType === 'invoice') {
+        action = 'invoice-print';
+        bodyData = { action, order_id: order.shiprocket.order_id };
+      }
+
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData),
+      });
+
+      const res = await response.json();
+      if (!response.ok) {
+        throw new Error(res.details || res.error || `Failed to generate ${docType}`);
+      }
+
+      const docUrl = res.label_url || res.manifest_url || res.invoice_url || res.response?.data?.label_url || res.response?.data?.manifest_url || res.response?.data?.invoice_url;
+      
+      if (!docUrl) {
+        throw new Error(`Shiprocket did not return a URL for the ${docType}.`);
+      }
+
+      const updateData: any = {};
+      if (docType === 'manifest') {
+        updateData.shiprocket = {
+          ...order.shiprocket,
+          manifest_generated: true,
+          manifest_url: docUrl,
+        };
+      } else if (docType === 'label') {
+        updateData.shiprocket = {
+          ...order.shiprocket,
+          label_generated: true,
+          label_url: docUrl,
+        };
+      } else if (docType === 'invoice') {
+        updateData.shiprocket = {
+          ...order.shiprocket,
+          invoice_url: docUrl,
+        };
+      }
+
+      await updateDocumentNonBlocking(orderDocRef, updateData);
+
+      toast({
+        title: `${docType.charAt(0).toUpperCase() + docType.slice(1)} Ready`,
+        description: `Successfully generated and saved ${docType} link.`,
+      });
+
+      window.open(docUrl, '_blank');
+
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: `${docType.charAt(0).toUpperCase() + docType.slice(1)} Error`,
+        description: error.message || `Failed to generate ${docType}`,
+      });
+    } finally {
+      setIsGeneratingDocument(null);
+    }
+  };
+
+  const handleFetchTracking = async () => {
+    if (!order?.shiprocket?.awb_code || !orderDocRef) return;
+    setIsFetchingTracking(true);
+    setTrackingError(null);
+    try {
+      const response = await fetch('/api/shiprocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'track',
+          awb_code: order.shiprocket.awb_code,
+        }),
+      });
+
+      const res = await response.json();
+      if (!response.ok) {
+        throw new Error(res.details || res.error || 'Failed to fetch tracking data');
+      }
+
+      const trackData = res.tracking_data;
+      setTrackingData(trackData);
+
+      const currentStatus = trackData?.shipment_track?.[0]?.current_status;
+      if (currentStatus && currentStatus !== order.shiprocket.status) {
+        await updateDocumentNonBlocking(orderDocRef, {
+          shiprocket: {
+            ...order.shiprocket,
+            status: currentStatus,
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error(error);
+      setTrackingError(error.message || 'Failed to fetch live tracking information.');
+    } finally {
+      setIsFetchingTracking(false);
+    }
+  };
+
   const getShiprocketTrackingUrl = (awb: string | undefined) => {
     if (!awb) return '#';
-    // This is a generic tracking URL format, adjust if Shiprocket provides a different one
     return `https://shiprocket.co/tracking/${awb}`;
-  }
+  };
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading order details...</div>;
@@ -259,38 +624,283 @@ const OrderDetailsComponent = () => {
             </CardContent>
           </Card>
           
-           <Card>
+          <Card>
             <CardHeader>
-              <CardTitle>Shipment Details</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  Shiprocket Shipment
+                </span>
+                {order.shiprocket?.status && (
+                  <Badge variant="secondary" className="capitalize">
+                    {order.shiprocket.status}
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-               {order.shiprocket && order.shiprocket.status !== 'creation_failed' ? (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shiprocket Status</span>
-                    <Badge variant="secondary" className="capitalize">{order.shiprocket.status}</Badge>
+            <CardContent className="space-y-4 text-sm">
+              {!order.shiprocket || order.shiprocket.status === 'creation_failed' ? (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Shipment Pending / Failed</p>
+                      <p className="mt-0.5">{order.shiprocket?.error || 'Order has not been pushed to Shiprocket yet.'}</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Courier</span>
-                    <span>{order.shiprocket.courier_name || 'Not Assigned'}</span>
+                  
+                  <Button 
+                    className="w-full bg-primary-gradient" 
+                    onClick={handleCreateShiprocketOrder}
+                    disabled={isCreatingOrder}
+                  >
+                    {isCreatingOrder ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Pushing to Shiprocket...
+                      </>
+                    ) : (
+                      'Book Order on Shiprocket'
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Shipment Booking Info */}
+                  <div className="grid grid-cols-2 gap-2 text-xs border border-border p-3 bg-muted/20">
+                    <div>
+                      <p className="text-muted-foreground">Shiprocket Order ID</p>
+                      <p className="font-semibold">{order.shiprocket.order_id}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Shipment ID</p>
+                      <p className="font-semibold">{order.shiprocket.shipment_id}</p>
+                    </div>
+                    <div className="col-span-2 pt-2 border-t border-border mt-2">
+                      <p className="text-muted-foreground">Courier Partner</p>
+                      <p className="font-semibold">{order.shiprocket.courier_name || 'Not Assigned'}</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tracking ID (AWB)</span>
-                    <span className="font-mono text-xs">{order.shiprocket.awb_code || 'Not Assigned'}</span>
-                  </div>
-                   {order.shiprocket.awb_code && (
-                     <Button asChild className="w-full mt-2">
-                        <a href={getShiprocketTrackingUrl(order.shiprocket.awb_code)} target="_blank" rel="noopener noreferrer">
-                          <Truck className="mr-2 h-4 w-4" /> Track on Shiprocket
-                        </a>
-                      </Button>
-                   )}
-                </>
-               ) : (
-                 <p className="text-destructive text-center">
-                   {order.shiprocket?.error || 'Shipment creation failed or is pending.'}
-                 </p>
-               )}
+
+                  {/* AWB Assignment Flow */}
+                  {!order.shiprocket.awb_code ? (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          onClick={handleCheckServiceability}
+                          disabled={isCheckingServiceability || isAssigningAwb}
+                        >
+                          {isCheckingServiceability ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Search className="mr-2 h-4 w-4" />
+                              Check Rates
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          className="flex-1"
+                          onClick={() => handleAssignAwb()}
+                          disabled={isAssigningAwb || isCheckingServiceability}
+                        >
+                          {isAssigningAwb ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Auto-Assign AWB'
+                          )}
+                        </Button>
+                      </div>
+
+                      {serviceabilityError && (
+                        <p className="text-xs text-destructive">{serviceabilityError}</p>
+                      )}
+
+                      {serviceableCouriers.length > 0 && (
+                        <div className="border border-border p-2 space-y-2 bg-muted/40 max-h-64 overflow-y-auto">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase">Available Serviceable Couriers</p>
+                          {serviceableCouriers.map((courier: any) => (
+                            <div key={courier.courier_company_id} className="flex items-center justify-between p-2 border border-border bg-card text-xs">
+                              <div>
+                                <p className="font-semibold">{courier.courier_name}</p>
+                                <p className="text-muted-foreground text-[10px]">
+                                  Rate: ₹{courier.rate} | Delivery: {courier.etd || '3-5 days'}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => handleAssignAwb(courier.courier_company_id)}
+                                disabled={isAssigningAwb}
+                                className="h-7 px-2"
+                              >
+                                Assign
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Tracking / AWB Display */}
+                      <div className="flex justify-between items-center text-xs">
+                        <div>
+                          <p className="text-muted-foreground">AWB Code / Air Waybill</p>
+                          <p className="font-mono font-semibold">{order.shiprocket.awb_code}</p>
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="h-8">
+                          <a href={getShiprocketTrackingUrl(order.shiprocket.awb_code)} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      </div>
+
+                      {/* Pickup Flow */}
+                      {!order.shiprocket.pickup_scheduled ? (
+                        <Button 
+                          className="w-full"
+                          variant="secondary"
+                          onClick={handleRequestPickup}
+                          disabled={isSchedulingPickup}
+                        >
+                          {isSchedulingPickup ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Scheduling Pickup...
+                            </>
+                          ) : (
+                            <>
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Schedule Courier Pickup
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 text-xs">
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          <p className="font-semibold">Logistics Pickup Scheduled</p>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      {/* Documents Grid */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase">Shipping Documents</p>
+                        
+                        <div className="grid grid-cols-1 gap-2 text-xs">
+                          {/* Invoice Button */}
+                          <div className="flex items-center justify-between border border-border p-2 bg-muted/10">
+                            <span className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              Order Invoice
+                            </span>
+                            {order.shiprocket.invoice_url ? (
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                                  <a href={order.shiprocket.invoice_url} target="_blank" rel="noopener noreferrer">View</a>
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleGenerateDocument('invoice')} disabled={isGeneratingDocument === 'invoice'}>
+                                  {isGeneratingDocument === 'invoice' ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Recreate'}
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button size="sm" variant="outline" className="h-7" onClick={() => handleGenerateDocument('invoice')} disabled={isGeneratingDocument === 'invoice'}>
+                                {isGeneratingDocument === 'invoice' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Generate'}
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Label Button */}
+                          <div className="flex items-center justify-between border border-border p-2 bg-muted/10">
+                            <span className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              Shipping Label
+                            </span>
+                            {order.shiprocket.label_url ? (
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                                  <a href={order.shiprocket.label_url} target="_blank" rel="noopener noreferrer">View</a>
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleGenerateDocument('label')} disabled={isGeneratingDocument === 'label'}>
+                                  {isGeneratingDocument === 'label' ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Recreate'}
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button size="sm" variant="outline" className="h-7" onClick={() => handleGenerateDocument('label')} disabled={isGeneratingDocument === 'label'}>
+                                {isGeneratingDocument === 'label' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Generate'}
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Manifest Button */}
+                          <div className="flex items-center justify-between border border-border p-2 bg-muted/10">
+                            <span className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              Manifest Sheet
+                            </span>
+                            {order.shiprocket.manifest_url ? (
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                                  <a href={order.shiprocket.manifest_url} target="_blank" rel="noopener noreferrer">View</a>
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleGenerateDocument('manifest')} disabled={isGeneratingDocument === 'manifest'}>
+                                  {isGeneratingDocument === 'manifest' ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Recreate'}
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button size="sm" variant="outline" className="h-7" onClick={() => handleGenerateDocument('manifest')} disabled={isGeneratingDocument === 'manifest'}>
+                                {isGeneratingDocument === 'manifest' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Generate'}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Live Tracking Timeline */}
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase">Live Tracking Timeline</p>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            onClick={handleFetchTracking} 
+                            disabled={isFetchingTracking}
+                          >
+                            <RefreshCw className={`h-3 w-3 ${isFetchingTracking ? 'animate-spin' : ''}`} />
+                          </Button>
+                        </div>
+
+                        {trackingError && (
+                          <p className="text-xs text-destructive">{trackingError}</p>
+                        )}
+
+                        <div className="space-y-3 pl-2 border-l border-border ml-2">
+                          {trackingData?.shipment_track_activities && trackingData.shipment_track_activities.length > 0 ? (
+                            trackingData.shipment_track_activities.map((act: any, idx: number) => (
+                              <div key={idx} className="relative pl-4 text-xs">
+                                <div className="absolute -left-[13px] top-1.5 h-2 w-2 bg-primary border border-background" />
+                                <p className="font-semibold text-foreground capitalize">{act.activity}</p>
+                                <p className="text-muted-foreground text-[10px]">
+                                  {act.date} {act.location ? `| ${act.location}` : ''}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">
+                              {isFetchingTracking ? 'Fetching latest status...' : 'Shipment registered. Awaiting courier pickup.'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -346,6 +956,5 @@ const OrderDetailsPage = () => (
         <OrderDetailsComponent />
     </Suspense>
 );
-
 
 export default OrderDetailsPage;
