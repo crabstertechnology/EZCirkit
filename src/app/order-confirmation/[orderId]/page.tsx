@@ -45,6 +45,8 @@ interface Order {
         postalCode: string;
     };
     shiprocket?: ShiprocketData;
+    shippingCharge?: number;
+    shippingOption?: string;
 }
 
 const OrderConfirmationPage = () => {
@@ -175,20 +177,20 @@ const OrderConfirmationPage = () => {
                         <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</p>
                     </div>
                 </div>
-                 <div className="space-y-4 rounded-lg bg-secondary p-4">
+                 <div className="space-y-4 rounded-lg bg-secondary/50 p-4">
                     <h3 className="text-lg font-semibold">Order Summary</h3>
                      <div className="flex justify-between text-sm">
                         <span>Subtotal</span>
-                        <span>₹{subtotal.toLocaleString()}</span>
+                        <span>₹{(order.total - (order.shippingCharge || 0)).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span>Shipping</span>
-                        <span className="font-semibold text-green-600">FREE</span>
+                        <span>Shipping Charge {order.shippingOption ? `(${order.shippingOption})` : ''}</span>
+                        <span>₹{(order.shippingCharge || 0).toFixed(2)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-bold text-base">
                         <span>Total Paid</span>
-                        <span>₹{order.total.toLocaleString()}</span>
+                        <span>₹{order.total.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
