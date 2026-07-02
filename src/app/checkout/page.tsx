@@ -23,6 +23,7 @@ import AddressForm from '@/components/profile/address-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { Address } from '@/components/profile/address-card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SHIPPING_CONFIG, calculateShippingCharge } from '@/config/shipping';
 
 declare global {
   interface Window {
@@ -91,6 +92,9 @@ const CheckoutPage = () => {
             delivery_postcode: selectedAddress.postalCode,
             weight: 0.5,
             cod: 0,
+            length: 34,
+            breadth: 24,
+            height: 6,
           }),
         });
 
@@ -116,8 +120,8 @@ const CheckoutPage = () => {
             premium = sortedCouriers[1] || cheapest;
           }
 
-          const stdRate = Math.ceil(cheapest.rate * 1.18);
-          const premRate = Math.ceil(premium.rate * 1.18);
+          const stdRate = calculateShippingCharge(cartSubtotal, cheapest.rate, selectedAddress.state);
+          const premRate = calculateShippingCharge(cartSubtotal, premium.rate, selectedAddress.state);
 
           setStandardCourier({
             id: cheapest.courier_company_id,
@@ -141,23 +145,27 @@ const CheckoutPage = () => {
           }
         } else {
           // Fallback to defaults
-          setStandardCourier({ name: 'Standard (Surface mode)', rate: 49, etd: 'Upto 7 days' });
-          setPremiumCourier({ name: 'Premium (Bluedart)', rate: 125, etd: '2-4 days' });
-          setShippingCharge(shippingOption === 'standard' ? 49 : 125);
+          const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state);
+          const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state);
+          setStandardCourier({ name: 'Standard (Surface mode)', rate: stdRate, etd: 'Upto 7 days' });
+          setPremiumCourier({ name: 'Premium (Bluedart)', rate: premRate, etd: '2-4 days' });
+          setShippingCharge(shippingOption === 'standard' ? stdRate : premRate);
         }
       } catch (err: any) {
         console.error('Error fetching shipping rates:', err);
         setRatesError('Unable to load live courier rates. Default rates applied.');
-        setStandardCourier({ name: 'Standard (Surface mode)', rate: 49, etd: 'Upto 7 days' });
-        setPremiumCourier({ name: 'Premium (Bluedart)', rate: 125, etd: '2-4 days' });
-        setShippingCharge(shippingOption === 'standard' ? 49 : 125);
+        const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state);
+        const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state);
+        setStandardCourier({ name: 'Standard (Surface mode)', rate: stdRate, etd: 'Upto 7 days' });
+        setPremiumCourier({ name: 'Premium (Bluedart)', rate: premRate, etd: '2-4 days' });
+        setShippingCharge(shippingOption === 'standard' ? stdRate : premRate);
       } finally {
         setIsLoadingRates(false);
       }
     };
 
     fetchShippingRates();
-  }, [selectedAddress]);
+  }, [selectedAddress, cartSubtotal]);
 
   // Recalculate shipping charge when user toggles radio button manually
   const handleShippingOptionChange = (option: 'standard' | 'premium') => {

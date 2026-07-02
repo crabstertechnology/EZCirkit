@@ -69,6 +69,9 @@ const requestSchema = z.object({
   delivery_postcode: z.string().optional(),
   weight: z.number().optional(),
   cod: z.union([z.number(), z.boolean()]).optional(),
+  length: z.number().optional(),
+  breadth: z.number().optional(),
+  height: z.number().optional(),
 
   // order creation parameters (optional, matching shipmentSchema from create-shiprocket-shipment)
   orderData: z.object({
@@ -122,7 +125,15 @@ export async function POST(request: NextRequest) {
 
     switch (data.action) {
       case 'serviceability': {
-        const { pickup_postcode = '382424', delivery_postcode, weight = 0.5, cod = 0 } = data;
+        const { 
+          pickup_postcode = '382424', 
+          delivery_postcode, 
+          weight = 0.5, 
+          cod = 0,
+          length = 34,
+          breadth = 24,
+          height = 6
+        } = data;
         if (!delivery_postcode) {
           return NextResponse.json({ error: 'Delivery postcode is required for serviceability check' }, { status: 400 });
         }
@@ -138,6 +149,9 @@ export async function POST(request: NextRequest) {
               delivery_postcode,
               weight,
               cod: codVal,
+              length,
+              breadth,
+              height,
             },
             headers,
           }
