@@ -333,7 +333,7 @@ const CheckoutPage = () => {
         image: logoUrl,
         order_id: rzp_order_id,
         handler: function (response: any) {
-          createShiprocketShipment(newOrderId, response.razorpay_payment_id);
+          saveOrderToFirestore(response.razorpay_payment_id, newOrderId, null);
         },
         prefill: {
           name: user.displayName || selectedAddress.name,
@@ -400,6 +400,7 @@ const CheckoutPage = () => {
       shippingAddress: shippingDetails,
       shippingOption: selectedCourier ? `${selectedCourier.type} (${selectedCourier.name})` : shippingOption,
       shippingCharge: shippingCharge,
+      courierId: selectedCourier?.id || null,
       shiprocket: shiprocketResponse ? {
         order_id: shiprocketResponse.order_id,
         shipment_id: shiprocketResponse.shipment_id,

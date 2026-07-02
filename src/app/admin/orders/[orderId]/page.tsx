@@ -89,6 +89,7 @@ interface Order {
     country: string;
   };
   shiprocket?: ShiprocketData;
+  courierId?: number | null;
 }
 
 interface OrderItem {
@@ -291,12 +292,14 @@ const OrderDetailsComponent = () => {
       let shiprocketStatus = res.status || 'NEW';
 
       try {
+        const courierId = order.courierId && order.courierId > 15 ? order.courierId : undefined;
         const awbResponse = await fetch('/api/shiprocket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'assign-awb',
             shipment_id: res.shipment_id,
+            ...(courierId ? { courier_id: courierId } : {}),
           }),
         });
 

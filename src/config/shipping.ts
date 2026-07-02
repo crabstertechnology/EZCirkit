@@ -7,12 +7,13 @@ export const SHIPPING_CONFIG = {
   // - 'FLAT': Flat shipping rate below threshold, free above threshold.
   // - 'DYNAMIC': Real-time quotes from Shiprocket + custom safety margin.
   // - 'ZONE': Fixed charges based on Indian states / regions.
-  strategy: 'DYNAMIC' as 'FLAT' | 'DYNAMIC' | 'ZONE',
+  strategy: 'FLAT' as 'FLAT' | 'DYNAMIC' | 'ZONE',
   pickupPincode: '641019', // Coimbatore, Tamil Nadu
   allowedCouriers: ['DTDC Surface', 'DTDC Air 500gm'] as string[], // Only show these active courier partners on checkout. Leave empty [] to show all.
 
   // FLAT RATE SETTINGS
-  flatRate: 79,             // Default shipping fee (₹)
+  flatRate: 150,             // Standard/Surface shipping fee (₹)
+  premiumFlatRate: 200,      // Premium/Speed shipping fee (₹)
   freeShippingThreshold: 999, // Free shipping threshold (₹)
   freeShippingEnabled: false, // Set to true to enable free standard shipping above the threshold
 
@@ -73,6 +74,6 @@ export function calculateShippingCharge(subtotal: number, baseRate?: number, sta
 
     case 'FLAT':
     default:
-      return isPremium ? SHIPPING_CONFIG.flatRate + 70 : SHIPPING_CONFIG.flatRate;
+      return isPremium ? SHIPPING_CONFIG.premiumFlatRate : SHIPPING_CONFIG.flatRate;
   }
 }
