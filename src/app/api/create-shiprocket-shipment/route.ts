@@ -28,6 +28,7 @@ const shipmentSchema = z.object({
   paymentMethod: z.string(),
   subTotal: z.number(),
   weight: z.number(),
+  courierId: z.number().optional(), // Added option to pass courier selected by user
 });
 
 type ShipmentRequest = z.infer<typeof shipmentSchema>;
@@ -43,12 +44,10 @@ let authCache: ShiprocketAuth | null = null;
  * Gets Shiprocket authentication token, using a cache to avoid re-login on every request.
  */
 async function getShiprocketToken(): Promise<string> {
-  // 1. Return cached token if it's still valid
   if (authCache && authCache.expiresAt > Date.now()) {
     return authCache.token;
   }
 
-  // 2. Get credentials from environment variables
   const email = process.env.SHIPROCKET_API_EMAIL;
   const password = process.env.SHIPROCKET_API_PASSWORD;
 
@@ -56,7 +55,6 @@ async function getShiprocketToken(): Promise<string> {
     throw new Error('Shiprocket email or password not configured in .env.local');
   }
 
-  // 3. Authenticate with Shiprocket
   try {
     const response = await axios.post(
       'https://apiv2.shiprocket.in/v1/external/auth/login',
@@ -69,7 +67,6 @@ async function getShiprocketToken(): Promise<string> {
       throw new Error('Authentication response did not include a token.');
     }
 
-    // 4. Cache the token for 9 days (Shiprocket tokens are valid for 10 days)
     authCache = {
       token,
       expiresAt: Date.now() + 9 * 24 * 60 * 60 * 1000,
@@ -100,9 +97,9 @@ export async function POST(request: NextRequest) {
     const shiprocketOrderData = {
       order_id: shipmentRequest.orderId,
       order_date: shipmentRequest.orderDate,
-      pickup_location: "Primary", // <-- FIX: Hardcode to "Primary" like the test script
+      pickup_location: "Primary",
       billing_customer_name: shipmentRequest.billingCustomerName,
-      billing_last_name: "", // Shiprocket requires this, even if empty
+      billing_last_name: "",
       billing_address: shipmentRequest.billingAddress,
       billing_address_2: "",
       billing_city: shipmentRequest.billingCity,
@@ -119,7 +116,6 @@ export async function POST(request: NextRequest) {
       breadth: 24,
       height: 6,
       weight: shipmentRequest.weight,
-
     };
     
     // Create the ad-hoc order in Shiprocket
@@ -134,12 +130,22 @@ export async function POST(request: NextRequest) {
       }
     );
     
-    // Return the successful response from Shiprocket
-    return NextResponse.json(response.data);
+    const orderData = response.data;
+    const shipmentId = orderData.shipment_id;
+    let awbResponseData = null;
+
+    // Merge response data
+    const finalResponse = {
+      ...orderData,
+      awb_code: null,
+      courier_name: null,
+      status: 'NEW',
+    };
+
+    return NextResponse.json(finalResponse);
 
   } catch (error: any) {
     console.error('Error creating Shiprocket shipment:', error.response?.data || error.message);
-    // Return a structured error
     return NextResponse.json(
       { 
         error: 'Failed to create shipment.', 
