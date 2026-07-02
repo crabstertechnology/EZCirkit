@@ -281,18 +281,47 @@ const OrderDetailsComponent = () => {
         throw new Error(res.details || res.error || 'Failed to create order on Shiprocket');
       }
 
+      // Automatically assign AWB right away for offline order booking
+      let awbCode = null;
+      let courierName = null;
+      let shiprocketStatus = res.status || 'NEW';
+
+      try {
+        const awbResponse = await fetch('/api/shiprocket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'assign-awb',
+            shipment_id: res.shipment_id,
+          }),
+        });
+
+        const awbRes = await awbResponse.json();
+        if (awbResponse.ok && awbRes.response?.data?.awb_code) {
+          awbCode = awbRes.response.data.awb_code;
+          courierName = awbRes.response.data.courier_name;
+          shiprocketStatus = 'AWB Assigned';
+        }
+      } catch (awbError) {
+        console.error('Failed to auto-assign AWB for manual booking:', awbError);
+      }
+
       await updateDocumentNonBlocking(orderDocRef, {
         shiprocket: {
           order_id: res.order_id,
           shipment_id: res.shipment_id,
-          status: res.status || 'NEW',
+          status: shiprocketStatus,
+          awb_code: awbCode || undefined,
+          courier_name: courierName || undefined,
           created_at: new Date().toISOString(),
         }
       });
 
       toast({
         title: "Shiprocket Order Created",
-        description: `Shiprocket Order ID: ${res.order_id}`,
+        description: awbCode 
+          ? `Shiprocket Order ID: ${res.order_id} & AWB Assigned: ${awbCode} via ${courierName}`
+          : `Shiprocket Order ID: ${res.order_id} (AWB assignment pending)`,
       });
     } catch (error: any) {
       console.error(error);
