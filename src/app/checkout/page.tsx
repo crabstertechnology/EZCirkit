@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/cart-context';
 import Image from 'next/image';
-import { ArrowLeft, PlusCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, PlusCircle, AlertCircle, ChevronDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, doc, writeBatch, increment } from 'firebase/firestore';
@@ -25,7 +24,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import type { Address } from '@/components/profile/address-card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-
 declare global {
   interface Window {
     Razorpay: any;
@@ -33,16 +31,23 @@ declare global {
 }
 
 const CheckoutPage = () => {
-  const { cartItems, cartTotal, cartSubtotal, cartCount, clearCart, isLoading: isCartLoading } = useCart();
+  const { cartItems, cartSubtotal, cartCount, clearCart, isLoading: isCartLoading } = useCart();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [isAddressDropdownOpen, setIsAddressDropdownOpen] = useState(false);
   const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  
+  // Custom checkout options matching the requested UI
+  const [shippingOption, setShippingOption] = useState<'standard' | 'premium'>('standard');
+  const [shippingCharge, setShippingCharge] = useState<number>(49);
+  const [billingOption, setBillingOption] = useState<'same' | 'different'>('same');
+  const [discountCode, setDiscountCode] = useState<string>('');
 
   const addressesQuery = useMemoFirebase(
     () => (!isUserLoading && user ? collection(firestore, 'users', user.uid, 'addresses') : null),
@@ -55,6 +60,9 @@ const CheckoutPage = () => {
       setSelectedAddress(addresses[0]);
     }
   }, [addresses, selectedAddress]);
+
+  const finalTotal = cartSubtotal + shippingCharge;
+  const taxAmount = (finalTotal * 18) / 118; // 18% included GST
 
   const createShiprocketShipment = async (orderId: string, razorpayPaymentId: string) => {
     if (!selectedAddress || !user) return;
@@ -106,8 +114,7 @@ const CheckoutPage = () => {
       });
       await saveOrderToFirestore(razorpayPaymentId, orderId, null);
     }
-  }
-
+  };
 
   const handlePlaceOrder = async () => {
     setPaymentError(null);
@@ -115,7 +122,7 @@ const CheckoutPage = () => {
       toast({ variant: 'destructive', title: 'Session Expired', description: 'Please log in to continue.' });
       return;
     }
-    if (cartTotal <= 0) return;
+    if (finalTotal <= 0) return;
     if (!selectedAddress) {
       toast({ variant: 'destructive', title: 'No Address Selected', description: 'Please select or add a shipping address.' });
       return;
@@ -127,7 +134,7 @@ const CheckoutPage = () => {
       const orderResponse = await fetch('/api/create-razorpay-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: cartTotal * 100, currency: 'INR' }),
+        body: JSON.stringify({ amount: finalTotal * 100, currency: 'INR' }),
       });
 
       if (!orderResponse.ok) {
@@ -143,7 +150,7 @@ const CheckoutPage = () => {
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: cartTotal * 100,
+        amount: finalTotal * 100,
         currency: 'INR',
         name: 'EZCirkit',
         description: 'Course & Electronics Kit',
@@ -211,10 +218,12 @@ const CheckoutPage = () => {
       id: orderId,
       userId: user.uid,
       createdAt: serverTimestamp(),
-      total: cartTotal,
+      total: finalTotal,
       status: 'paid',
       paymentId: paymentId,
       shippingAddress: shippingDetails,
+      shippingOption: shippingOption,
+      shippingCharge: shippingCharge,
       shiprocket: shiprocketResponse ? {
         order_id: shiprocketResponse.order_id,
         shipment_id: shiprocketResponse.shipment_id,
@@ -243,7 +252,6 @@ const CheckoutPage = () => {
 
     await batch.commit();
 
-    // Trigger Email Notification after successful DB write
     try {
       await fetch('/api/send-order-email', {
         method: 'POST',
@@ -252,7 +260,7 @@ const CheckoutPage = () => {
           orderId,
           customerEmail: user.email,
           customerName: user.displayName || selectedAddress.name,
-          total: cartTotal,
+          total: finalTotal,
           items: cartItems,
           shippingAddress: shippingDetails
         }),
@@ -277,9 +285,9 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 md:px-6 pt-24 pb-16 md:pt-40 md:pb-24">
-      <div className="max-w-4xl mx-auto">
-        <Link href="/cart" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+    <div className="container mx-auto px-4 md:px-6 pt-24 pb-16 md:pt-36 md:pb-24">
+      <div className="max-w-6xl mx-auto">
+        <Link href="/cart" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="w-4 h-4" /> Back to Cart
         </Link>
 
@@ -291,64 +299,271 @@ const CheckoutPage = () => {
           </Alert>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-12">
-          <div className="space-y-8">
-            <Card>
-              <CardHeader><CardTitle>Select Shipping Address</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {isLoadingAddresses || isUserLoading ? (
-                  <p>Loading addresses...</p>
-                ) : (
-                  <>
-                    {addresses?.map(address => (
-                      <div key={address.id} onClick={() => setSelectedAddress(address)} className="cursor-pointer">
-                        <AddressCard address={address} isSelected={selectedAddress?.id === address.id} />
-                      </div>
-                    ))}
-                    {addresses?.length === 0 && <p className="text-muted-foreground">You have no saved addresses.</p>}
-                  </>
-                )}
-                <Dialog open={isAddressFormOpen} onOpenChange={setIsAddressFormOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full mt-4"><PlusCircle className="mr-2 h-4 w-4" /> Add New Address</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Add a new address</DialogTitle></DialogHeader>
-                    <AddressForm onSave={() => setIsAddressFormOpen(false)} />
-                  </DialogContent>
-                </Dialog>
-              </CardContent>
-            </Card>
+        <div className="grid lg:grid-cols-5 gap-12 items-start">
+          {/* Left Column: Account, Address, Shipping & Payment */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Account Info */}
+            <div className="flex justify-between items-center text-sm border-b border-border pb-4">
+              <span className="font-semibold text-muted-foreground">Account</span>
+              <span className="text-foreground font-medium">{user?.email || 'Guest'}</span>
+            </div>
+
+            {/* Address Selection (Collapsed / Dropdown layout) */}
+            <div className="space-y-3">
+              <div 
+                className="border border-border p-4 flex justify-between items-center cursor-pointer hover:bg-muted/10 transition-colors"
+                onClick={() => setIsAddressDropdownOpen(!isAddressDropdownOpen)}
+              >
+                <div className="flex gap-4 text-sm">
+                  <span className="text-muted-foreground w-16 shrink-0">Ship to</span>
+                  {selectedAddress ? (
+                    <div>
+                      <p className="font-semibold text-foreground">{selectedAddress.name}</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">
+                        {selectedAddress.addressLine1}, {selectedAddress.addressLine2 ? `${selectedAddress.addressLine2}, ` : ''}
+                        {selectedAddress.city} {selectedAddress.state}, {selectedAddress.postalCode}, {selectedAddress.country}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground italic">No shipping address selected</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span>Change</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isAddressDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+
+              {/* Address dropdown contents */}
+              {isAddressDropdownOpen && (
+                <div className="border-x border-b border-border p-4 bg-muted/20 space-y-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Choose Shipping Address</p>
+                  
+                  {isLoadingAddresses || isUserLoading ? (
+                    <p className="text-xs">Loading addresses...</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {addresses?.map(address => (
+                        <div 
+                          key={address.id} 
+                          onClick={() => { setSelectedAddress(address); setIsAddressDropdownOpen(false); }} 
+                          className="cursor-pointer"
+                        >
+                          <AddressCard address={address} isSelected={selectedAddress?.id === address.id} />
+                        </div>
+                      ))}
+                      {addresses?.length === 0 && <p className="text-xs text-muted-foreground">You have no saved addresses.</p>}
+                    </div>
+                  )}
+
+                  <Dialog open={isAddressFormOpen} onOpenChange={setIsAddressFormOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full"><PlusCircle className="mr-2 h-4 w-4" /> Add New Address</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Add a new address</DialogTitle></DialogHeader>
+                      <AddressForm onSave={() => setIsAddressFormOpen(false)} />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              )}
+            </div>
+
+            {/* Shipping options card selection */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-foreground">Shipping</h3>
+              
+              <div className="flex items-start justify-between gap-2 p-3 bg-muted/20 border border-border text-xs text-foreground">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                  <p>The shipping options have changed for your order. Review your selection.</p>
+                </div>
+              </div>
+
+              <div className="border border-border">
+                {/* Option 1: Standard */}
+                <div 
+                  className={`p-4 flex items-center justify-between cursor-pointer border-b border-border hover:bg-muted/10 transition-colors ${shippingOption === 'standard' ? 'bg-muted/20' : ''}`}
+                  onClick={() => { setShippingOption('standard'); setShippingCharge(49); }}
+                >
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="radio" 
+                      checked={shippingOption === 'standard'} 
+                      onChange={() => { setShippingOption('standard'); setShippingCharge(49); }} 
+                      className="text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span className="text-xs font-semibold text-foreground">Standard (Surface mode | Upto 7* days)</span>
+                  </div>
+                  <span className="text-sm font-bold text-foreground">₹49.00</span>
+                </div>
+                
+                {/* Option 2: Premium */}
+                <div 
+                  className={`p-4 flex items-center justify-between cursor-pointer hover:bg-muted/10 transition-colors ${shippingOption === 'premium' ? 'bg-muted/20' : ''}`}
+                  onClick={() => { setShippingOption('premium'); setShippingCharge(125); }}
+                >
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="radio" 
+                      checked={shippingOption === 'premium'} 
+                      onChange={() => { setShippingOption('premium'); setShippingCharge(125); }} 
+                      className="text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span className="text-xs font-semibold text-foreground">Premium (Bluedart | 2-4* days)</span>
+                  </div>
+                  <span className="text-sm font-bold text-foreground">₹125.00</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Section */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-foreground">Payment</h3>
+              <p className="text-xs text-muted-foreground">All transactions are secure and encrypted.</p>
+              
+              <div className="border border-border">
+                <div className="p-4 bg-muted/20 flex items-center justify-between border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="radio" 
+                      checked={true} 
+                      readOnly 
+                      className="text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span className="text-sm font-semibold text-foreground">Razorpay Secure</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] bg-muted border border-border px-1.5 py-0.5 font-bold uppercase rounded-sm">UPI</span>
+                    <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 font-bold rounded-sm">VISA</span>
+                    <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 font-bold rounded-sm">MC</span>
+                  </div>
+                </div>
+                
+                <div className="p-6 bg-muted/10 text-center text-xs text-muted-foreground">
+                  <p>You'll be redirected to Razorpay (UPI, Cards, Netbanking, Wallets) to complete your purchase securely.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Billing Address Section */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-foreground">Billing address</h3>
+              
+              <div className="border border-border">
+                <div 
+                  className={`p-4 flex items-center gap-3 cursor-pointer border-b border-border hover:bg-muted/10 transition-colors ${billingOption === 'same' ? 'bg-muted/20' : ''}`}
+                  onClick={() => setBillingOption('same')}
+                >
+                  <input 
+                    type="radio" 
+                    checked={billingOption === 'same'} 
+                    onChange={() => setBillingOption('same')} 
+                    className="text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <label className="text-sm font-medium cursor-pointer">Same as shipping address</label>
+                </div>
+                <div 
+                  className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-muted/10 transition-colors ${billingOption === 'different' ? 'bg-muted/20' : ''}`}
+                  onClick={() => setBillingOption('different')}
+                >
+                  <input 
+                    type="radio" 
+                    checked={billingOption === 'different'} 
+                    onChange={() => setBillingOption('different')} 
+                    className="text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <label className="text-sm font-medium cursor-pointer">Use a different billing address</label>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-8">
-            <Card className="sticky top-24">
-              <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <Image src={item.image} alt={item.name} width={64} height={64} className="rounded-md object-cover" />
-                      <div>
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                      </div>
+          {/* Right Column: Order Items, Discount, breakdown */}
+          <div className="lg:col-span-2 space-y-8 bg-muted/10 p-6 border border-border">
+            <h3 className="text-lg font-bold text-foreground">Order Items</h3>
+            
+            <div className="space-y-4">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Image 
+                        src={item.image} 
+                        alt={item.name} 
+                        width={64} 
+                        height={64} 
+                        className="border border-border object-cover bg-background" 
+                      />
+                      <span className="absolute -top-2.5 -right-2.5 bg-black text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border border-background">
+                        {item.quantity}
+                      </span>
                     </div>
-                    <p className="font-semibold">₹{(item.price * item.quantity).toLocaleString()}</p>
+                    <div className="text-xs max-w-[200px]">
+                      <p className="font-semibold text-foreground line-clamp-2">{item.name}</p>
+                      <p className="text-muted-foreground text-[10px] mt-0.5">Qty: {item.quantity}</p>
+                    </div>
                   </div>
-                ))}
-                <Separator />
-                <div className="flex justify-between"><p>Subtotal</p><p>₹{cartSubtotal.toLocaleString()}</p></div>
-                <div className="flex justify-between"><p>Shipping</p><p className="font-semibold text-green-600">FREE</p></div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg"><p>Total</p><p>₹{cartTotal.toLocaleString()}</p></div>
-              </CardContent>
-              <CardFooter>
-                <Button size="lg" className="w-full bg-primary-gradient" onClick={handlePlaceOrder} disabled={!selectedAddress || isProcessingPayment}>
-                  {isProcessingPayment ? 'Processing...' : 'Place Order & Pay'}
-                </Button>
-              </CardFooter>
-            </Card>
+                  <p className="text-sm font-bold text-foreground">₹{(item.price * item.quantity).toLocaleString()}.00</p>
+                </div>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Discount Code */}
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Discount code or gift card" 
+                className="flex-1 bg-background border border-border px-3 py-2 outline-none text-xs text-foreground"
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+              />
+              <Button 
+                variant="outline" 
+                className="text-xs"
+                onClick={() => toast({ title: "Discount Code", description: "Discount code is invalid." })}
+              >
+                Apply
+              </Button>
+            </div>
+
+            <Separator />
+
+            {/* Cost Breakdown */}
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal · {cartItems.length} items</span>
+                <span className="font-semibold text-foreground">₹{cartSubtotal.toLocaleString()}.00</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shipping</span>
+                <span className="font-semibold text-foreground">₹{shippingCharge.toLocaleString()}.00</span>
+              </div>
+              
+              <Separator className="my-2" />
+              
+              <div className="flex justify-between items-baseline">
+                <span className="text-sm font-bold text-foreground">Total</span>
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground mr-1">INR</span>
+                  <span className="text-lg font-extrabold text-foreground">₹{finalTotal.toLocaleString()}.00</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-right">
+                Including ₹{taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} in taxes
+              </p>
+            </div>
+
+            <Button 
+              size="lg" 
+              className="w-full bg-primary-gradient py-6 font-bold text-sm tracking-wider uppercase" 
+              onClick={handlePlaceOrder} 
+              disabled={!selectedAddress || isProcessingPayment}
+            >
+              {isProcessingPayment ? 'Processing...' : 'Place Order & Pay'}
+            </Button>
           </div>
         </div>
       </div>
