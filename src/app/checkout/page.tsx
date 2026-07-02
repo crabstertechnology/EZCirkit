@@ -120,8 +120,8 @@ const CheckoutPage = () => {
             premium = sortedCouriers[1] || cheapest;
           }
 
-          const stdRate = calculateShippingCharge(cartSubtotal, cheapest.rate, selectedAddress.state);
-          const premRate = calculateShippingCharge(cartSubtotal, premium.rate, selectedAddress.state);
+          const stdRate = calculateShippingCharge(cartSubtotal, cheapest.rate, selectedAddress.state, false);
+          const premRate = calculateShippingCharge(cartSubtotal, premium.rate, selectedAddress.state, true);
 
           setStandardCourier({
             id: cheapest.courier_company_id,
@@ -145,8 +145,8 @@ const CheckoutPage = () => {
           }
         } else {
           // Fallback to defaults
-          const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state);
-          const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state);
+          const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state, false);
+          const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state, true);
           setStandardCourier({ name: 'Standard (Surface mode)', rate: stdRate, etd: 'Upto 7 days' });
           setPremiumCourier({ name: 'Premium (Bluedart)', rate: premRate, etd: '2-4 days' });
           setShippingCharge(shippingOption === 'standard' ? stdRate : premRate);
@@ -154,8 +154,8 @@ const CheckoutPage = () => {
       } catch (err: any) {
         console.error('Error fetching shipping rates:', err);
         setRatesError('Unable to load live courier rates. Default rates applied.');
-        const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state);
-        const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state);
+        const stdRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackStdRate, selectedAddress.state, false);
+        const premRate = calculateShippingCharge(cartSubtotal, SHIPPING_CONFIG.dynamic.fallbackPremRate, selectedAddress.state, true);
         setStandardCourier({ name: 'Standard (Surface mode)', rate: stdRate, etd: 'Upto 7 days' });
         setPremiumCourier({ name: 'Premium (Bluedart)', rate: premRate, etd: '2-4 days' });
         setShippingCharge(shippingOption === 'standard' ? stdRate : premRate);

@@ -40,9 +40,9 @@ export const SHIPPING_CONFIG = {
 /**
  * Calculates shipping charge based on configuration, cart subtotal, and state
  */
-export function calculateShippingCharge(subtotal: number, baseRate?: number, state?: string): number {
-  // If subtotal qualifies for free shipping
-  if (subtotal >= SHIPPING_CONFIG.freeShippingThreshold) {
+export function calculateShippingCharge(subtotal: number, baseRate?: number, state?: string, isPremium?: boolean): number {
+  // If subtotal qualifies for free shipping (only applies to standard shipping)
+  if (subtotal >= SHIPPING_CONFIG.freeShippingThreshold && !isPremium) {
     return 0;
   }
 
@@ -57,19 +57,19 @@ export function calculateShippingCharge(subtotal: number, baseRate?: number, sta
       return SHIPPING_CONFIG.flatRate;
 
     case 'ZONE':
+      let zoneCharge = SHIPPING_CONFIG.zones.national.charge;
       if (state) {
         const normalizedState = state.trim().toLowerCase();
         if (SHIPPING_CONFIG.zones.local.states.some(s => s.toLowerCase() === normalizedState)) {
-          return SHIPPING_CONFIG.zones.local.charge;
-        }
-        if (SHIPPING_CONFIG.zones.regional.states.some(s => s.toLowerCase() === normalizedState)) {
-          return SHIPPING_CONFIG.zones.regional.charge;
+          zoneCharge = SHIPPING_CONFIG.zones.local.charge;
+        } else if (SHIPPING_CONFIG.zones.regional.states.some(s => s.toLowerCase() === normalizedState)) {
+          zoneCharge = SHIPPING_CONFIG.zones.regional.charge;
         }
       }
-      return SHIPPING_CONFIG.zones.national.charge;
+      return isPremium ? zoneCharge + 70 : zoneCharge;
 
     case 'FLAT':
     default:
-      return SHIPPING_CONFIG.flatRate;
+      return isPremium ? SHIPPING_CONFIG.flatRate + 70 : SHIPPING_CONFIG.flatRate;
   }
 }
