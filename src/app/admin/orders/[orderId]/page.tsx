@@ -160,6 +160,10 @@ const OrderDetailsComponent = () => {
 
   const handleStatusChange = (newStatus: Order['status']) => {
     if (!orderDocRef) return;
+    if (newStatus === 'cancelled') {
+      handleCancelOrder();
+      return;
+    }
     updateDocumentNonBlocking(orderDocRef, { status: newStatus });
     toast({
       title: "Order Status Updated",
