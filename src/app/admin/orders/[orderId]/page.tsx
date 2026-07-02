@@ -90,6 +90,8 @@ interface Order {
   };
   shiprocket?: ShiprocketData;
   courierId?: number | null;
+  shippingCharge?: number;
+  shippingOption?: string;
 }
 
 interface OrderItem {
@@ -548,53 +550,63 @@ const OrderDetailsComponent = () => {
 
       const res = await response.json();
       if (!response.ok) {
-        throw new Error(res.details || res.error || 'Failed to fetch tracking data');
+        const errorMsg = typeof res.error === 'object'
+          ? (res.error.message || JSON.stringify(res.error))
+          : (res.error || res.details || 'Failed to fetch tracking data');
+        throw new Error(errorMsg);
       }
 
       const trackData = res.tracking_data;
-      setTrackingData(trackData);
 
-      const currentStatusStr = trackData?.shipment_track?.[0]?.current_status;
-      if (currentStatusStr) {
-        const lowerStatus = currentStatusStr.toLowerCase();
-        let mappedStatus: Order['status'] | null = null;
-        
-        if (lowerStatus.includes('deliver')) {
-          mappedStatus = 'delivered';
-        } else if (lowerStatus.includes('cancel')) {
-          mappedStatus = 'cancelled';
-        } else if (
-          lowerStatus.includes('ship') || 
-          lowerStatus.includes('transit') || 
-          lowerStatus.includes('pickup') || 
-          lowerStatus.includes('dispatch') || 
-          lowerStatus.includes('out for delivery') ||
-          lowerStatus.includes('out_for_delivery')
-        ) {
-          mappedStatus = 'shipped';
-        }
+      // Handle cases where tracking status is 0 or error is present (typical for brand new shipments)
+      if (trackData && (trackData.track_status === 0 || trackData.error)) {
+        setTrackingData(null);
+      } else {
+        setTrackingData(trackData);
 
-        const updatedShiprocket = {
-          ...order.shiprocket,
-          status: currentStatusStr,
-        };
+        const currentStatusStr = trackData?.shipment_track?.[0]?.current_status;
+        if (currentStatusStr) {
+          const lowerStatus = currentStatusStr.toLowerCase();
+          let mappedStatus: Order['status'] | null = null;
+          
+          if (lowerStatus.includes('deliver')) {
+            mappedStatus = 'delivered';
+          } else if (lowerStatus.includes('cancel')) {
+            mappedStatus = 'cancelled';
+          } else if (
+            lowerStatus.includes('ship') || 
+            lowerStatus.includes('transit') || 
+            lowerStatus.includes('pickup') || 
+            lowerStatus.includes('dispatch') || 
+            lowerStatus.includes('out for delivery') ||
+            lowerStatus.includes('out_for_delivery')
+          ) {
+            mappedStatus = 'shipped';
+          }
 
-        const updateData: any = {
-          shiprocket: updatedShiprocket
-        };
+          const updatedShiprocket = {
+            ...order.shiprocket,
+            status: currentStatusStr,
+          };
 
-        if (mappedStatus && mappedStatus !== order.status) {
-          updateData.status = mappedStatus;
-          setCurrentStatus(mappedStatus);
-        }
+          const updateData: any = {
+            shiprocket: updatedShiprocket
+          };
 
-        if (currentStatusStr !== order.shiprocket?.status || mappedStatus !== order.status) {
-          await updateDocumentNonBlocking(orderDocRef, updateData);
+          if (mappedStatus && mappedStatus !== order.status) {
+            updateData.status = mappedStatus;
+            setCurrentStatus(mappedStatus);
+          }
+
+          if (currentStatusStr !== order.shiprocket?.status || mappedStatus !== order.status) {
+            await updateDocumentNonBlocking(orderDocRef, updateData);
+          }
         }
       }
     } catch (error: any) {
       console.error(error);
-      setTrackingError(error.message || 'Failed to fetch live tracking information.');
+      const errorMsg = error.message || 'Failed to fetch live tracking information.';
+      setTrackingError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : String(errorMsg));
     } finally {
       setIsFetchingTracking(false);
     }
@@ -698,6 +710,7 @@ const OrderDetailsComponent = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Order Items */}
           <Card>
             <CardHeader>
               <CardTitle>Order Items ({orderItems?.length})</CardTitle>
@@ -722,28 +735,96 @@ const OrderDetailsComponent = () => {
                         </div>
                       </TableCell>
                       <TableCell>{item.quantity}</TableCell>
-                      <TableCell>₹{item.price.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{(item.price * item.quantity).toLocaleString()}</TableCell>
+                      <TableCell>₹{item.price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
+
+          {/* Shipping Address & Customer Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Shipping Address</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm">
+                {order.shippingAddress ? (
+                  <>
+                    <p className="font-semibold text-foreground">{order.shippingAddress.name}</p>
+                    <p className="text-muted-foreground">{order.shippingAddress.phone}</p>
+                    <p className="text-muted-foreground">{order.shippingAddress.addressLine1}</p>
+                    {order.shippingAddress.addressLine2 && <p className="text-muted-foreground">{order.shippingAddress.addressLine2}</p>}
+                    <p className="text-muted-foreground">{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</p>
+                    <p className="text-muted-foreground">{order.shippingAddress.country}</p>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground italic">No shipping details provided (Offline Order).</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div>
+                  <p className="font-semibold text-foreground">{user.displayName}</p>
+                  <p className="text-muted-foreground">{user.email}</p>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">User ID</p>
+                  <p className="text-muted-foreground font-mono text-xs">{user.id}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <div className="space-y-8">
-           <Card>
+          {/* Order Summary */}
+          <Card>
             <CardHeader>
-              <CardTitle>Customer Details</CardTitle>
+              <CardTitle>Order Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-                <p className="font-semibold">{user.displayName}</p>
-                <p className="text-muted-foreground">{user.email}</p>
-                <p className="text-muted-foreground font-mono text-xs">{user.id}</p>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Order Date</span>
+                <span className="font-medium">{format(order.createdAt.toDate(), 'PPP p')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment ID</span>
+                <span className="font-mono text-xs font-medium">{order.paymentId || 'N/A'}</span>
+              </div>
+              {order.shippingOption && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Shipping Option</span>
+                  <span className="text-xs font-medium text-right max-w-[180px] break-words">{order.shippingOption}</span>
+                </div>
+              )}
+              <Separator />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Items Subtotal</span>
+                  <span>₹{(order.total - (order.shippingCharge || 0)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Shipping Charge</span>
+                  <span>₹{(order.shippingCharge || 0).toFixed(2)}</span>
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between font-bold text-lg text-primary">
+                  <span>Total Paid</span>
+                  <span>₹{order.total.toFixed(2)}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          
+
+          {/* Shiprocket Shipment */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -1036,47 +1117,6 @@ const OrderDetailsComponent = () => {
                 </div>
               )}
             </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Address</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1 text-sm">
-              {order.shippingAddress ? (
-                <>
-                  <p className="font-semibold">{order.shippingAddress.name}</p>
-                  <p>{order.shippingAddress.phone}</p>
-                  <p>{order.shippingAddress.addressLine1}</p>
-                  {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
-                  <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}</p>
-                  <p>{order.shippingAddress.country}</p>
-                </>
-              ) : (
-                 <p className="text-muted-foreground italic">No shipping details provided (Offline Order).</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-             <CardContent className="space-y-4">
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Order Date</span>
-                    <span>{format(order.createdAt.toDate(), 'PPP p')}</span>
-                 </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Payment ID</span>
-                    <span className="font-mono text-xs">{order.paymentId || 'N/A'}</span>
-                 </div>
-                 <Separator />
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total Paid</span>
-                    <span>₹{order.total.toLocaleString()}</span>
-                 </div>
-             </CardContent>
           </Card>
         </div>
       </div>
