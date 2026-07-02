@@ -13,7 +13,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/cart-context';
 import Image from 'next/image';
-import { ArrowLeft, PlusCircle, AlertCircle, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, PlusCircle, AlertCircle, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, doc, writeBatch, increment } from 'firebase/firestore';
@@ -43,9 +43,24 @@ const CheckoutPage = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   
-  // Custom checkout options matching the requested UI
+  // Dynamic Shiprocket Rates states
   const [shippingOption, setShippingOption] = useState<'standard' | 'premium'>('standard');
   const [shippingCharge, setShippingCharge] = useState<number>(49);
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [ratesError, setRatesError] = useState<string | null>(null);
+
+  const [standardCourier, setStandardCourier] = useState<{ name: string; rate: number; etd: string }>({
+    name: 'Standard (Surface mode)',
+    rate: 49,
+    etd: 'Upto 7 days'
+  });
+  
+  const [premiumCourier, setPremiumCourier] = useState<{ name: string; rate: number; etd: string }>({
+    name: 'Premium (Bluedart)',
+    rate: 125,
+    etd: '2-4 days'
+  });
+
   const [billingOption, setBillingOption] = useState<'same' | 'different'>('same');
   const [discountCode, setDiscountCode] = useState<string>('');
 
@@ -60,6 +75,97 @@ const CheckoutPage = () => {
       setSelectedAddress(addresses[0]);
     }
   }, [addresses, selectedAddress]);
+
+  // Fetch dynamic shipping rates from Shiprocket
+  useEffect(() => {
+    const fetchShippingRates = async () => {
+      if (!selectedAddress?.postalCode) return;
+      setIsLoadingRates(true);
+      setRatesError(null);
+      try {
+        const response = await fetch('/api/shiprocket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'serviceability',
+            delivery_postcode: selectedAddress.postalCode,
+            weight: 0.5,
+            cod: 0,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch real-time shipping options');
+        }
+
+        const res = await response.json();
+        const couriers = res.data?.available_courier_companies || [];
+        
+        if (couriers.length > 0) {
+          // 1. Standard: Find cheapest courier
+          const sortedCouriers = [...couriers].sort((a: any, b: any) => a.rate - b.rate);
+          const cheapest = sortedCouriers[0];
+          
+          // 2. Premium: Find cheapest air/express courier
+          const expressCouriers = couriers.filter((c: any) => 
+            /air|express|bluedart|priority/i.test(c.courier_name)
+          );
+          
+          let premium = expressCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
+          if (!premium) {
+            premium = sortedCouriers[1] || cheapest;
+          }
+
+          const stdRate = Math.ceil(cheapest.rate);
+          const premRate = Math.ceil(premium.rate);
+
+          setStandardCourier({
+            name: `Standard (${cheapest.courier_name})`,
+            rate: stdRate,
+            etd: cheapest.etd ? `Upto ${cheapest.etd}` : '4-7 days',
+          });
+
+          setPremiumCourier({
+            name: `Premium (${premium.courier_name})`,
+            rate: premRate,
+            etd: premium.etd ? `Upto ${premium.etd}` : '2-4 days',
+          });
+
+          // Set dynamic shipping charge
+          if (shippingOption === 'standard') {
+            setShippingCharge(stdRate);
+          } else {
+            setShippingCharge(premRate);
+          }
+        } else {
+          // Fallback to defaults
+          setStandardCourier({ name: 'Standard (Surface mode)', rate: 49, etd: 'Upto 7 days' });
+          setPremiumCourier({ name: 'Premium (Bluedart)', rate: 125, etd: '2-4 days' });
+          setShippingCharge(shippingOption === 'standard' ? 49 : 125);
+        }
+      } catch (err: any) {
+        console.error('Error fetching shipping rates:', err);
+        setRatesError('Unable to load live courier rates. Default rates applied.');
+        setStandardCourier({ name: 'Standard (Surface mode)', rate: 49, etd: 'Upto 7 days' });
+        setPremiumCourier({ name: 'Premium (Bluedart)', rate: 125, etd: '2-4 days' });
+        setShippingCharge(shippingOption === 'standard' ? 49 : 125);
+      } finally {
+        setIsLoadingRates(false);
+      }
+    };
+
+    fetchShippingRates();
+  }, [selectedAddress]);
+
+  // Recalculate shipping charge when user toggles radio button manually
+  const handleShippingOptionChange = (option: 'standard' | 'premium') => {
+    setShippingOption(option);
+    if (option === 'standard') {
+      setShippingCharge(standardCourier.rate);
+    } else {
+      setShippingCharge(premiumCourier.rate);
+    }
+  };
 
   const finalTotal = cartSubtotal + shippingCharge;
   const taxAmount = (finalTotal * 18) / 118; // 18% included GST
@@ -380,41 +486,64 @@ const CheckoutPage = () => {
                 </div>
               </div>
 
-              <div className="border border-border">
-                {/* Option 1: Standard */}
-                <div 
-                  className={`p-4 flex items-center justify-between cursor-pointer border-b border-border hover:bg-muted/10 transition-colors ${shippingOption === 'standard' ? 'bg-muted/20' : ''}`}
-                  onClick={() => { setShippingOption('standard'); setShippingCharge(49); }}
-                >
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="radio" 
-                      checked={shippingOption === 'standard'} 
-                      onChange={() => { setShippingOption('standard'); setShippingCharge(49); }} 
-                      className="text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <span className="text-xs font-semibold text-foreground">Standard (Surface mode | Upto 7* days)</span>
-                  </div>
-                  <span className="text-sm font-bold text-foreground">₹49.00</span>
+              {!selectedAddress ? (
+                <div className="border border-border p-6 bg-muted/5 text-xs text-muted-foreground text-center">
+                  Please select or add a shipping address above to view shipping rates.
                 </div>
-                
-                {/* Option 2: Premium */}
-                <div 
-                  className={`p-4 flex items-center justify-between cursor-pointer hover:bg-muted/10 transition-colors ${shippingOption === 'premium' ? 'bg-muted/20' : ''}`}
-                  onClick={() => { setShippingOption('premium'); setShippingCharge(125); }}
-                >
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="radio" 
-                      checked={shippingOption === 'premium'} 
-                      onChange={() => { setShippingOption('premium'); setShippingCharge(125); }} 
-                      className="text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <span className="text-xs font-semibold text-foreground">Premium (Bluedart | 2-4* days)</span>
-                  </div>
-                  <span className="text-sm font-bold text-foreground">₹125.00</span>
+              ) : isLoadingRates ? (
+                <div className="border border-border p-8 flex flex-col items-center justify-center space-y-3 bg-muted/5 text-xs text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p>Calculating live shipping rates for pincode {selectedAddress.postalCode}...</p>
                 </div>
-              </div>
+              ) : (
+                <div className="border border-border">
+                  {ratesError && (
+                    <div className="p-3 bg-destructive/10 text-destructive text-xs border-b border-border">
+                      {ratesError}
+                    </div>
+                  )}
+
+                  {/* Option 1: Standard */}
+                  <div 
+                    className={`p-4 flex items-center justify-between cursor-pointer border-b border-border hover:bg-muted/10 transition-colors ${shippingOption === 'standard' ? 'bg-muted/20' : ''}`}
+                    onClick={() => handleShippingOptionChange('standard')}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="radio" 
+                        checked={shippingOption === 'standard'} 
+                        onChange={() => handleShippingOptionChange('standard')} 
+                        className="text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <div className="text-xs">
+                        <p className="font-semibold text-foreground capitalize">{standardCourier.name}</p>
+                        <p className="text-muted-foreground text-[10px] mt-0.5">{standardCourier.etd}</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-foreground">₹{standardCourier.rate.toLocaleString()}.00</span>
+                  </div>
+                  
+                  {/* Option 2: Premium */}
+                  <div 
+                    className={`p-4 flex items-center justify-between cursor-pointer hover:bg-muted/10 transition-colors ${shippingOption === 'premium' ? 'bg-muted/20' : ''}`}
+                    onClick={() => handleShippingOptionChange('premium')}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="radio" 
+                        checked={shippingOption === 'premium'} 
+                        onChange={() => handleShippingOptionChange('premium')} 
+                        className="text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <div className="text-xs">
+                        <p className="font-semibold text-foreground capitalize">{premiumCourier.name}</p>
+                        <p className="text-muted-foreground text-[10px] mt-0.5">{premiumCourier.etd}</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-foreground">₹{premiumCourier.rate.toLocaleString()}.00</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Payment Section */}
@@ -539,7 +668,9 @@ const CheckoutPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
-                <span className="font-semibold text-foreground">₹{shippingCharge.toLocaleString()}.00</span>
+                <span className="font-semibold text-foreground">
+                  {isLoadingRates ? 'Calculating...' : `₹${shippingCharge.toLocaleString()}.00`}
+                </span>
               </div>
               
               <Separator className="my-2" />
@@ -560,7 +691,7 @@ const CheckoutPage = () => {
               size="lg" 
               className="w-full bg-primary-gradient py-6 font-bold text-sm tracking-wider uppercase" 
               onClick={handlePlaceOrder} 
-              disabled={!selectedAddress || isProcessingPayment}
+              disabled={!selectedAddress || isProcessingPayment || isLoadingRates}
             >
               {isProcessingPayment ? 'Processing...' : 'Place Order & Pay'}
             </Button>
