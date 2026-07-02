@@ -333,7 +333,7 @@ const CheckoutPage = () => {
         image: logoUrl,
         order_id: rzp_order_id,
         handler: function (response: any) {
-          saveOrderToFirestore(response.razorpay_payment_id, newOrderId, null);
+          createShiprocketShipment(newOrderId, response.razorpay_payment_id);
         },
         prefill: {
           name: user.displayName || selectedAddress.name,
