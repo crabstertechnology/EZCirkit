@@ -30,6 +30,7 @@ const FeaturedProducts = () => {
   const { toast } = useToast();
   const router = useRouter();
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [limit, setLimit] = useState(8);
 
   // Sync with localStorage on mount
   React.useEffect(() => {
@@ -37,6 +38,21 @@ const FeaturedProducts = () => {
       const saved = localStorage.getItem('wishlist');
       setWishlist(saved ? JSON.parse(saved) : []);
     } catch { setWishlist([]); }
+  }, []);
+
+  React.useEffect(() => {
+    const updateLimit = () => {
+      if (window.innerWidth < 768) {
+        setLimit(4);
+      } else if (window.innerWidth < 1024) {
+        setLimit(6);
+      } else {
+        setLimit(8);
+      }
+    };
+    updateLimit();
+    window.addEventListener('resize', updateLimit);
+    return () => window.removeEventListener('resize', updateLimit);
   }, []);
 
   const productsQuery = useMemoFirebase(
@@ -104,12 +120,19 @@ const FeaturedProducts = () => {
           </div>
           <Link
             href="/products"
-            className="hidden sm:flex items-center gap-1 text-sm font-semibold text-primary hover:underline underline-offset-4 transition-colors"
+            className="relative group hidden sm:flex items-center gap-1.5 text-sm font-bold tracking-wide text-primary transition-all duration-300 py-1"
           >
-            Shop all
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M7 17L17 7M17 7H7M17 7v10"/>
+            <span>Shop all products</span>
+            <svg 
+              className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover:translate-x-1" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
+            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-primary transition-all duration-300 group-hover:w-full"></span>
           </Link>
         </div>
 
@@ -128,7 +151,7 @@ const FeaturedProducts = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {products?.map((product) => {
+            {products?.slice(0, limit).map((product) => {
               const discount = getDiscount(product.price, product.originalPrice);
               const inWishlist = wishlist.includes(product.id);
               const rating = product.rating ?? 4.8;
@@ -237,15 +260,21 @@ const FeaturedProducts = () => {
           </div>
         )}
 
-        {/* Mobile shop link */}
-        <div className="flex sm:hidden justify-center mt-8">
+        {/* Explore Products CTA at the bottom */}
+        <div className="flex justify-center mt-12">
           <Link
             href="/products"
-            className="text-sm font-semibold text-primary hover:underline underline-offset-4 flex items-center gap-1"
+            className="group flex items-center gap-2 px-6 py-3 border border-border bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-foreground font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-300 hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
           >
-            Shop all
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M7 17L17 7M17 7H7M17 7v10"/>
+            <span>Explore Products</span>
+            <svg 
+              className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover:translate-x-1 text-primary" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </Link>
         </div>

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Search, Star, Heart, ShoppingCart, SlidersHorizontal, Sparkles, X, ChevronRight, Check } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,22 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState('All Products');
   const [sortBy, setSortBy] = useState('Featured');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [offset, setOffset] = useState(8);
+
+  React.useEffect(() => {
+    const updateOffset = () => {
+      if (window.innerWidth < 768) {
+        setOffset(4);
+      } else if (window.innerWidth < 1024) {
+        setOffset(6);
+      } else {
+        setOffset(8);
+      }
+    };
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+    return () => window.removeEventListener('resize', updateOffset);
+  }, []);
 
   // Sync wishlist from localStorage
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -74,7 +90,7 @@ export default function ShopPage() {
 
   // Query Firestore collection
   const productsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'products') : null),
+    () => (firestore ? query(collection(firestore, 'products'), orderBy('name')) : null),
     [firestore]
   );
   const { data: products, isLoading: isFirestoreLoading } = useCollection<Product>(productsQuery);
@@ -145,8 +161,8 @@ export default function ShopPage() {
 
   // Combine query results and default fallback items
   const displayProducts = React.useMemo(() => {
-    // Show only database products listed by the admin.
-    let list = [...localProducts];
+    // Show only database products listed by the admin, excluding those shown on the homepage.
+    let list = localProducts.slice(offset);
 
     // Filter by Category
     if (selectedCategory !== 'All Products') {
@@ -174,7 +190,7 @@ export default function ShopPage() {
     }
 
     return list;
-  }, [products, selectedCategory, searchQuery, sortBy]);
+  }, [products, selectedCategory, searchQuery, sortBy, offset]);
 
   // Calculate discount percentage
   const getDiscountPercent = (price: number, originalPrice?: number) => {
@@ -223,7 +239,7 @@ export default function ShopPage() {
           <div className="flex items-center gap-3">
             <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary">Shop</p>
             <span className="text-border">|</span>
-            <h1 className="text-xl font-black text-foreground">All Products</h1>
+            <h1 className="text-xl font-black text-foreground">{selectedCategory}</h1>
             {!isLoading && (
               <span className="text-xs text-muted-foreground font-medium">
                 ({displayProducts.length} {displayProducts.length === 1 ? 'product' : 'products'})
