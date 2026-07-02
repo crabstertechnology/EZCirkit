@@ -167,6 +167,64 @@ const OrderDetailsComponent = () => {
     });
   };
 
+  const [isCancellingOrder, setIsCancellingOrder] = useState(false);
+
+  const handleCancelOrder = async () => {
+    if (!orderDocRef || !order) return;
+    setIsCancellingOrder(true);
+    try {
+      if (order.shiprocket?.order_id) {
+        const response = await fetch('/api/shiprocket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'cancel',
+            order_id: order.shiprocket.order_id,
+          }),
+        });
+
+        const res = await response.json();
+        if (!response.ok) {
+          throw new Error(res.details || res.error || 'Failed to cancel order in Shiprocket');
+        }
+
+        toast({
+          title: "Shiprocket Order Cancelled",
+          description: "The shipment has been successfully cancelled in Shiprocket.",
+        });
+      }
+
+      const updatedShiprocket = order.shiprocket ? {
+        ...order.shiprocket,
+        status: 'Cancelled',
+      } : {
+        status: 'Cancelled',
+        created_at: new Date().toISOString(),
+      };
+
+      await updateDocumentNonBlocking(orderDocRef, {
+        status: 'cancelled',
+        shiprocket: updatedShiprocket,
+      });
+
+      setCurrentStatus('cancelled');
+
+      toast({
+        title: "Order Cancelled",
+        description: "Order status has been updated to Cancelled.",
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: "Cancellation Error",
+        description: error.message || 'Failed to cancel the order',
+      });
+    } finally {
+      setIsCancellingOrder(false);
+    }
+  };
+
   const handleDeleteOrder = () => {
     if (!orderDocRef) return;
     
@@ -489,14 +547,43 @@ const OrderDetailsComponent = () => {
       const trackData = res.tracking_data;
       setTrackingData(trackData);
 
-      const currentStatus = trackData?.shipment_track?.[0]?.current_status;
-      if (currentStatus && currentStatus !== order.shiprocket.status) {
-        await updateDocumentNonBlocking(orderDocRef, {
-          shiprocket: {
-            ...order.shiprocket,
-            status: currentStatus,
-          }
-        });
+      const currentStatusStr = trackData?.shipment_track?.[0]?.current_status;
+      if (currentStatusStr) {
+        const lowerStatus = currentStatusStr.toLowerCase();
+        let mappedStatus: Order['status'] | null = null;
+        
+        if (lowerStatus.includes('deliver')) {
+          mappedStatus = 'delivered';
+        } else if (lowerStatus.includes('cancel')) {
+          mappedStatus = 'cancelled';
+        } else if (
+          lowerStatus.includes('ship') || 
+          lowerStatus.includes('transit') || 
+          lowerStatus.includes('pickup') || 
+          lowerStatus.includes('dispatch') || 
+          lowerStatus.includes('out for delivery') ||
+          lowerStatus.includes('out_for_delivery')
+        ) {
+          mappedStatus = 'shipped';
+        }
+
+        const updatedShiprocket = {
+          ...order.shiprocket,
+          status: currentStatusStr,
+        };
+
+        const updateData: any = {
+          shiprocket: updatedShiprocket
+        };
+
+        if (mappedStatus && mappedStatus !== order.status) {
+          updateData.status = mappedStatus;
+          setCurrentStatus(mappedStatus);
+        }
+
+        if (currentStatusStr !== order.shiprocket?.status || mappedStatus !== order.status) {
+          await updateDocumentNonBlocking(orderDocRef, updateData);
+        }
       }
     } catch (error: any) {
       console.error(error);
@@ -552,6 +639,32 @@ const OrderDetailsComponent = () => {
             <Badge variant={order.status === 'paid' ? 'default' : 'secondary'} className="capitalize text-base h-8">
                 {order.status}
             </Badge>
+
+            {order.status !== 'cancelled' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="h-8 border-destructive text-destructive hover:bg-destructive/10">
+                    {isCancellingOrder && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                    Cancel Order
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to cancel order <strong>{order.id.substring(0, 7)}</strong>? If this order has an active Shiprocket shipment, it will also be cancelled in Shiprocket automatically.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Go Back</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Cancel Order
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="icon" className="h-8 w-8">

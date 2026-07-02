@@ -61,7 +61,8 @@ const requestSchema = z.object({
     'manifest-print',
     'label-generate',
     'invoice-print',
-    'track'
+    'track',
+    'cancel'
   ]),
   // serviceability parameters
   pickup_postcode: z.string().optional(),
@@ -286,6 +287,20 @@ export async function POST(request: NextRequest) {
 
         const response = await axios.get(
           `https://apiv2.shiprocket.in/v1/external/courier/track/awb/${awb_code}`,
+          { headers }
+        );
+        return NextResponse.json(response.data);
+      }
+
+      case 'cancel': {
+        const { order_id } = data;
+        if (!order_id) {
+          return NextResponse.json({ error: 'Order ID is required to cancel' }, { status: 400 });
+        }
+
+        const response = await axios.post(
+          'https://apiv2.shiprocket.in/v1/external/orders/cancel',
+          { ids: [order_id] },
           { headers }
         );
         return NextResponse.json(response.data);
