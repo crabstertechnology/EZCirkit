@@ -49,13 +49,13 @@ const CheckoutPage = () => {
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [ratesError, setRatesError] = useState<string | null>(null);
 
-  const [standardCourier, setStandardCourier] = useState<{ name: string; rate: number; etd: string }>({
+  const [standardCourier, setStandardCourier] = useState<{ id?: number; name: string; rate: number; etd: string }>({
     name: 'Standard (Surface mode)',
     rate: 49,
     etd: 'Upto 7 days'
   });
   
-  const [premiumCourier, setPremiumCourier] = useState<{ name: string; rate: number; etd: string }>({
+  const [premiumCourier, setPremiumCourier] = useState<{ id?: number; name: string; rate: number; etd: string }>({
     name: 'Premium (Bluedart)',
     rate: 125,
     etd: '2-4 days'
@@ -120,12 +120,14 @@ const CheckoutPage = () => {
           const premRate = Math.ceil(premium.rate);
 
           setStandardCourier({
+            id: cheapest.courier_company_id,
             name: `Standard (${cheapest.courier_name})`,
             rate: stdRate,
             etd: cheapest.etd ? `Upto ${cheapest.etd}` : '4-7 days',
           });
 
           setPremiumCourier({
+            id: premium.courier_company_id,
             name: `Premium (${premium.courier_name})`,
             rate: premRate,
             etd: premium.etd ? `Upto ${premium.etd}` : '2-4 days',
@@ -173,6 +175,8 @@ const CheckoutPage = () => {
   const createShiprocketShipment = async (orderId: string, razorpayPaymentId: string) => {
     if (!selectedAddress || !user) return;
     
+    const courierId = shippingOption === 'standard' ? standardCourier.id : premiumCourier.id;
+    
     const shipmentData = {
       orderId: orderId,
       orderDate: new Date().toISOString().split('T')[0],
@@ -193,6 +197,7 @@ const CheckoutPage = () => {
       paymentMethod: 'Prepaid',
       subTotal: cartSubtotal,
       weight: 0.5,
+      courierId: courierId,
     };
 
     try {
