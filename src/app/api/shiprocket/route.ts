@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { z } from 'zod';
 import 'dotenv/config';
+import { SHIPPING_CONFIG } from '@/config/shipping';
 
 // Define cache for Shiprocket token
 interface ShiprocketAuth {
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
     switch (data.action) {
       case 'serviceability': {
         const { 
-          pickup_postcode = '382424', 
+          pickup_postcode = SHIPPING_CONFIG.pickupPincode, 
           delivery_postcode, 
           weight = 0.5, 
           cod = 0,

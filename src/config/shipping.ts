@@ -8,6 +8,7 @@ export const SHIPPING_CONFIG = {
   // - 'DYNAMIC': Real-time quotes from Shiprocket + custom safety margin.
   // - 'ZONE': Fixed charges based on Indian states / regions.
   strategy: 'FLAT' as 'FLAT' | 'DYNAMIC' | 'ZONE',
+  pickupPincode: '641019', // Coimbatore, Tamil Nadu
 
   // FLAT RATE SETTINGS
   flatRate: 79,             // Default shipping fee (₹)
