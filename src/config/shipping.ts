@@ -13,7 +13,8 @@ export const SHIPPING_CONFIG = {
 
   // FLAT RATE SETTINGS
   flatRate: 79,             // Default shipping fee (₹)
-  freeShippingThreshold: 999, // Free shipping on orders above this amount (₹)
+  freeShippingThreshold: 999, // Free shipping threshold (₹)
+  freeShippingEnabled: false, // Set to true to enable free standard shipping above the threshold
 
   // DYNAMIC SHIPROCKET SETTINGS
   dynamic: {
@@ -43,8 +44,8 @@ export const SHIPPING_CONFIG = {
  * Calculates shipping charge based on configuration, cart subtotal, and state
  */
 export function calculateShippingCharge(subtotal: number, baseRate?: number, state?: string, isPremium?: boolean): number {
-  // If subtotal qualifies for free shipping (only applies to standard shipping)
-  if (subtotal >= SHIPPING_CONFIG.freeShippingThreshold && !isPremium) {
+  // If subtotal qualifies for free shipping (only applies to standard shipping if enabled)
+  if (SHIPPING_CONFIG.freeShippingEnabled && subtotal >= SHIPPING_CONFIG.freeShippingThreshold && !isPremium) {
     return 0;
   }
 
