@@ -101,7 +101,7 @@ const CheckoutPage = () => {
           body: JSON.stringify({
             action: 'serviceability',
             delivery_postcode: selectedAddress.postalCode,
-            weight: 0.5,
+            weight: 0.98,
             cod: 0,
             length: 34,
             breadth: 24,
@@ -261,7 +261,7 @@ const CheckoutPage = () => {
       })),
       paymentMethod: 'Prepaid',
       subTotal: cartSubtotal,
-      weight: 0.5,
+      weight: 0.98,
       courierId: courierId,
     };
 

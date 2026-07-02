@@ -129,11 +129,12 @@ export async function POST(request: NextRequest) {
         const { 
           pickup_postcode = SHIPPING_CONFIG.pickupPincode, 
           delivery_postcode, 
-          weight = 0.5, 
+          weight = 0.98, 
           cod = 0,
           length = 34,
           breadth = 24,
-          height = 6
+          height = 6,
+          order_id
         } = data;
         if (!delivery_postcode) {
           return NextResponse.json({ error: 'Delivery postcode is required for serviceability check' }, { status: 400 });
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
               length,
               breadth,
               height,
+              ...(order_id ? { order_id } : {})
             },
             headers,
           }

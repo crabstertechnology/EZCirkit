@@ -323,8 +323,9 @@ const OrderDetailsComponent = () => {
         body: JSON.stringify({
           action: 'serviceability',
           delivery_postcode: order.shippingAddress.postalCode,
-          weight: 0.5,
+          weight: 0.98,
           cod: 0,
+          ...(order.shiprocket?.order_id ? { order_id: order.shiprocket.order_id } : {})
         }),
       });
 
