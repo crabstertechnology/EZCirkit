@@ -860,7 +860,7 @@ const OrderDetailsComponent = () => {
                               <div>
                                 <p className="font-semibold">{courier.courier_name}</p>
                                 <p className="text-muted-foreground text-[10px]">
-                                  Rate: ₹{courier.rate} | Delivery: {courier.etd || '3-5 days'}
+                                  Rate: ₹{(Number(courier.rate || 0) + Number(courier.whatsapp_charges || 0)).toFixed(2)} | Delivery: {courier.etd || '3-5 days'}
                                 </p>
                               </div>
                               <Button

@@ -140,21 +140,23 @@ const CheckoutPage = () => {
             /air|express|bluedart|priority/i.test(c.courier_name)
           );
 
+          const getCourierCost = (c: any) => Number(c.rate || 0) + Number(c.whatsapp_charges || 0);
+
           // Find cheapest standard (surface)
-          let cheapestSurface = surfaceCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
+          let cheapestSurface = surfaceCouriers.sort((a: any, b: any) => getCourierCost(a) - getCourierCost(b))[0];
           if (!cheapestSurface) {
-            cheapestSurface = allowedRawCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
+            cheapestSurface = allowedRawCouriers.sort((a: any, b: any) => getCourierCost(a) - getCourierCost(b))[0];
           }
 
           // Find cheapest premium (air)
-          let cheapestAir = airCouriers.sort((a: any, b: any) => a.rate - b.rate)[0];
+          let cheapestAir = airCouriers.sort((a: any, b: any) => getCourierCost(a) - getCourierCost(b))[0];
           if (!cheapestAir) {
-            cheapestAir = allowedRawCouriers.sort((a: any, b: any) => a.rate - b.rate)[1] || cheapestSurface;
+            cheapestAir = allowedRawCouriers.sort((a: any, b: any) => getCourierCost(a) - getCourierCost(b))[1] || cheapestSurface;
           }
 
           // Calculate final prices using your strategies / thresholds
-          const stdRate = calculateShippingCharge(cartSubtotal, cheapestSurface.rate, selectedAddress.state, false);
-          const premRate = calculateShippingCharge(cartSubtotal, cheapestAir.rate, selectedAddress.state, true);
+          const stdRate = calculateShippingCharge(cartSubtotal, getCourierCost(cheapestSurface), selectedAddress.state, false);
+          const premRate = calculateShippingCharge(cartSubtotal, getCourierCost(cheapestAir), selectedAddress.state, true);
 
           const list: CourierOption[] = [
             {
