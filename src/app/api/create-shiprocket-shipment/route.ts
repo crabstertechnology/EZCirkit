@@ -134,55 +134,12 @@ export async function POST(request: NextRequest) {
     const shipmentId = orderData.shipment_id;
     let awbResponseData = null;
 
-    // Automatically assign AWB if shipment_id was generated
-    if (shipmentId) {
-      try {
-        let awbResponse;
-        try {
-          awbResponse = await axios.post(
-            'https://apiv2.shiprocket.in/v1/external/courier/assign/awb',
-            {
-              shipment_id: shipmentId,
-              ...(shipmentRequest.courierId ? { courier_id: shipmentRequest.courierId } : {}),
-            },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-            }
-          );
-        } catch (specAwbErr: any) {
-          console.warn('Auto-assign AWB with selected courier failed, retrying without courier_id...', specAwbErr.response?.data || specAwbErr.message);
-          // Fallback to let Shiprocket choose best available
-          awbResponse = await axios.post(
-            'https://apiv2.shiprocket.in/v1/external/courier/assign/awb',
-            {
-              shipment_id: shipmentId,
-            },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-            }
-          );
-        }
-
-        if (awbResponse?.data && awbResponse.data.awb_assign_status === 1) {
-          awbResponseData = awbResponse.data.response.data;
-        }
-      } catch (awbError: any) {
-        console.error('Failed to auto-assign AWB during order creation:', awbError.response?.data || awbError.message);
-      }
-    }
-
     // Merge response data
     const finalResponse = {
       ...orderData,
-      awb_code: awbResponseData?.awb_code || null,
-      courier_name: awbResponseData?.courier_name || null,
-      status: awbResponseData ? 'AWB Assigned' : (orderData.status || 'NEW'),
+      awb_code: null,
+      courier_name: null,
+      status: 'NEW',
     };
 
     return NextResponse.json(finalResponse);
