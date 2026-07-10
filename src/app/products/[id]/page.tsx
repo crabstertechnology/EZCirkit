@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { 
   Star, Heart, ShoppingCart, ArrowRight, ShieldCheck, 
   Truck, ArrowRightLeft, Coins, RotateCcw, Copy, 
-  Download, ExternalLink, Calendar, Check, AlertCircle, Plus, Minus
+  Download, ExternalLink, Calendar, Check, AlertCircle, Plus, Minus, ChevronDown
 } from 'lucide-react';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { doc, collection, query, limit, where, getDoc, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -20,6 +20,7 @@ import { useCart } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import ProductSchema from '@/components/seo/product-schema';
 
 interface Review {
   id?: string;
@@ -28,6 +29,11 @@ interface Review {
   comment: string;
   userId?: string;
   createdAt?: any;
+}
+
+interface FAQ {
+  question: string;
+  answer: string;
 }
 
 export default function ProductDetailPage() {
@@ -375,17 +381,42 @@ export default function ProductDetailPage() {
     }
   };
 
+  // Parse FAQs from product data (stored as JSON string or array)
+  const parsedFaqs: FAQ[] = React.useMemo(() => {
+    if (!product?.faqs) return [];
+    if (typeof product.faqs === 'string') {
+      try { return JSON.parse(product.faqs); } catch { return []; }
+    }
+    if (Array.isArray(product.faqs)) return product.faqs;
+    return [];
+  }, [product?.faqs]);
+
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-foreground">
+      {/* ── JSON-LD Structured Data (SEO Rich Results) ── */}
+      <ProductSchema
+        product={product}
+        averageRating={averageRating}
+        reviewsCount={reviewsCount}
+      />
+
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-12">
 
-        {/* Breadcrumb */}
-        <nav className="text-xs text-muted-foreground flex items-center gap-1.5 mb-6">
+        {/* Breadcrumb – semantic nav for SEO */}
+        <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground flex items-center gap-1.5 mb-6">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
-          <span>›</span>
+          <span aria-hidden>›</span>
           <Link href="/products" className="hover:text-primary transition-colors">Shop</Link>
-          <span>›</span>
-          <span className="text-foreground font-medium line-clamp-1">{product.name}</span>
+          <span aria-hidden>›</span>
+          {product.category && (
+            <>
+              <Link href={`/products?category=${encodeURIComponent(product.category)}`} className="hover:text-primary transition-colors">{product.category}</Link>
+              <span aria-hidden>›</span>
+            </>
+          )}
+          <span className="text-foreground font-medium line-clamp-1" aria-current="page">{product.name}</span>
         </nav>
 
         {/* ── MAIN PRODUCT ROW ── */}
@@ -428,7 +459,8 @@ export default function ProductDetailPage() {
             >
               <img
                 src={activeImage || product.image}
-                alt={product.name}
+                alt={`${product.name} – ${product.category || 'Electronic Component'} | EZCirkit`}
+                title={`${product.name} by EZCirkit`}
                 className="w-full h-full object-contain p-4 pointer-events-none select-none"
                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
               />
@@ -599,6 +631,9 @@ export default function ProductDetailPage() {
               <TabsList className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1 gap-1 w-full">
                 <TabsTrigger value="included" className="flex-1 rounded-md text-xs font-bold">What's Included</TabsTrigger>
                 <TabsTrigger value="specs" className="flex-1 rounded-md text-xs font-bold">Specifications</TabsTrigger>
+                {parsedFaqs.length > 0 && (
+                  <TabsTrigger value="faqs" className="flex-1 rounded-md text-xs font-bold">FAQ</TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="included" className="pt-3">
@@ -630,6 +665,29 @@ export default function ProductDetailPage() {
                   <p className="text-xs text-muted-foreground italic">Add specifications in the admin panel.</p>
                 )}
               </TabsContent>
+              {parsedFaqs.length > 0 && (
+                <TabsContent value="faqs" className="pt-3">
+                  <div className="space-y-2">
+                    {parsedFaqs.map((faq, i) => (
+                      <div key={i} className="border border-border/60 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                          className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-bold text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                          aria-expanded={openFaq === i}
+                        >
+                          <span>{faq.question}</span>
+                          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
+                        </button>
+                        {openFaq === i && (
+                          <div className="px-3 pb-3 text-xs text-muted-foreground leading-relaxed border-t border-border/40 pt-2">
+                            {faq.answer}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+              )}
             </Tabs>
 
           </div>
@@ -730,6 +788,9 @@ export default function ProductDetailPage() {
               <TabsTrigger value="resources" className="rounded-lg font-bold text-xs md:text-sm">Additional Resources</TabsTrigger>
               <TabsTrigger value="warranty" className="rounded-lg font-bold text-xs md:text-sm">Warranty</TabsTrigger>
               <TabsTrigger value="shipping" className="rounded-lg font-bold text-xs md:text-sm">Shipping & Return</TabsTrigger>
+              {parsedFaqs.length > 0 && (
+                <TabsTrigger value="faq" className="rounded-lg font-bold text-xs md:text-sm">FAQ</TabsTrigger>
+              )}
             </TabsList>
 
             {/* Description Content */}
@@ -808,6 +869,44 @@ export default function ProductDetailPage() {
                 {product.shipping || "Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage."}
               </p>
             </TabsContent>
+
+            {/* FAQ Content – renders FAQ schema-compatible content */}
+            {parsedFaqs.length > 0 && (
+              <TabsContent value="faq" className="p-6 border border-border/60 rounded-2xl bg-white dark:bg-zinc-950/20 space-y-4">
+                <h2 className="text-base font-black uppercase tracking-wider text-foreground">Frequently Asked Questions</h2>
+                <div className="space-y-3" itemScope itemType="https://schema.org/FAQPage">
+                  {parsedFaqs.map((faq, i) => (
+                    <div
+                      key={i}
+                      itemScope
+                      itemProp="mainEntity"
+                      itemType="https://schema.org/Question"
+                      className="border border-border/60 rounded-xl overflow-hidden"
+                    >
+                      <button
+                        onClick={() => setOpenFaq(openFaq === i + 100 ? null : i + 100)}
+                        className="w-full flex items-center justify-between gap-3 p-4 text-left text-sm font-bold text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors"
+                        aria-expanded={openFaq === i + 100}
+                        itemProp="name"
+                      >
+                        <span>{faq.question}</span>
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${openFaq === i + 100 ? 'rotate-180' : ''}`} />
+                      </button>
+                      {openFaq === i + 100 && (
+                        <div
+                          itemScope
+                          itemProp="acceptedAnswer"
+                          itemType="https://schema.org/Answer"
+                          className="px-4 pb-4 border-t border-border/40 pt-3 text-sm text-muted-foreground leading-relaxed"
+                        >
+                          <span itemProp="text">{faq.answer}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
 

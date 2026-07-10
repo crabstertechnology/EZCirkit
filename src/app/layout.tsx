@@ -16,18 +16,26 @@ export const metadata: Metadata = {
   },
   description: 'Learn electronics and programming easily with the EZCirkit STEM kit. Real-time simulation, step-by-step interactive experiments, and video tutorials by Crabster Technology.',
   keywords: [
-    'EZCirkit', 
-    'Crabster Technology', 
-    'Learn Electronics', 
-    'STEM Kit', 
-    'Arduino Starter Kit', 
-    'Electronics experiments', 
-    'Robotics for students', 
-    'Arduino simulator', 
-    'Online Code Compiler',
-    'Arduino Web IDE',
-    'Learn Coding',
-    'DIY Electronics'
+    'EZCirkit',
+    'Crabster Technology',
+    'buy electronic components India',
+    'electronic components online India',
+    'Arduino starter kit India',
+    'electronics components distributor India',
+    'sensors for Arduino',
+    'ESP32 development board India',
+    'STEM kit India',
+    'Learn Electronics',
+    'Arduino tutorial India',
+    'robotics kit for students',
+    'buy sensors online India',
+    'Arduino components price India',
+    'electronics supplier India',
+    'DIY electronics India',
+    'microcontroller board India',
+    'online electronics store India',
+    'COD electronics India',
+    'Arduino Uno India',
   ],
   authors: [{ name: 'Crabster Technology', url: 'https://crabster.in' }],
   creator: 'Crabster Technology',
@@ -85,6 +93,45 @@ export default function RootLayout({
   return (
     <html lang="en" className="!scroll-smooth" suppressHydrationWarning>
       <head>
+        {/* Organisation schema for E-E-A-T / Knowledge Panel */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'OnlineStore',
+              name: 'EZCirkit by Crabster Technology',
+              alternateName: 'EZCirkit',
+              url: 'https://ezcirkit.crabster.in',
+              logo: 'https://ezcirkit.crabster.in/logo.png',
+              description:
+                'EZCirkit is an online store for electronic components, sensors, development boards, Arduino kits, and STEM learning kits in India. Buy online with fast delivery and Cash on Delivery.',
+              foundingDate: '2023',
+              areaServed: { '@type': 'Country', name: 'India' },
+              contactPoint: {
+                '@type': 'ContactPoint',
+                telephone: '+91-7010396642',
+                contactType: 'customer service',
+                areaServed: 'IN',
+                availableLanguage: ['English', 'Tamil', 'Hindi'],
+              },
+              sameAs: ['https://crabster.in'],
+              address: {
+                '@type': 'PostalAddress',
+                addressCountry: 'IN',
+              },
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                  '@type': 'EntryPoint',
+                  urlTemplate:
+                    'https://ezcirkit.crabster.in/products?search={search_term_string}',
+                },
+                'query-input': 'required name=search_term_string',
+              },
+            }),
+          }}
+        />
         {/* DNS Prefetch & Preconnect for critical third-party origins */}
         <link rel="preconnect" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />

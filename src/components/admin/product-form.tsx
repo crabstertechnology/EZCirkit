@@ -245,6 +245,10 @@ const productSchema = z.object({
   warranty: z.string().optional(),
   shipping: z.string().optional(),
   gallery: z.array(z.string()).optional(), // Image URLs or Base64 strings
+  // SEO fields
+  metaTitle: z.string().optional(),       // Custom SEO title (50–60 chars)
+  metaDescription: z.string().optional(), // Custom meta description (140–160 chars)
+  faqs: z.string().optional(),            // JSON array string: [{question, answer}]
 });
 
 const compressImageToBase64 = (file: File): Promise<string> => {
@@ -351,6 +355,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
       warranty: '7 Days replacement against manufacturing defects.',
       shipping: 'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
       gallery: [],
+      metaTitle: '',
+      metaDescription: '',
+      faqs: '',
     },
   });
 
@@ -367,6 +374,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
         warranty: (product as any).warranty || '',
         shipping: (product as any).shipping || '',
         gallery: (product as any).gallery || [],
+        metaTitle: (product as any).metaTitle || '',
+        metaDescription: (product as any).metaDescription || '',
+        faqs: typeof (product as any).faqs === 'string'
+          ? (product as any).faqs
+          : (product as any).faqs
+            ? JSON.stringify((product as any).faqs, null, 2)
+            : '',
       });
     } else {
       form.reset({
@@ -386,6 +400,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
         warranty: '7 Days replacement against manufacturing defects.',
         shipping: 'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
         gallery: [],
+        metaTitle: '',
+        metaDescription: '',
+        faqs: '',
       });
     }
   }, [product, form, firestore]);
@@ -470,10 +487,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="basic">1. Basic Info</TabsTrigger>
             <TabsTrigger value="extended">2. Product Details</TabsTrigger>
             <TabsTrigger value="media">3. Gallery & Specs</TabsTrigger>
+            <TabsTrigger value="seo">4. SEO</TabsTrigger>
           </TabsList>
 
           {/* TAB 1: BASIC INFO */}
@@ -851,6 +869,86 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                       className="h-20 font-mono text-xs" 
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+
+          {/* TAB 4: SEO */}
+          <TabsContent value="seo" className="space-y-4">
+            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 font-semibold">
+              ⚡ If left blank, SEO title and meta description are auto-generated from the product name, category, and price. Fill these in for maximum Google ranking control.
+            </div>
+
+            <FormField
+              control={form.control}
+              name="metaTitle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SEO Title (50–60 characters ideal)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. DHT11 Temperature & Humidity Sensor – Buy Online | EZCirkit"
+                      {...field}
+                      maxLength={70}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {(field.value || '').length} / 60 chars. Shown as the blue link title in Google search results.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="metaDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Meta Description (140–160 characters ideal)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="e.g. Buy DHT11 Temperature & Humidity Sensor online at ₹199. Best quality sensor for Arduino & Raspberry Pi projects. Fast shipping across India. COD available."
+                      {...field}
+                      className="h-20"
+                      maxLength={180}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {(field.value || '').length} / 160 chars. Appears below the title in Google results.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="faqs"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>FAQ (JSON Array – generates FAQ Rich Snippet on Google)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={`[
+  {
+    "question": "Is this compatible with Arduino?",
+    "answer": "Yes, this sensor works with Arduino, ESP32, and Raspberry Pi."
+  },
+  {
+    "question": "What is the operating voltage?",
+    "answer": "3.3V to 5V DC."
+  }
+]`}
+                      {...field}
+                      className="h-48 font-mono text-xs"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter a valid JSON array. Each item must have a &quot;question&quot; and &quot;answer&quot; field. These appear as expandable FAQs on the product page and in Google rich results.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
