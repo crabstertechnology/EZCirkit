@@ -12,6 +12,7 @@ import { useAuth } from '@/firebase';
 import { handleSignUp } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Eye, EyeOff } from 'lucide-react';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -57,6 +58,24 @@ function SignUpPage() {
       }
     } finally {
        setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    setIsLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.replace('/profile');
+    } catch (error: any) {
+      console.error("Google Sign-In error:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Google Sign-In Failed',
+        description: error.message || 'Could not authenticate with Google.',
+      });
+      setIsLoading(false);
     }
   };
 
@@ -137,6 +156,41 @@ function SignUpPage() {
                   {isLoading ? 'Creating Account...' : 'Create Account'}
                 </Button>
               </form>
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 cursor-pointer"
+                disabled={isLoading}
+                onClick={handleGoogleSignIn}
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582l3.51-3.51C17.642 1.091 14.974 0 12 0 7.354 0 3.307 2.67 1.296 6.57l3.97 3.195z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.275c0-.825-.075-1.62-.21-2.385H12v4.51h6.46c-.28 1.48-1.12 2.73-2.38 3.58l3.7 2.87c2.16-2 3.71-4.935 3.71-8.575z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.266 14.235A7.098 7.098 0 0 1 4.9 12c0-.795.13-1.56.366-2.265L1.296 6.54A11.967 11.967 0 0 0 0 12c0 1.92.455 3.73 1.256 5.34l4.01-3.105z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.97-1.075 7.96-2.915l-3.7-2.87c-1.025.688-2.342 1.1-3.96 1.1-3.055 0-5.64-2.065-6.565-4.845L1.256 17.34C3.267 21.305 7.314 24 12 24z"
+                  />
+                </svg>
+                Google
+              </Button>
             </div>
           <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
