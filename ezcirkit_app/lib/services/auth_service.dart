@@ -28,7 +28,7 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '1063677286444-pbgn1v06a58j3g9t655n2pquqj9r805b.apps.googleusercontent.com', // Replace with your actual Firebase Web Client ID
+    serverClientId: '1063677286444-q2tgejq4qe9pi80ea3ia9ughd3ec0j3p.apps.googleusercontent.com',
     scopes: ['email'],
   );
 
