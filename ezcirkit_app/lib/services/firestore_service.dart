@@ -174,11 +174,16 @@ class FirestoreService {
   }
 
   /// Checks if the user is an admin, has explicit tutorial access, or has a paid/shipped/delivered order.
-  Future<bool> verifyUserAccess(String uid) async {
+  Future<bool> verifyUserAccess(String uid, String idToken) async {
     try {
+      final headers = {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      };
+
       // 1. Fetch user doc
       final userUrl = Uri.parse('$_baseUrl/users/$uid');
-      final userRes = await http.get(userUrl);
+      final userRes = await http.get(userUrl, headers: headers);
       
       if (userRes.statusCode == 200) {
         final userData = json.decode(userRes.body);
@@ -190,11 +195,13 @@ class FirestoreService {
         if (isAdmin || hasTutorialAccess) {
           return true;
         }
+      } else {
+        print('Firestore fetch user doc error (${userRes.statusCode}): ${userRes.body}');
       }
       
       // 2. Fetch user's orders subcollection
       final ordersUrl = Uri.parse('$_baseUrl/users/$uid/orders');
-      final ordersRes = await http.get(ordersUrl);
+      final ordersRes = await http.get(ordersUrl, headers: headers);
       
       if (ordersRes.statusCode == 200) {
         final ordersData = json.decode(ordersRes.body);
@@ -209,6 +216,8 @@ class FirestoreService {
             }
           }
         }
+      } else {
+        print('Firestore fetch user orders error (${ordersRes.statusCode}): ${ordersRes.body}');
       }
       
       return false;

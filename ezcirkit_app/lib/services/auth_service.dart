@@ -44,7 +44,7 @@ class AuthService extends ChangeNotifier {
       return;
     }
     try {
-      _hasTutorialAccess = await _firestoreService.verifyUserAccess(_currentUser!.uid);
+      _hasTutorialAccess = await _firestoreService.verifyUserAccess(_currentUser!.uid, _currentUser!.idToken);
       notifyListeners();
     } catch (e) {
       print('Error checking tutorial access: $e');
