@@ -172,4 +172,49 @@ class FirestoreService {
       rethrow;
     }
   }
+
+  /// Checks if the user is an admin, has explicit tutorial access, or has a paid/shipped/delivered order.
+  Future<bool> verifyUserAccess(String uid) async {
+    try {
+      // 1. Fetch user doc
+      final userUrl = Uri.parse('$_baseUrl/users/$uid');
+      final userRes = await http.get(userUrl);
+      
+      if (userRes.statusCode == 200) {
+        final userData = json.decode(userRes.body);
+        final fields = userData['fields'] ?? {};
+        
+        final isAdmin = fields['isAdmin'] != null && fields['isAdmin']['booleanValue'] == true;
+        final hasTutorialAccess = fields['hasTutorialAccess'] != null && fields['hasTutorialAccess']['booleanValue'] == true;
+        
+        if (isAdmin || hasTutorialAccess) {
+          return true;
+        }
+      }
+      
+      // 2. Fetch user's orders subcollection
+      final ordersUrl = Uri.parse('$_baseUrl/users/$uid/orders');
+      final ordersRes = await http.get(ordersUrl);
+      
+      if (ordersRes.statusCode == 200) {
+        final ordersData = json.decode(ordersRes.body);
+        final documents = ordersData['documents'] as List<dynamic>?;
+        
+        if (documents != null && documents.isNotEmpty) {
+          for (var doc in documents) {
+            final fields = doc['fields'] ?? {};
+            final status = fields['status'] != null ? fields['status']['stringValue'] : '';
+            if (status == 'paid' || status == 'shipped' || status == 'delivered') {
+              return true;
+            }
+          }
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      print('Error checking user access: $e');
+      return false;
+    }
+  }
 }

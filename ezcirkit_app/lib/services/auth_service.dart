@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'firestore_service.dart';
 
 class AuthUser {
   final String uid;
@@ -32,6 +33,24 @@ class AuthService extends ChangeNotifier {
     scopes: ['email'],
   );
 
+  final FirestoreService _firestoreService = FirestoreService();
+  bool _hasTutorialAccess = false;
+  bool get hasTutorialAccess => _hasTutorialAccess;
+
+  Future<void> checkTutorialAccess() async {
+    if (_currentUser == null) {
+      _hasTutorialAccess = false;
+      notifyListeners();
+      return;
+    }
+    try {
+      _hasTutorialAccess = await _firestoreService.verifyUserAccess(_currentUser!.uid);
+      notifyListeners();
+    } catch (e) {
+      print('Error checking tutorial access: $e');
+    }
+  }
+
   /// Signs up a new user with email and password
   Future<void> signUpWithEmail(String email, String password, String displayName) async {
     final url = Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$_apiKey');
@@ -60,7 +79,7 @@ class AuthService extends ChangeNotifier {
         photoUrl: '',
         idToken: token,
       );
-      notifyListeners();
+      await checkTutorialAccess();
     } else {
       final error = json.decode(response.body)['error']?['message'] ?? 'Sign up failed';
       throw Exception(error);
@@ -96,7 +115,7 @@ class AuthService extends ChangeNotifier {
         photoUrl: '',
         idToken: token,
       );
-      notifyListeners();
+      await checkTutorialAccess();
     } else {
       final error = json.decode(response.body)['error']?['message'] ?? 'Login failed';
       throw Exception(error);
@@ -149,7 +168,7 @@ class AuthService extends ChangeNotifier {
           photoUrl: photoUrl,
           idToken: token,
         );
-        notifyListeners();
+        await checkTutorialAccess();
       } else {
         final error = json.decode(response.body)['error']?['message'] ?? 'Google Authentication failed';
         throw Exception(error);
@@ -163,6 +182,7 @@ class AuthService extends ChangeNotifier {
   /// Logs out the user
   Future<void> logout() async {
     _currentUser = null;
+    _hasTutorialAccess = false;
     await _googleSignIn.signOut();
     notifyListeners();
   }

@@ -6,6 +6,7 @@ import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import 'ide_screen.dart';
 import 'login_screen.dart';
+import 'shop_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -79,6 +80,109 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return videoId != null 
         ? 'https://img.youtube.com/vi/$videoId/mqdefault.jpg' 
         : 'https://img.youtube.com/vi/$urlOrId/mqdefault.jpg'; // Fallback
+  }
+
+  void _showLockedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 16,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Lock Icon with premium Glow background
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFF7ED), // light orange glow
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_person_outlined,
+                    color: Color(0xFFF97316), // Premium Orange
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Tutorials Locked',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'You must purchase the EZCirkit hardware learning kit or request admin access to unlock the interactive tutorials, video guides, and cloud IDE compiles.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF475569),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'Maybe Later',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ShopScreen(url: 'https://shop.crabstertech.in'),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF97316),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Visit Shop',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -433,6 +537,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? exp.diagramUrl
             : _getYoutubeThumbnail(exp.videoId);
 
+        final authService = Provider.of<AuthService>(context);
+        final hasAccess = authService.hasTutorialAccess;
+
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
@@ -441,7 +548,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -465,6 +572,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _buildExperimentImage(imageUrl),
                     ),
                   ),
+                  // Lock overlay if not purchased
+                  if (!hasAccess)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.4),
+                        child: const Center(
+                          child: Icon(
+                            Icons.lock,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                    ),
                   // Duration chip overlay
                   Positioned(
                     bottom: 10,
@@ -495,13 +616,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      exp.title,
-                      style: const TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            exp.title,
+                            style: const TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (!hasAccess)
+                          const Icon(
+                            Icons.lock,
+                            color: Color(0xFFF97316),
+                            size: 16,
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -520,28 +653,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFF7ED), // Light orange background tint
-                          foregroundColor: const Color(0xFFF97316),
+                          backgroundColor: hasAccess ? const Color(0xFFFFF7ED) : const Color(0xFFF1F5F9), // Light orange if open, gray if locked
+                          foregroundColor: hasAccess ? const Color(0xFFF97316) : const Color(0xFF64748B),
                           surfaceTintColor: const Color(0xFFF97316),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(color: Color(0x66F97316)),
+                            side: BorderSide(
+                              color: hasAccess ? const Color(0x66F97316) : const Color(0xFFCBD5E1),
+                            ),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           elevation: 0,
                         ),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => IdeScreen(experiment: exp),
-                            ),
-                          );
+                          if (hasAccess) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => IdeScreen(experiment: exp),
+                              ),
+                            );
+                          } else {
+                            _showLockedDialog(context);
+                          }
                         },
-                        icon: const Icon(Icons.code, size: 16),
-                        label: const Text(
-                          'Launch IDE',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        icon: Icon(hasAccess ? Icons.code : Icons.lock_outline, size: 16),
+                        label: Text(
+                          hasAccess ? 'Launch IDE' : 'Unlock Tutorials',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),
                     ),
