@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/curriculum_provider.dart';
 import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 import 'ide_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -165,29 +167,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ],
                       ),
-                      // Brand Logo Asset
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0x33F97316),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/logo.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.memory, color: Color(0xFFF97316), size: 28);
+                      // User Profile Avatar & Logout Action
+                      Consumer<AuthService>(
+                        builder: (context, authService, _) {
+                          final user = authService.currentUser;
+                          final displayName = user?.displayName ?? 'User';
+                          final email = user?.email ?? '';
+                          final photoUrl = user?.photoUrl ?? '';
+
+                          return PopupMenuButton<int>(
+                            onSelected: (value) async {
+                              if (value == 1) {
+                                await authService.logout();
+                                if (context.mounted) {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                  );
+                                }
+                              }
                             },
-                          ),
-                        ),
+                            offset: const Offset(0, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                enabled: false,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      displayName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      email,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    const Divider(),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 1,
+                                child: Row(
+                                  children: const [
+                                    Icon(Icons.logout, size: 18, color: Colors.redAccent),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Log Out',
+                                      style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFE2E8F0), width: 2),
+                              ),
+                              child: ClipOval(
+                                child: photoUrl.isNotEmpty
+                                    ? Image.network(
+                                        photoUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Color(0xFF64748B)),
+                                      )
+                                    : const Icon(Icons.person, color: Color(0xFF64748B)),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

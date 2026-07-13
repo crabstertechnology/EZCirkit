@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/curriculum_provider.dart';
 import 'services/usb_service.dart';
-import 'screens/dashboard_screen.dart';
+import 'services/auth_service.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ class EZCirkitApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CurriculumProvider()),
         ChangeNotifierProvider(create: (_) => UsbService()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
         title: 'EZCirkit IDE',
@@ -78,7 +80,7 @@ class EZCirkitApp extends StatelessWidget {
           
           useMaterial3: true,
         ),
-        home: const DashboardScreen(),
+        home: const LoginScreen(),
       ),
     );
   }
