@@ -32,7 +32,7 @@ import {
 // --------------------------------------------------------------------------
 // Types
 // --------------------------------------------------------------------------
-type Phase = 'loading' | 'manual-entry' | 'invalid' | 'already-activated' | 'form' | 'success';
+type Phase = 'loading' | 'no-token' | 'invalid' | 'already-activated' | 'form' | 'success';
 
 const COUNTRIES = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Other'];
 const INDIA_STATES = [
@@ -53,8 +53,6 @@ export default function ActivatePageContent() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [validatedToken, setValidatedToken] = useState('');
   const [resolvedKitId, setResolvedKitId] = useState('');
-  const [manualKitId, setManualKitId] = useState('');
-  const [manualError, setManualError] = useState('');
 
   // Form fields
   const [name, setName] = useState('');
@@ -78,17 +76,16 @@ export default function ActivatePageContent() {
     if (token) {
       validateToken(token);
     } else {
-      // No token in URL → show manual entry
-      setPhase('manual-entry');
+      // No token in URL → show no-token message
+      setPhase('no-token');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function validateToken(token: string, isKitId = false) {
+  async function validateToken(token: string) {
     setPhase('loading');
     try {
-      const param = isKitId ? `kitId=${encodeURIComponent(token)}` : `token=${encodeURIComponent(token)}`;
-      const res = await fetch(`/api/offline-kits/validate?${param}`);
+      const res = await fetch(`/api/offline-kits/validate?token=${encodeURIComponent(token)}`);
       const data = await res.json();
 
       if (!data.valid) {
@@ -106,22 +103,6 @@ export default function ActivatePageContent() {
       setPhase('form');
     } catch {
       setPhase('invalid');
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // Manual Kit-ID lookup (fallback)
-  // --------------------------------------------------------------------------
-  async function handleManualLookup(e: React.FormEvent) {
-    e.preventDefault();
-    setManualError('');
-    if (!manualKitId.trim()) {
-      setManualError('Please enter your Kit ID (e.g. EZC-000001).');
-      return;
-    }
-    await validateToken(manualKitId.trim(), true);
-    if (phase === 'invalid') {
-      setManualError('Kit ID not found. Please check and try again.');
     }
   }
 
@@ -222,11 +203,7 @@ export default function ActivatePageContent() {
           description="This activation link is not valid. Please check your kit packaging or scan the QR code again."
           badgeText="Invalid"
           badgeVariant="destructive"
-        >
-          <Button variant="outline" onClick={() => setPhase('manual-entry')}>
-            Enter Kit ID manually
-          </Button>
-        </StatusCard>
+        />
       </Screen>
     );
   }
@@ -270,40 +247,16 @@ export default function ActivatePageContent() {
     );
   }
 
-  if (phase === 'manual-entry') {
+  if (phase === 'no-token') {
     return (
       <Screen>
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 h-14 w-14 bg-primary/10 rounded-full flex items-center justify-center">
-              <QrCode className="h-7 w-7 text-primary" />
-            </div>
-            <CardTitle>Activate Your EZCirkit Kit</CardTitle>
-            <CardDescription>
-              Scan the QR code on your kit packaging, or enter your Kit ID below.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleManualLookup} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="manual-kit-id">Kit ID</Label>
-                <Input
-                  id="manual-kit-id"
-                  placeholder="e.g. EZC-000001"
-                  value={manualKitId}
-                  onChange={(e) => setManualKitId(e.target.value.toUpperCase())}
-                  className="font-mono tracking-widest"
-                />
-                {manualError && (
-                  <p className="text-xs text-destructive">{manualError}</p>
-                )}
-              </div>
-              <Button type="submit" className="w-full">
-                Validate Kit ID
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <StatusCard
+          icon={<QrCode className="h-12 w-12 text-primary" />}
+          title="Scan QR Code to Activate"
+          description="Please scan the QR code printed on your physical kit packaging to activate your product and register your account."
+          badgeText="QR Code Required"
+          badgeVariant="outline"
+        />
       </Screen>
     );
   }

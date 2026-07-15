@@ -427,7 +427,7 @@ export default function OfflineKitsPage() {
                             ? 'bg-primary/5 hover:bg-primary/10'
                             : 'hover:bg-muted/60'
                         }`}
-                        onClick={() => toggleOne(kit.id)}
+                        onClick={() => router.push(`/admin/offline-kits/${kit.id}`)}
                       >
                         {/* Checkbox cell — stop propagation so clicking it doesn't also navigate */}
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -437,7 +437,7 @@ export default function OfflineKitsPage() {
                             aria-label={`Select ${kit.kitId}`}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs font-bold">{kit.kitId}</TableCell>
+                        <TableCell className="font-mono text-xs font-bold text-primary hover:underline">{kit.kitId}</TableCell>
                         <TableCell className="text-sm">{kit.batchName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{kit.shopName || '—'}</TableCell>
                         <TableCell>{statusBadge(kit.status)}</TableCell>
@@ -525,7 +525,7 @@ export default function OfflineKitsPage() {
                     className={`cursor-pointer transition-all ${
                       isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:shadow-md'
                     }`}
-                    onClick={() => toggleOne(kit.id)}
+                    onClick={() => router.push(`/admin/offline-kits/${kit.id}`)}
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
