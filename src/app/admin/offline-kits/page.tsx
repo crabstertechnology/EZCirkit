@@ -142,7 +142,16 @@ export default function OfflineKitsPage() {
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
         body: JSON.stringify({ docIds: Array.from(selectedIds), force }),
       });
-      const data = await res.json();
+      
+      const contentType = res.headers.get('content-type');
+      let data: any = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Server response error ${res.status}: ${text.substring(0, 80)}...`);
+      }
+
       if (!res.ok) throw new Error(data.error || 'Bulk delete failed');
 
       const msg = [

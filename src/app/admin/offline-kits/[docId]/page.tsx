@@ -169,7 +169,16 @@ export default function KitDetailPage() {
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
         body: JSON.stringify({ docId: kit.id, force }),
       });
-      const data = await res.json();
+      
+      const contentType = res.headers.get('content-type');
+      let data: any = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Server response error ${res.status}: ${text.substring(0, 80)}...`);
+      }
+
       if (!res.ok) throw new Error(data.message || 'Failed to delete');
       toast({ title: `Kit ${kit.kitId} deleted permanently.` });
       router.push('/admin/offline-kits');
