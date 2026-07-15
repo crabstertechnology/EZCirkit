@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const batchId = sp.get('batchId');
   const status  = sp.get('status');
 
-  const db = getAdminDb();
+  const db = await getAdminDb();
   let q: FirebaseFirestore.Query = db.collection('offline_kits').orderBy('createdAt', 'desc');
   if (batchId) q = q.where('batchId', '==', batchId);
   if (status)  q = q.where('status', '==', status);

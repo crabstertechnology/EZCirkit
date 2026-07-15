@@ -16,8 +16,14 @@ export async function POST(req: NextRequest) {
       };
 
     // 1. Find kit by token
-    const snap = await db.collection('offline_kits')
+    let snap = await db.collection('offline_kits')
       .where('activationToken', '==', token).limit(1).get();
+
+    if (snap.empty && token.includes(' ')) {
+      const plusToken = token.replace(/ /g, '+');
+      snap = await db.collection('offline_kits')
+        .where('activationToken', '==', plusToken).limit(1).get();
+    }
 
     if (snap.empty) return NextResponse.json({ error: 'invalid_token' }, { status: 404 });
 
