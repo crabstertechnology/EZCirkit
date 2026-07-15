@@ -71,7 +71,7 @@ export default function OfflineKitsPage() {
   const kitsQuery = useMemoFirebase(
     () =>
       firestore
-        ? query(collection(firestore, 'offline_kits'), orderBy('createdAt', 'desc'))
+        ? query(collection(firestore, 'offline_kits'), orderBy('kitId', 'desc'))
         : null,
     [firestore]
   );
