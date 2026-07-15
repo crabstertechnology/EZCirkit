@@ -41,6 +41,6 @@ export async function GET(req: NextRequest) {
       error: err.message || 'Unknown error',
       stack: err.stack,
       checks
-    }, { status: 500 });
+    }, { status: 200 });
   }
 }
