@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
     checks.firestoreRead = 'success';
     checks.firestoreEmpty = snap.empty;
 
+    // Try to perform a Firestore write test
+    const testDoc = db.collection('offline_kits_test').doc('ping');
+    await testDoc.set({ timestamp: new Date().toISOString(), message: "Hello from test-admin!" });
+    checks.firestoreWrite = 'success';
+
     return NextResponse.json({ success: true, checks });
   } catch (err: any) {
     return NextResponse.json({
