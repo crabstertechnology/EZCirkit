@@ -4,12 +4,38 @@ import { getAdminDb, ADMIN_SECRET } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { randomBytes } from 'crypto';
 
+function parseKitNumber(kitId?: string): number {
+  if (!kitId) return 0;
+  const match = kitId.match(/EZC-(\d+)/i);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+  return 0;
+}
+
 async function getNextKitCounter(db: FirebaseFirestore.Firestore, count: number): Promise<number> {
+  // Query actual highest kitId to heal counter in case of deletions
+  const kitsSnap = await db.collection('offline_kits')
+    .orderBy('kitId', 'desc')
+    .limit(1)
+    .get();
+
+  let maxExisting = 0;
+  if (!kitsSnap.empty) {
+    const highestKitId = kitsSnap.docs[0].data().kitId;
+    maxExisting = parseKitNumber(highestKitId);
+  }
+
   const counterRef = db.collection('_counters').doc('offline_kits');
   let startFrom = 0;
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(counterRef);
-    const current: number = snap.exists ? (snap.data()!.value as number) : 0;
+    const storedValue = snap.exists ? (snap.data()!.value as number) : 0;
+    
+    // Auto-heal counter: do not let it exceed the actual highest kit number + 1.
+    // If all kits were deleted, maxExisting is 0, so counter resets to 0.
+    const current = Math.min(storedValue, maxExisting);
+    
     startFrom = current + 1;
     tx.set(counterRef, { value: current + count }, { merge: true });
   });

@@ -14,7 +14,20 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 const ADMIN_SECRET = 'ezcirkit-admin-2024';
-const BASE_URL = 'https://ezcirkit.com';
+
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'https://shop.crabstertech.in';
+};
+
+const getHostName = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.host;
+  }
+  return 'shop.crabstertech.in';
+};
 
 interface GeneratedKit {
   kitId: string;
@@ -60,7 +73,7 @@ export default function GenerateBatchPage() {
       setIsRenderingQR(true);
       const withQR: GeneratedKit[] = await Promise.all(
         data.kits.map(async (kit: GeneratedKit) => {
-          const url = `${BASE_URL}/activate?token=${kit.activationToken}`;
+          const url = `${getBaseUrl()}/activate?token=${kit.activationToken}`;
           try {
             const qrDataUrl = await QRCode.toDataURL(url, {
               width: 400,
@@ -105,7 +118,7 @@ export default function GenerateBatchPage() {
         <div class="kit-id">Kit ID: ${kit.kitId}</div>
         ${kit.qrDataUrl ? `<img src="${kit.qrDataUrl}" alt="QR Code" />` : ''}
         <div class="scan-text">Scan to Activate</div>
-        <div class="url">ezcirkit.com/activate</div>
+        <div class="url">${getHostName()}/activate</div>
       </div>`
       )
       .join('');

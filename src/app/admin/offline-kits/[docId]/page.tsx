@@ -29,7 +29,20 @@ import { useToast } from '@/hooks/use-toast';
 
 // ---------------------------------------------------------------------------
 const ADMIN_SECRET = 'ezcirkit-admin-2024';
-const BASE_URL = 'https://ezcirkit.com';
+
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'https://shop.crabstertech.in';
+};
+
+const getHostName = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.host;
+  }
+  return 'shop.crabstertech.in';
+};
 
 interface Kit {
   id: string;
@@ -76,7 +89,7 @@ export default function KitDetailPage() {
   // ── Render QR once kit loads ─────────────────────────────────────────────
   useEffect(() => {
     if (!kit?.activationToken) return;
-    const url = `${BASE_URL}/activate?token=${kit.activationToken}`;
+    const url = `${getBaseUrl()}/activate?token=${kit.activationToken}`;
     QRCode.toDataURL(url, { width: 400, margin: 2 }).then(setQrDataUrl);
   }, [kit]);
 
@@ -118,7 +131,7 @@ export default function KitDetailPage() {
           <div class="kit-id">Kit ID: ${kit.kitId}</div>
           <img src="${qrDataUrl}" alt="QR Code" />
           <div class="scan">Scan to Activate</div>
-          <div class="url">ezcirkit.com/activate</div>
+          <div class="url">${getHostName()}/activate</div>
         </div>
         <script>window.onload = () => window.print();</script>
       </body></html>
@@ -332,14 +345,14 @@ export default function KitDetailPage() {
                 </div>
               )}
               <Badge variant="secondary" className="text-xs">Scan to Activate</Badge>
-              <span className="text-xs text-muted-foreground">ezcirkit.com/activate</span>
+              <span className="text-xs text-muted-foreground">{getHostName()}/activate</span>
             </div>
 
             {/* Activation URL */}
             <div className="w-full bg-muted rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1">Activation URL</p>
               <code className="text-xs break-all text-foreground">
-                {BASE_URL}/activate?token={kit.activationToken}
+                {getBaseUrl()}/activate?token={kit.activationToken}
               </code>
             </div>
           </CardContent>
