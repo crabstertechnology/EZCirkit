@@ -132,5 +132,26 @@ service cloud.firestore {
       // Only admins can write.
       allow write: if isAdmin();
     }
+
+    match /settings/{documentId} {
+      // Anyone can read settings.
+      allow read: if true;
+      // Only admins can write.
+      allow write: if isAdmin();
+    }
+
+    match /offline_kits/{kitId} {
+      // Only admins can read and list kits (admin panel UI).
+      allow read, list: if isAdmin();
+
+      // Kit documents are created and updated by the server (Admin SDK) only.
+      // Batch generation and customer activation both bypass rules via Admin SDK.
+      allow create, update, delete: if false;
+    }
+
+    match /_counters/{counterId} {
+      // Internal sequential counters — no client access.
+      allow read, write: if false;
+    }
   }
 }

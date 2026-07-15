@@ -139,5 +139,20 @@ service cloud.firestore {
       // Only admins can write.
       allow write: if isAdmin();
     }
+
+    match /offline_kits/{kitId} {
+      // Only admins can read and list kits (admin panel UI).
+      allow read, list: if isAdmin();
+
+      // Kit documents are created by the server (Admin SDK) during batch generation.
+      // Customer activation is also handled server-side via Admin SDK (bypasses rules).
+      // No client-side write allowed.
+      allow create, update, delete: if false;
+    }
+
+    match /_counters/{counterId} {
+      // Internal counters — no client access.
+      allow read, write: if false;
+    }
   }
 }
