@@ -23,7 +23,7 @@ import {
 import {
   ChevronLeft, Download, Printer, Trash2, Loader2,
   QrCode, User, Calendar, MapPin, Phone, Mail, Building,
-  CheckCircle2, Clock, XCircle, Shield,
+  CheckCircle2, Clock, XCircle, Shield, Copy, Check,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -74,6 +74,27 @@ export default function KitDetailPage() {
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const activationUrl = kit?.activationToken
+    ? `${getBaseUrl()}/activate?token=${kit.activationToken}`
+    : '';
+
+  const handleCopyUrl = async () => {
+    if (!activationUrl) return;
+    try {
+      await navigator.clipboard.writeText(activationUrl);
+      setCopied(true);
+      toast({ title: 'Link copied to clipboard!' });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to copy link.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // ── Load kit from Firestore ──────────────────────────────────────────────
   useEffect(() => {
@@ -226,7 +247,7 @@ export default function KitDetailPage() {
   const activatedDate = parseDate(kit.activatedAt);
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full max-w-7xl mx-auto">
       {/* Back button */}
       <Button variant="ghost" size="sm" asChild>
         <Link href="/admin/offline-kits">
@@ -249,6 +270,14 @@ export default function KitDetailPage() {
 
         {/* Action buttons */}
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={handleCopyUrl} disabled={!kit.activationToken}>
+            {copied ? (
+              <Check className="h-4 w-4 mr-2 text-green-500 animate-in fade-in zoom-in-75 duration-200" />
+            ) : (
+              <Copy className="h-4 w-4 mr-2" />
+            )}
+            {copied ? 'Copied Link' : 'Copy Link'}
+          </Button>
           <Button variant="outline" size="sm" onClick={downloadQR} disabled={!qrDataUrl}>
             <Download className="h-4 w-4 mr-2" /> Download QR
           </Button>
@@ -329,7 +358,7 @@ export default function KitDetailPage() {
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
 
         {/* QR Code card */}
         <Card>
@@ -358,98 +387,110 @@ export default function KitDetailPage() {
             </div>
 
             {/* Activation URL */}
-            <div className="w-full bg-muted rounded-lg p-3">
-              <p className="text-xs text-muted-foreground mb-1">Activation URL</p>
-              <code className="text-xs break-all text-foreground">
-                {getBaseUrl()}/activate?token={kit.activationToken}
-              </code>
+            <div className="w-full space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground">Activation URL</p>
+              <div className="flex items-center gap-2 bg-muted p-2.5 rounded-lg border border-border">
+                <code className="text-xs break-all text-foreground flex-1 font-mono select-all">
+                  {activationUrl}
+                </code>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 shrink-0 hover:bg-background"
+                  onClick={handleCopyUrl}
+                  title="Copy URL"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500 animate-in fade-in zoom-in-75 duration-200" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Kit info + Customer details */}
-        <div className="space-y-6">
-          {/* Kit Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" /> Kit Details
-              </CardTitle>
-            </CardHeader>
+        {/* Kit Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" /> Kit Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <InfoRow label="Kit ID" value={<span className="font-mono font-bold">{kit.kitId}</span>} />
+            <InfoRow label="Batch Name" value={kit.batchName} />
+            <InfoRow label="Shop / Retailer" value={kit.shopName || '—'} />
+            <InfoRow label="Status" value={statusBadge(kit.status)} />
+            <Separator />
+            <InfoRow
+              label="Created"
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              value={createdDate ? format(createdDate, 'dd MMM yyyy, hh:mm a') : '—'}
+            />
+            <InfoRow
+              label="Activated"
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              value={activatedDate ? format(activatedDate, 'dd MMM yyyy, hh:mm a') : 'Not yet activated'}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Customer Details */}
+        <Card className="md:col-span-2 lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" /> Customer Details
+            </CardTitle>
+            {!kit.customerName && (
+              <CardDescription>This kit has not been activated by a customer yet.</CardDescription>
+            )}
+          </CardHeader>
+          {kit.customerName ? (
             <CardContent className="space-y-3 text-sm">
-              <InfoRow label="Kit ID" value={<span className="font-mono font-bold">{kit.kitId}</span>} />
-              <InfoRow label="Batch Name" value={kit.batchName} />
-              <InfoRow label="Shop / Retailer" value={kit.shopName || '—'} />
-              <InfoRow label="Status" value={statusBadge(kit.status)} />
+              <InfoRow
+                label="Full Name"
+                icon={<User className="h-3.5 w-3.5" />}
+                value={kit.customerName}
+              />
+              <InfoRow
+                label="Email"
+                icon={<Mail className="h-3.5 w-3.5" />}
+                value={
+                  <a href={`mailto:${kit.customerEmail}`} className="text-primary underline">
+                    {kit.customerEmail}
+                  </a>
+                }
+              />
+              <InfoRow
+                label="Phone"
+                icon={<Phone className="h-3.5 w-3.5" />}
+                value={kit.customerPhone || '—'}
+              />
               <Separator />
               <InfoRow
-                label="Created"
-                icon={<Calendar className="h-3.5 w-3.5" />}
-                value={createdDate ? format(createdDate, 'dd MMM yyyy, hh:mm a') : '—'}
+                label="Location"
+                icon={<MapPin className="h-3.5 w-3.5" />}
+                value={[kit.activationState, kit.activationCountry].filter(Boolean).join(', ') || '—'}
               />
-              <InfoRow
-                label="Activated"
-                icon={<Calendar className="h-3.5 w-3.5" />}
-                value={activatedDate ? format(activatedDate, 'dd MMM yyyy, hh:mm a') : 'Not yet activated'}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Customer Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" /> Customer Details
-              </CardTitle>
-              {!kit.customerName && (
-                <CardDescription>This kit has not been activated by a customer yet.</CardDescription>
+              {kit.activatedBy && (
+                <InfoRow
+                  label="Firebase UID"
+                  icon={<Building className="h-3.5 w-3.5" />}
+                  value={<span className="font-mono text-xs break-all">{kit.activatedBy}</span>}
+                />
               )}
-            </CardHeader>
-            {kit.customerName ? (
-              <CardContent className="space-y-3 text-sm">
-                <InfoRow
-                  label="Full Name"
-                  icon={<User className="h-3.5 w-3.5" />}
-                  value={kit.customerName}
-                />
-                <InfoRow
-                  label="Email"
-                  icon={<Mail className="h-3.5 w-3.5" />}
-                  value={
-                    <a href={`mailto:${kit.customerEmail}`} className="text-primary underline">
-                      {kit.customerEmail}
-                    </a>
-                  }
-                />
-                <InfoRow
-                  label="Phone"
-                  icon={<Phone className="h-3.5 w-3.5" />}
-                  value={kit.customerPhone || '—'}
-                />
-                <Separator />
-                <InfoRow
-                  label="Location"
-                  icon={<MapPin className="h-3.5 w-3.5" />}
-                  value={[kit.activationState, kit.activationCountry].filter(Boolean).join(', ') || '—'}
-                />
-                {kit.activatedBy && (
-                  <InfoRow
-                    label="Firebase UID"
-                    icon={<Building className="h-3.5 w-3.5" />}
-                    value={<span className="font-mono text-xs break-all">{kit.activatedBy}</span>}
-                  />
-                )}
-              </CardContent>
-            ) : (
-              <CardContent>
-                <div className="flex flex-col items-center justify-center py-6 gap-2 text-muted-foreground">
-                  <User className="h-8 w-8 opacity-30" />
-                  <p className="text-sm">No customer linked yet</p>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </div>
+            </CardContent>
+          ) : (
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-6 gap-2 text-muted-foreground">
+                <User className="h-8 w-8 opacity-30" />
+                <p className="text-sm">No customer linked yet</p>
+              </div>
+            </CardContent>
+          )}
+        </Card>
       </div>
     </div>
   );
