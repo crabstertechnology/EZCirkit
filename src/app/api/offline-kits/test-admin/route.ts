@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Call the shared getAdminDb helper
-    const db = getAdminDb();
+    const db = await getAdminDb();
     checks.initStatus = 'success_shared';
 
     // Try to perform a Firestore read test

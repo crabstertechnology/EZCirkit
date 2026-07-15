@@ -1,4 +1,3 @@
-
 /**
  * Shared Firebase Admin SDK initialiser.
  * Uses the individual env vars already in .env.local:
@@ -6,11 +5,9 @@
  *
  * Falls back to Application Default Credentials (ADC) for Firebase App Hosting.
  */
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
 
-function initAdmin() {
+async function initAdmin() {
+  const { getApps, initializeApp, cert } = await import('firebase-admin/app');
   if (getApps().length) return;
 
   const projectId   = process.env.FIREBASE_PROJECT_ID;
@@ -27,13 +24,15 @@ function initAdmin() {
   }
 }
 
-export function getAdminDb() {
-  initAdmin();
+export async function getAdminDb() {
+  await initAdmin();
+  const { getFirestore } = await import('firebase-admin/firestore');
   return getFirestore();
 }
 
-export function getAdminAuth() {
-  initAdmin();
+export async function getAdminAuth() {
+  await initAdmin();
+  const { getAuth } = await import('firebase-admin/auth');
   return getAuth();
 }
 

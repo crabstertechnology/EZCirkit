@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const { docId, force } = await req.json() as { docId: string; force?: boolean };
     if (!docId) return NextResponse.json({ error: 'docId required' }, { status: 400 });
 
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const ref = db.collection('offline_kits').doc(docId);
     const snap = await ref.get();
 

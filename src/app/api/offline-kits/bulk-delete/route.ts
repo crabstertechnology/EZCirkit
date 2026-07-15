@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Max 200 kits per bulk operation' }, { status: 400 });
     }
 
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const deleted: string[] = [];
     const skipped: string[] = [];
     const errors: string[] = [];

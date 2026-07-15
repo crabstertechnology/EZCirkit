@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const { docId } = await req.json() as { docId: string };
     if (!docId) return NextResponse.json({ error: 'docId required' }, { status: 400 });
 
-    const db = getAdminDb();
+    const db = await getAdminDb();
     await db.collection('offline_kits').doc(docId).update({
       status: 'deactivated', deactivatedAt: new Date(),
     });

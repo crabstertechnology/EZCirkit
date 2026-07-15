@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const batchId = randomBytes(8).toString('hex');
     const startCounter = await getNextKitCounter(db, quantity);
 

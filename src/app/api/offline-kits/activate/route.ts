@@ -4,8 +4,8 @@ import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
-  const db = getAdminDb();
-  const adminAuth = getAdminAuth();
+  const db = await getAdminDb();
+  const adminAuth = await getAdminAuth();
 
   try {
     const { token, name, email, phone, password, country, state, college, profession } =
