@@ -20,13 +20,14 @@ function getAdminFirestore() {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const baseUrl = 'https://ezcirkit.crabster.in';
 
   try {
+    const { id } = await params;
     const db = getAdminFirestore();
-    const docSnap = await db.collection('products').doc(params.id).get();
+    const docSnap = await db.collection('products').doc(id).get();
 
     if (!docSnap.exists) {
       return {
@@ -40,7 +41,7 @@ export async function generateMetadata({
     const category: string = p.category || 'Electronic Components';
     const brand: string = p.brand || 'EZCirkit';
     const price: number = p.price || 0;
-    const sku: string = p.sku || params.id;
+    const sku: string = p.sku || id;
 
     // Use admin-provided SEO title / description if set, else auto-generate
     const seoTitle: string =
@@ -51,7 +52,7 @@ export async function generateMetadata({
       p.metaDescription ||
       `Buy ${productName} online at ₹${price.toLocaleString('en-IN')}. ${category} from EZCirkit by Crabster Technology. Fast shipping across India. Cash on Delivery available.`; // 140–160 chars
 
-    const canonicalUrl = `${baseUrl}/products/${params.id}`;
+    const canonicalUrl = `${baseUrl}/products/${id}`;
     const imageUrl: string =
       p.image?.startsWith('http') ? p.image : `${baseUrl}${p.image || '/logo.png'}`;
 
@@ -113,7 +114,7 @@ export async function generateMetadata({
     };
   } catch (err) {
     // Graceful fallback — never break the build
-    console.error('[SEO] generateMetadata error for product', params.id, err);
+    console.error('[SEO] generateMetadata error for product', err);
     return {
       title: 'Electronic Component | EZCirkit',
       description:
@@ -125,8 +126,10 @@ export async function generateMetadata({
 // ── Pass-through layout wrapper ───────────────────────────────────────────────
 export default function ProductLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ id: string }>;
 }) {
   return <>{children}</>;
 }
