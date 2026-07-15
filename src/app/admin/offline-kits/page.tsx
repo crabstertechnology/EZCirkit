@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Package, QrCode, CheckCircle2, Clock, Plus, Download,
-  Trash2, Eye, XCircle, Loader2, X,
+  Trash2, Eye, XCircle, Loader2, X, Printer,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -70,6 +70,7 @@ export default function OfflineKitsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isDownloadingQRs, setIsDownloadingQRs] = useState(false);
+  const [isPrintingLabels, setIsPrintingLabels] = useState(false);
 
   // ── Selection state ──────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -193,19 +194,84 @@ export default function OfflineKitsPage() {
     }
   }
 
-  // ── CSV Export ────────────────────────────────────────────────────────────
-  function handleExport() {
-    const url = `/api/offline-kits/export${statusFilter !== 'all' ? `?status=${statusFilter}` : ''}`;
-    fetch(url, { headers: { 'x-admin-secret': ADMIN_SECRET } })
-      .then((r) => r.blob())
-      .then((blob) => {
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `ezcirkit-kits-${Date.now()}.csv`;
-        link.click();
-        URL.revokeObjectURL(blobUrl);
+
+
+  // ── Print Selected Labels ──────────────────────────────────────────────────
+  async function handlePrintSelectedLabels() {
+    if (selectedIds.size === 0 || !kits) return;
+    setIsPrintingLabels(true);
+    try {
+      const QRCode = (await import('qrcode')).default;
+      const selectedKits = kits.filter((k) => selectedIds.has(k.id));
+
+      const kitsWithQR = await Promise.all(
+        selectedKits.map(async (kit) => {
+          const url = `${getBaseUrl()}/activate?token=${kit.activationToken}`;
+          try {
+            const qrDataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
+            return { ...kit, qrDataUrl };
+          } catch {
+            return { ...kit, qrDataUrl: undefined };
+          }
+        })
+      );
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Pop-up blocked. Please allow pop-ups for this site.');
+      }
+
+      const cells = kitsWithQR
+        .map(
+          (kit) => `
+        <div class="kit-card">
+          <div class="brand">EZCirkit</div>
+          <div class="kit-id">Kit ID: ${kit.kitId}</div>
+          ${kit.qrDataUrl ? `<img src="${kit.qrDataUrl}" alt="QR Code" />` : ''}
+          <div class="scan-text">Scan to Activate</div>
+          <div class="url">shop.crabstertech.in/activate</div>
+        </div>`
+        )
+        .join('');
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>EZCirkit Activation Labels – Selected</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; background: #fff; }
+            .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px; }
+            .kit-card {
+              border: 1.5px dashed #ccc; border-radius: 8px; padding: 12px;
+              display: flex; flex-direction: column; align-items: center;
+              gap: 6px; text-align: center; page-break-inside: avoid;
+            }
+            .brand { font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #F97316; }
+            .kit-id { font-size: 11px; font-family: monospace; color: #333; font-weight: bold; }
+            img { width: 120px; height: 120px; }
+            .scan-text { font-size: 10px; font-weight: bold; color: #555; }
+            .url { font-size: 9px; color: #999; }
+            @media print { body { -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="grid">${cells}</div>
+          <script>window.onload = () => window.print();</script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Could not print labels.',
+        variant: 'destructive',
       });
+    } finally {
+      setIsPrintingLabels(false);
+    }
   }
 
   // ── QR ZIP Download ───────────────────────────────────────────────────────
@@ -219,10 +285,68 @@ export default function OfflineKitsPage() {
 
       const selectedKits = kits.filter((k) => selectedIds.has(k.id));
 
+      const generateLabelImage = async (kitId: string, qrUrl: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 520;
+          canvas.height = 680;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject(new Error('Canvas context failed'));
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, 520, 680);
+
+          ctx.strokeStyle = '#CCCCCC';
+          ctx.lineWidth = 4;
+          ctx.setLineDash([12, 8]);
+          const radius = 20;
+          const x = 20;
+          const y = 20;
+          const w = 480;
+          const h = 640;
+          ctx.beginPath();
+          ctx.moveTo(x + radius, y);
+          ctx.lineTo(x + w - radius, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+          ctx.lineTo(x + w, y + h - radius);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+          ctx.lineTo(x + radius, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+          ctx.closePath();
+          ctx.stroke();
+
+          ctx.fillStyle = '#F97316';
+          ctx.font = '900 44px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('EZCirkit', 260, 95);
+
+          ctx.fillStyle = '#333333';
+          ctx.font = 'bold 26px monospace';
+          ctx.fillText(`Kit ID: ${kitId}`, 260, 145);
+
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 80, 180, 360, 360);
+            ctx.fillStyle = '#555555';
+            ctx.font = 'bold 22px sans-serif';
+            ctx.fillText('Scan to Activate', 260, 580);
+            ctx.fillStyle = '#999999';
+            ctx.font = '20px sans-serif';
+            ctx.fillText('shop.crabstertech.in/activate', 260, 620);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => reject(new Error('QR load failed'));
+          img.src = qrUrl;
+        });
+      };
+
       for (const kit of selectedKits) {
         const url = `${getBaseUrl()}/activate?token=${kit.activationToken}`;
         const qrDataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
-        const base64Data = qrDataUrl.split(',')[1];
+        const labelDataUrl = await generateLabelImage(kit.kitId, qrDataUrl);
+        const base64Data = labelDataUrl.split(',')[1];
         zip.file(`${kit.kitId}.png`, base64Data, { base64: true });
       }
 
@@ -231,18 +355,18 @@ export default function OfflineKitsPage() {
       const blobUrl = URL.createObjectURL(content);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `ezcirkit-qrcodes-${Date.now()}.zip`;
+      link.download = `ezcirkit-labels-${Date.now()}.zip`;
       link.click();
       URL.revokeObjectURL(blobUrl);
 
       toast({
         title: 'Success',
-        description: `Downloaded QR codes for ${selectedKits.length} kits.`,
+        description: `Downloaded label images for ${selectedKits.length} kits.`,
       });
     } catch (err: any) {
       toast({
         title: 'Error',
-        description: err.message || 'Could not download QR codes.',
+        description: err.message || 'Could not download labels.',
         variant: 'destructive',
       });
     } finally {
@@ -283,7 +407,7 @@ export default function OfflineKitsPage() {
           <Button
             size="sm"
             variant="outline"
-            disabled={isDownloadingQRs}
+            disabled={isDownloadingQRs || isPrintingLabels}
             onClick={handleDownloadSelectedQRs}
           >
             {isDownloadingQRs ? (
@@ -291,7 +415,24 @@ export default function OfflineKitsPage() {
             ) : (
               <QrCode className="h-4 w-4 mr-2 text-primary" />
             )}
-            Download QRs
+            Download Labels
+          </Button>
+
+          <div className="w-px h-5 bg-border" />
+
+          {/* Print Labels */}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isPrintingLabels || isDownloadingQRs}
+            onClick={handlePrintSelectedLabels}
+          >
+            {isPrintingLabels ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Printer className="h-4 w-4 mr-2 text-primary" />
+            )}
+            Print Labels
           </Button>
 
           <div className="w-px h-5 bg-border" />
@@ -364,18 +505,26 @@ export default function OfflineKitsPage() {
         </div>
         <div className="flex gap-2">
           {selectedCount > 0 && (
-            <Button variant="outline" onClick={handleDownloadSelectedQRs} disabled={isDownloadingQRs}>
-              {isDownloadingQRs ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <QrCode className="h-4 w-4 mr-2 text-primary" />
-              )}
-              Download QR ({selectedCount})
-            </Button>
+            <>
+              <Button variant="outline" onClick={handleDownloadSelectedQRs} disabled={isDownloadingQRs || isPrintingLabels}>
+                {isDownloadingQRs ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <QrCode className="h-4 w-4 mr-2 text-primary" />
+                )}
+                Download Labels ({selectedCount})
+              </Button>
+              <Button variant="outline" onClick={handlePrintSelectedLabels} disabled={isPrintingLabels || isDownloadingQRs}>
+                {isPrintingLabels ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Printer className="h-4 w-4 mr-2 text-primary" />
+                )}
+                Print Labels ({selectedCount})
+              </Button>
+            </>
           )}
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" /> Export CSV
-          </Button>
+
           <Button asChild>
             <Link href="/admin/offline-kits/generate">
               <Plus className="h-4 w-4 mr-2" /> Generate Batch

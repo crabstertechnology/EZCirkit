@@ -114,13 +114,80 @@ export default function KitDetailPage() {
     QRCode.toDataURL(url, { width: 400, margin: 2 }).then(setQrDataUrl);
   }, [kit]);
 
-  // ── Download QR PNG ──────────────────────────────────────────────────────
-  function downloadQR() {
+  // ── Generate Label Image Helper ──────────────────────────────────────────
+  const generateLabelImage = async (kitId: string, qrUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 520;
+      canvas.height = 680;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas context failed'));
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, 520, 680);
+
+      ctx.strokeStyle = '#CCCCCC';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([12, 8]);
+      const radius = 20;
+      const x = 20;
+      const y = 20;
+      const w = 480;
+      const h = 640;
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.fillStyle = '#F97316';
+      ctx.font = '900 44px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('EZCirkit', 260, 95);
+
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 26px monospace';
+      ctx.fillText(`Kit ID: ${kitId}`, 260, 145);
+
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 80, 180, 360, 360);
+        ctx.fillStyle = '#555555';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText('Scan to Activate', 260, 580);
+        ctx.fillStyle = '#999999';
+        ctx.font = '20px sans-serif';
+        ctx.fillText(`${getHostName()}/activate`, 260, 620);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('QR load failed'));
+      img.src = qrUrl;
+    });
+  };
+
+  // ── Download Label PNG ──────────────────────────────────────────────────
+  async function downloadQR() {
     if (!qrDataUrl || !kit) return;
-    const a = document.createElement('a');
-    a.href = qrDataUrl;
-    a.download = `${kit.kitId}.png`;
-    a.click();
+    try {
+      const labelUrl = await generateLabelImage(kit.kitId, qrDataUrl);
+      const a = document.createElement('a');
+      a.href = labelUrl;
+      a.download = `${kit.kitId}.png`;
+      a.click();
+    } catch {
+      // Fallback to raw QR code if canvas fails
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = `${kit.kitId}.png`;
+      a.click();
+    }
   }
 
   // ── Print label ──────────────────────────────────────────────────────────
@@ -279,7 +346,7 @@ export default function KitDetailPage() {
             {copied ? 'Copied Link' : 'Copy Link'}
           </Button>
           <Button variant="outline" size="sm" onClick={downloadQR} disabled={!qrDataUrl}>
-            <Download className="h-4 w-4 mr-2" /> Download QR
+            <Download className="h-4 w-4 mr-2" /> Download Label
           </Button>
           <Button variant="outline" size="sm" onClick={printLabel} disabled={!qrDataUrl}>
             <Printer className="h-4 w-4 mr-2" /> Print Label

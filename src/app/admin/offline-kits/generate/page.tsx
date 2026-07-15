@@ -96,16 +96,109 @@ export default function GenerateBatchPage() {
     }
   }
 
-  // ── Download single QR PNG ──────────────────────────────────────────────
-  function downloadSingleQR(kit: GeneratedKit) {
+  const generateLabelImage = async (kitId: string, qrUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 520;
+      canvas.height = 680;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas context failed'));
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, 520, 680);
+
+      ctx.strokeStyle = '#CCCCCC';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([12, 8]);
+      const radius = 20;
+      const x = 20;
+      const y = 20;
+      const w = 480;
+      const h = 640;
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.fillStyle = '#F97316';
+      ctx.font = '900 44px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('EZCirkit', 260, 95);
+
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 26px monospace';
+      ctx.fillText(`Kit ID: ${kitId}`, 260, 145);
+
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 80, 180, 360, 360);
+        ctx.fillStyle = '#555555';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText('Scan to Activate', 260, 580);
+        ctx.fillStyle = '#999999';
+        ctx.font = '20px sans-serif';
+        ctx.fillText(`${getHostName()}/activate`, 260, 620);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('QR load failed'));
+      img.src = qrUrl;
+    });
+  };
+
+  // ── Download single Label PNG ───────────────────────────────────────────
+  async function downloadSingleQR(kit: GeneratedKit) {
     if (!kit.qrDataUrl) return;
+    try {
+      const labelUrl = await generateLabelImage(kit.kitId, kit.qrDataUrl);
+      const a = document.createElement('a');
+      a.href = labelUrl;
+      a.download = `${kit.kitId}.png`;
+      a.click();
+    } catch {
+      // Fallback
+      const a = document.createElement('a');
+      a.href = kit.qrDataUrl;
+      a.download = `${kit.kitId}.png`;
+      a.click();
+    }
+  }
+
+  // ── Download all Labels as ZIP (individual PNGs via browser) ────────────
+  async function downloadAllPNG() {
+    // Dynamically import JSZip only when needed to keep bundle small
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    const folder = zip.folder(`EZCirkit-${batchName}`)!;
+
+    for (const kit of kits) {
+      if (!kit.qrDataUrl) continue;
+      try {
+        const labelUrl = await generateLabelImage(kit.kitId, kit.qrDataUrl);
+        const base64 = labelUrl.split(',')[1];
+        folder.file(`${kit.kitId}.png`, base64, { base64: true });
+      } catch {
+        // Fallback to raw QR
+        const base64 = kit.qrDataUrl.split(',')[1];
+        folder.file(`${kit.kitId}.png`, base64, { base64: true });
+      }
+    }
+
+    const content = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
-    a.href = kit.qrDataUrl;
-    a.download = `${kit.kitId}.png`;
+    a.href = URL.createObjectURL(content);
+    a.download = `EZCirkit-${batchName.replace(/\s+/g, '_')}-Labels.zip`;
     a.click();
   }
 
-  // ── Download all QRs as print PDF sheet (browser print) ─────────────────
+  // ── Print all QRs as print PDF sheet (browser print) ────────────────────
   function printAll() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -152,26 +245,6 @@ export default function GenerateBatchPage() {
       </html>
     `);
     printWindow.document.close();
-  }
-
-  // ── Download all QRs as ZIP (individual PNGs via browser) ───────────────
-  async function downloadAllPNG() {
-    // Dynamically import JSZip only when needed to keep bundle small
-    const JSZip = (await import('jszip')).default;
-    const zip = new JSZip();
-    const folder = zip.folder(`EZCirkit-${batchName}`)!;
-
-    for (const kit of kits) {
-      if (!kit.qrDataUrl) continue;
-      const base64 = kit.qrDataUrl.split(',')[1];
-      folder.file(`${kit.kitId}.png`, base64, { base64: true });
-    }
-
-    const content = await zip.generateAsync({ type: 'blob' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(content);
-    a.download = `EZCirkit-${batchName.replace(/\s+/g, '_')}-QRCodes.zip`;
-    a.click();
   }
 
   const isBusy = isGenerating || isRenderingQR;
