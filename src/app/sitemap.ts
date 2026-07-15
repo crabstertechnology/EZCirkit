@@ -16,7 +16,7 @@ function getAdminFirestore() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://ezcirkit.crabster.in';
+  const baseUrl = 'https://shop.crabstertech.in';
   const now = new Date().toISOString();
 
   // Static routes with their priorities and change frequencies

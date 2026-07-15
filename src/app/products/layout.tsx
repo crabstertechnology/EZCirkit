@@ -21,19 +21,19 @@ export const metadata: Metadata = {
     'Crabster Technology store',
   ],
   alternates: {
-    canonical: 'https://ezcirkit.crabster.in/products',
+    canonical: 'https://shop.crabstertech.in/products',
   },
   openGraph: {
     title: 'Buy Electronic Components Online India | EZCirkit Shop',
     description:
       'Shop Arduino sensors, ESP32 boards, development kits and 100+ components online in India. Fast shipping and Cash on Delivery.',
-    url: 'https://ezcirkit.crabster.in/products',
+    url: 'https://shop.crabstertech.in/products',
     siteName: 'EZCirkit',
     locale: 'en_IN',
     type: 'website',
     images: [
       {
-        url: 'https://ezcirkit.crabster.in/kit/new-kit-front.png',
+        url: 'https://shop.crabstertech.in/kit/new-kit-front.png',
         width: 1200,
         height: 630,
         alt: 'EZCirkit Electronic Components Store',
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: 'Buy Electronic Components Online India | EZCirkit Shop',
     description:
       'Shop Arduino sensors, ESP32 boards, and development kits. COD available. Fast India-wide shipping.',
-    images: ['https://ezcirkit.crabster.in/kit/new-kit-front.png'],
+    images: ['https://shop.crabstertech.in/kit/new-kit-front.png'],
   },
   robots: {
     index: true,

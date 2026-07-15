@@ -22,7 +22,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const baseUrl = 'https://ezcirkit.crabster.in';
+  const baseUrl = 'https://shop.crabstertech.in';
 
   try {
     const { id } = await params;

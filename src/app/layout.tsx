@@ -45,14 +45,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://ezcirkit.crabster.in'),
+  metadataBase: new URL('https://shop.crabstertech.in'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'EZCirkit – Learn Electronics Made Easy | Crabster Technology',
     description: 'Learn electronics easily with hands-on STEM kits, Arduino projects and interactive tutorials.',
-    url: 'https://ezcirkit.crabster.in',
+    url: 'https://shop.crabstertech.in',
     siteName: 'EZCirkit',
     images: [
       {
@@ -102,8 +102,8 @@ export default function RootLayout({
               '@type': 'OnlineStore',
               name: 'EZCirkit by Crabster Technology',
               alternateName: 'EZCirkit',
-              url: 'https://ezcirkit.crabster.in',
-              logo: 'https://ezcirkit.crabster.in/logo.png',
+              url: 'https://shop.crabstertech.in',
+              logo: 'https://shop.crabstertech.in/logo.png',
               description:
                 'EZCirkit is an online store for electronic components, sensors, development boards, Arduino kits, and STEM learning kits in India. Buy online with fast delivery and Cash on Delivery.',
               foundingDate: '2023',
@@ -125,7 +125,7 @@ export default function RootLayout({
                 target: {
                   '@type': 'EntryPoint',
                   urlTemplate:
-                    'https://ezcirkit.crabster.in/products?search={search_term_string}',
+                    'https://shop.crabstertech.in/products?search={search_term_string}',
                 },
                 'query-input': 'required name=search_term_string',
               },
