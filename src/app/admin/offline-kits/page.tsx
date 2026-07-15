@@ -35,6 +35,13 @@ import { useToast } from '@/hooks/use-toast';
 // ---------------------------------------------------------------------------
 const ADMIN_SECRET = 'ezcirkit-admin-2024';
 
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'https://shop.crabstertech.in';
+};
+
 interface Kit {
   id: string;
   kitId: string;
@@ -62,6 +69,7 @@ export default function OfflineKitsPage() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isDownloadingQRs, setIsDownloadingQRs] = useState(false);
 
   // ── Selection state ──────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -200,6 +208,48 @@ export default function OfflineKitsPage() {
       });
   }
 
+  // ── QR ZIP Download ───────────────────────────────────────────────────────
+  async function handleDownloadSelectedQRs() {
+    if (selectedIds.size === 0 || !kits) return;
+    setIsDownloadingQRs(true);
+    try {
+      const JSZip = (await import('jszip')).default;
+      const QRCode = (await import('qrcode')).default;
+      const zip = new JSZip();
+
+      const selectedKits = kits.filter((k) => selectedIds.has(k.id));
+
+      for (const kit of selectedKits) {
+        const url = `${getBaseUrl()}/activate?token=${kit.activationToken}`;
+        const qrDataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
+        const base64Data = qrDataUrl.split(',')[1];
+        zip.file(`${kit.kitId}.png`, base64Data, { base64: true });
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      
+      const blobUrl = URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `ezcirkit-qrcodes-${Date.now()}.zip`;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+
+      toast({
+        title: 'Success',
+        description: `Downloaded QR codes for ${selectedKits.length} kits.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Could not download QR codes.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDownloadingQRs(false);
+    }
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   const parseDate = (d: any) => {
     if (!d) return null;
@@ -226,6 +276,23 @@ export default function OfflineKitsPage() {
           <span className="text-sm font-semibold text-foreground">
             {selectedCount} kit{selectedCount !== 1 ? 's' : ''} selected
           </span>
+
+          <div className="w-px h-5 bg-border" />
+
+          {/* Download QRs */}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isDownloadingQRs}
+            onClick={handleDownloadSelectedQRs}
+          >
+            {isDownloadingQRs ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <QrCode className="h-4 w-4 mr-2 text-primary" />
+            )}
+            Download QRs
+          </Button>
 
           <div className="w-px h-5 bg-border" />
 
@@ -296,6 +363,16 @@ export default function OfflineKitsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {selectedCount > 0 && (
+            <Button variant="outline" onClick={handleDownloadSelectedQRs} disabled={isDownloadingQRs}>
+              {isDownloadingQRs ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <QrCode className="h-4 w-4 mr-2 text-primary" />
+              )}
+              Download QR ({selectedCount})
+            </Button>
+          )}
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
