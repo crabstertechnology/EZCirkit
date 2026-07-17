@@ -25,7 +25,7 @@ interface ProductSchemaProps {
   reviewsCount: number;
 }
 
-const BASE_URL = 'https://ezcirkit.crabster.in';
+const BASE_URL = 'https://shop.crabstertech.in';
 
 export default function ProductSchema({
   product,
