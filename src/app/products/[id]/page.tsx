@@ -208,6 +208,18 @@ export default function ProductDetailPage() {
     return () => clearInterval(interval);
   }, [gallery, showZoom]);
 
+  // Parse FAQs from product data (stored as JSON string or array)
+  const parsedFaqs: FAQ[] = React.useMemo(() => {
+    if (!product?.faqs) return [];
+    if (typeof product.faqs === 'string') {
+      try { return JSON.parse(product.faqs); } catch { return []; }
+    }
+    if (Array.isArray(product.faqs)) return product.faqs;
+    return [];
+  }, [product?.faqs]);
+
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       if (showZoom) setShowZoom(false);
@@ -380,18 +392,6 @@ export default function ProductDetailPage() {
       setIsSubmittingReview(false);
     }
   };
-
-  // Parse FAQs from product data (stored as JSON string or array)
-  const parsedFaqs: FAQ[] = React.useMemo(() => {
-    if (!product?.faqs) return [];
-    if (typeof product.faqs === 'string') {
-      try { return JSON.parse(product.faqs); } catch { return []; }
-    }
-    if (Array.isArray(product.faqs)) return product.faqs;
-    return [];
-  }, [product?.faqs]);
-
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-foreground">
