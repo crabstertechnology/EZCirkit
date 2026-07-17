@@ -17,7 +17,10 @@ function getAdminFirestore() {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://shop.crabstertech.in';
-  const now = new Date().toISOString();
+  
+  // Format date as YYYY-MM-DD for standard W3C datetime compliance
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+  const now = formatDate(new Date());
 
   // Static routes with their priorities and change frequencies
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -90,12 +93,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const db = getAdminFirestore();
     const productsSnap = await db.collection('products').get();
 
-    productRoutes = productsSnap.docs.map((doc) => ({
-      url: `${baseUrl}/products/${doc.id}`,
-      lastModified: doc.updateTime?.toDate().toISOString() || now,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    }));
+    productRoutes = productsSnap.docs.map((doc) => {
+      const updateTime = doc.updateTime?.toDate();
+      return {
+        url: `${baseUrl}/products/${doc.id}`,
+        lastModified: updateTime ? formatDate(updateTime) : now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.85,
+      };
+    });
   } catch (err) {
     console.error('[Sitemap] Failed to fetch products from Firestore:', err);
     // Gracefully fall back to no product routes — don't crash the build
@@ -103,3 +109,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticRoutes, ...productRoutes];
 }
+
