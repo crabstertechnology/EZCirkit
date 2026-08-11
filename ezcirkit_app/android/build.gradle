@@ -13,6 +13,26 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+def configureNamespace(project) {
+    if (project.hasProperty('android')) {
+        project.android {
+            if (namespace == null) {
+                namespace = project.group.toString() ?: "com.ezcirkit.generated.${project.name}"
+            }
+        }
+    }
+}
+
+subprojects {
+    if (project.state.executed) {
+        configureNamespace(project)
+    } else {
+        project.afterEvaluate {
+            configureNamespace(project)
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

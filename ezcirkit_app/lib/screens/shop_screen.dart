@@ -30,7 +30,7 @@ class _ShopScreenState extends State<ShopScreen> {
         children: [
           InAppWebView(
             initialUrlRequest: URLRequest(
-              url: Uri.parse(widget.url),
+              url: WebUri(widget.url),
             ),
             onLoadStop: (controller, url) {
               setState(() {
