@@ -1158,17 +1158,19 @@ export default function AdminTelemetryPage() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid grid-cols-5 max-w-2xl">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="charts">Charts</TabsTrigger>
-          <TabsTrigger value="latency" className="flex items-center gap-1">
-            <Zap className="h-3.5 w-3.5 text-amber-500" /> Server Load
-          </TabsTrigger>
-          <TabsTrigger value="render" className="flex items-center gap-1">
-            <Server className="h-3.5 w-3.5 text-purple-500" /> Render Backend
-          </TabsTrigger>
-          <TabsTrigger value="logs">Live Log Feed</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1 max-w-full">
+          <TabsList className="flex sm:grid sm:grid-cols-5 min-w-max sm:min-w-0 max-w-2xl gap-1">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 py-1.5">Overview</TabsTrigger>
+            <TabsTrigger value="charts" className="text-xs sm:text-sm px-3 py-1.5">Charts</TabsTrigger>
+            <TabsTrigger value="latency" className="text-xs sm:text-sm px-3 py-1.5 flex items-center gap-1">
+              <Zap className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Server Load
+            </TabsTrigger>
+            <TabsTrigger value="render" className="text-xs sm:text-sm px-3 py-1.5 flex items-center gap-1">
+              <Server className="h-3.5 w-3.5 text-purple-500 shrink-0" /> Render Backend
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="text-xs sm:text-sm px-3 py-1.5">Live Log Feed</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* TAB A — OVERVIEW */}
         <TabsContent value="overview" className="space-y-6 mt-4">
