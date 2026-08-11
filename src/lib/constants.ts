@@ -1,5 +1,5 @@
 import { placeholderImages } from './placeholder-images';
-import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity } from 'lucide-react';
 
 export const SHIPPING_COST = 0;
 
@@ -13,6 +13,7 @@ export const NAV_LINKS = [
 export const ADMIN_NAV_LINKS = [
   { href: '/', label: 'Go to Home', icon: Home },
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/telemetry', label: 'Telemetry Logs', icon: Activity },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/products', label: 'Products', icon: Package },

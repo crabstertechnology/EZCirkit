@@ -154,5 +154,25 @@ service cloud.firestore {
       // Internal counters — no client access.
       allow read, write: if false;
     }
+
+    //-------------------------------------------------------------------------
+    // Telemetry Collection Rules
+    //-------------------------------------------------------------------------
+    match /telemetry_logins/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    match /telemetry_compiles/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    match /telemetry_uploads/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    match /telemetry_interactions/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
   }
 }

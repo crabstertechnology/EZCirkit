@@ -352,16 +352,54 @@ function setupEventListeners() {
   });
 
   // Web Serial Port Connection Toggle
-  document.getElementById('connectPortBtn').addEventListener('click', handlePortSelection);
+  document.getElementById('connectPortBtn').addEventListener('click', () => {
+    if (window.logTelemetryEvent) {
+      window.logTelemetryEvent('telemetry_interactions', {
+        type: 'click',
+        elementId: 'connectPortBtn',
+        elementLabel: 'Connect Board Button',
+        path: window.location.pathname
+      });
+    }
+    handlePortSelection();
+  });
 
   // Verify / Compile Button
-  document.getElementById('verifyBtn').addEventListener('click', handleCompile);
+  document.getElementById('verifyBtn').addEventListener('click', () => {
+    if (window.logTelemetryEvent) {
+      window.logTelemetryEvent('telemetry_interactions', {
+        type: 'click',
+        elementId: 'verifyBtn',
+        elementLabel: 'Verify Button',
+        path: window.location.pathname
+      });
+    }
+    handleCompile();
+  });
 
   // Upload Button
-  document.getElementById('uploadBtn').addEventListener('click', handleUpload);
+  document.getElementById('uploadBtn').addEventListener('click', () => {
+    if (window.logTelemetryEvent) {
+      window.logTelemetryEvent('telemetry_interactions', {
+        type: 'click',
+        elementId: 'uploadBtn',
+        elementLabel: 'Upload Button',
+        path: window.location.pathname
+      });
+    }
+    handleUpload();
+  });
 
   // Serial Monitor Toggle Panel Button
   document.getElementById('serialToggleBtn').addEventListener('click', () => {
+    if (window.logTelemetryEvent) {
+      window.logTelemetryEvent('telemetry_interactions', {
+        type: 'click',
+        elementId: 'serialToggleBtn',
+        elementLabel: 'Serial Monitor Button',
+        path: window.location.pathname
+      });
+    }
     // Switch to Serial Monitor Tab
     const serialTabBtn = document.querySelector('.tab-btn[data-tab="serial"]');
     if (serialTabBtn) serialTabBtn.click();
@@ -619,6 +657,7 @@ async function handleCompile() {
   }
   
   logToConsole('Starting compilation for Arduino Uno...', 'info');
+  const startTime = Date.now();
   
   try {
     // Use the online COMPILER_SERVER_URL if configured, otherwise run relative to the website's domain
@@ -627,20 +666,61 @@ async function handleCompile() {
       compileUrl = `${COMPILER_SERVER_URL}/api/compile`;
     }
 
-    const response = await fetch(compileUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ code })
-    });
+    let response;
+    try {
+      response = await fetch(compileUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code })
+      });
+    } catch (netErr) {
+      const latencyMs = Date.now() - startTime;
+      if (window.logTelemetryEvent) {
+        window.logTelemetryEvent('telemetry_compiles', {
+          status: 'failed',
+          latencyMs,
+          codeLength: code.length,
+          error: netErr.message || 'Network request failed',
+          errorSource: 'network'
+        });
+      }
+      throw netErr;
+    }
+
+    if (!response.ok) {
+      const latencyMs = Date.now() - startTime;
+      const errorMsg = `Compiler server error (${response.status})`;
+      if (window.logTelemetryEvent) {
+        window.logTelemetryEvent('telemetry_compiles', {
+          status: 'failed',
+          latencyMs,
+          codeLength: code.length,
+          error: errorMsg,
+          errorSource: 'compiler_server'
+        });
+      }
+      throw new Error(errorMsg);
+    }
     
     const result = await response.json();
+    const latencyMs = Date.now() - startTime;
     
     if (result.success) {
       compiledHex = result.hex;
       logToConsole('Compilation finished successfully!', 'success');
       
+      if (window.logTelemetryEvent) {
+        window.logTelemetryEvent('telemetry_compiles', {
+          status: 'success',
+          latencyMs,
+          codeLength: code.length,
+          error: null,
+          errorSource: 'none'
+        });
+      }
+
       // Print compile summary info
       const lines = result.stdout.split('\n');
       lines.forEach(line => {
@@ -660,6 +740,16 @@ async function handleCompile() {
       document.getElementById('uploadBtn').disabled = true;
       logToConsole('Compilation FAILED!', 'error');
       
+      if (window.logTelemetryEvent) {
+        window.logTelemetryEvent('telemetry_compiles', {
+          status: 'failed',
+          latencyMs,
+          codeLength: code.length,
+          error: result.error || 'Compilation syntax error',
+          errorSource: 'compiler_error'
+        });
+      }
+
       // Print compile errors
       const lines = result.error.split('\n');
       lines.forEach(line => {
@@ -1008,6 +1098,7 @@ async function handleUpload() {
   }
 
   let uploadSuccess = false;
+  const startTime = Date.now();
 
   try {
     // 1. Open serial port at 115200 baud (Optiboot default speed)
@@ -1080,6 +1171,16 @@ async function handleUpload() {
     console.error("Upload process error:", err);
     logToConsole(`Upload FAILED: ${err.message}`, "error");
     alert(`Upload failed: ${err.message}`);
+    
+    const latencyMs = Date.now() - startTime;
+    if (window.logTelemetryEvent) {
+      window.logTelemetryEvent('telemetry_uploads', {
+        status: 'failed',
+        latencyMs,
+        pageSize: pages ? pages.length : 0,
+        error: err.message || 'Upload failed'
+      });
+    }
   } finally {
     // Stop uploader reading loops
     await stopUploadReadLoop();
@@ -1105,6 +1206,8 @@ async function handleUpload() {
     verifyBtn.disabled = false;
     serialBtn.disabled = false;
 
+    const latencyMs = Date.now() - startTime;
+
     // Reset progress bar on editor panel header
     if (uploadSuccess) {
       progressBar.style.background = 'var(--color-success)';
@@ -1113,6 +1216,15 @@ async function handleUpload() {
       progressText.style.borderColor = 'hsla(142, 60%, 40%, 0.2)';
       editorStatus.textContent = 'Success';
       editorStatus.className = 'status-indicator success';
+
+      if (window.logTelemetryEvent) {
+        window.logTelemetryEvent('telemetry_uploads', {
+          status: 'success',
+          latencyMs,
+          pageSize: pages ? pages.length : 0,
+          error: null
+        });
+      }
     } else {
       progressBar.style.background = 'var(--color-danger)';
       progressText.style.color = 'var(--color-danger)';

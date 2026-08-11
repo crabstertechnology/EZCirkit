@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 import ScrollToTop from '@/components/shared/scroll-to-top';
@@ -9,6 +9,7 @@ import { CartProvider } from '@/context/cart-context';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
+import { logTelemetryEvent } from '@/lib/telemetry';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,14 @@ interface ClientLayoutProps {
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const pathname = usePathname();
   const isAdminPage = pathname.startsWith('/admin');
+
+  // Track automatic page views
+  useEffect(() => {
+    logTelemetryEvent('telemetry_interactions', {
+      type: 'page_view',
+      path: pathname,
+    });
+  }, [pathname]);
 
   return (
     <FirebaseClientProvider>
@@ -35,3 +44,4 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     </FirebaseClientProvider>
   );
 }
+

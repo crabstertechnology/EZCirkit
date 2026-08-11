@@ -12,6 +12,7 @@ import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Eye, EyeOff } from 'lucide-react';
 import { signInWithEmailAndPassword, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { logTelemetryEvent } from '@/lib/telemetry';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -26,8 +27,11 @@ function LoginPage() {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
+    const startTime = Date.now();
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const latencyMs = Date.now() - startTime;
+
       // Check if email is verified
       if (!userCredential.user.emailVerified) {
          toast({
@@ -35,6 +39,14 @@ function LoginPage() {
           title: 'Email Not Verified',
           description: 'A new verification link has been sent. Please check your inbox.',
         });
+        
+        await logTelemetryEvent('telemetry_logins', {
+          status: 'failed',
+          userEmail: email,
+          latencyMs,
+          error: 'Email Not Verified'
+        });
+
         // Resend the verification email
         await sendEmailVerification(userCredential.user);
         // Sign the user out so they can't proceed
@@ -42,10 +54,26 @@ function LoginPage() {
         setIsLoading(false);
         return;
       }
+
+      await logTelemetryEvent('telemetry_logins', {
+        status: 'success',
+        userEmail: email,
+        latencyMs,
+        error: null
+      });
+
       // On successful and verified login, redirect to profile
       router.replace('/profile');
 
     } catch (error: any) {
+      const latencyMs = Date.now() - startTime;
+      await logTelemetryEvent('telemetry_logins', {
+        status: 'failed',
+        userEmail: email,
+        latencyMs,
+        error: error.message || 'Login Failed'
+      });
+
       toast({
         variant: 'destructive',
         title: 'Login Failed',
@@ -58,12 +86,30 @@ function LoginPage() {
   const handleGoogleSignIn = async () => {
     if (!auth) return;
     setIsLoading(true);
+    const startTime = Date.now();
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const userCredential = await signInWithPopup(auth, provider);
+      const latencyMs = Date.now() - startTime;
+
+      await logTelemetryEvent('telemetry_logins', {
+        status: 'success',
+        userEmail: userCredential.user.email,
+        latencyMs,
+        error: null
+      });
+
       router.replace('/profile');
     } catch (error: any) {
       console.error("Google Sign-In error:", error);
+      const latencyMs = Date.now() - startTime;
+      await logTelemetryEvent('telemetry_logins', {
+        status: 'failed',
+        userEmail: '',
+        latencyMs,
+        error: error.message || 'Google Sign-In Failed'
+      });
+
       toast({
         variant: 'destructive',
         title: 'Google Sign-In Failed',
