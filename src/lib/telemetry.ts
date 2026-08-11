@@ -6,11 +6,55 @@ import { initializeFirebase } from '@/firebase';
 const { firestore, auth } = initializeFirebase();
 
 /**
+ * Precision Device & Operating System Detector
+ */
+export function parseDeviceOS(ua: string = ''): string {
+  if (!ua || ua === 'Server') return 'Server Runtime';
+  const lower = ua.toLowerCase();
+
+  // 1. Windows OS Detection (Check Win64, Win32, Windows NT, etc.)
+  if (
+    lower.includes('windows') ||
+    lower.includes('win32') ||
+    lower.includes('win64') ||
+    lower.includes('winnt') ||
+    lower.includes('windows nt')
+  ) {
+    return 'Windows PC';
+  }
+
+  // 2. Mobile iOS Detection
+  if (lower.includes('iphone') || lower.includes('ipad') || lower.includes('ipod')) {
+    return 'iOS Device';
+  }
+
+  // 3. Apple macOS Detection
+  if (lower.includes('macintosh') || lower.includes('mac os') || lower.includes('macintel') || lower.includes('mac os x')) {
+    return 'Mac OS';
+  }
+
+  // 4. Mobile Android Detection (Must check Android BEFORE Linux since Android UAs contain "Linux; Android")
+  if (lower.includes('android')) {
+    return 'Android';
+  }
+
+  // 5. Linux Desktop / Workstation
+  if (lower.includes('linux') || lower.includes('x11') || lower.includes('ubuntu') || lower.includes('debian')) {
+    return 'Linux Desktop';
+  }
+
+  return 'Web Client';
+}
+
+/**
  * Core generic telemetry event logger
  */
 export const logTelemetryEvent = async (collectionName: string, data: any) => {
   if (!firestore) return;
   const user = auth?.currentUser;
+  const rawUA = typeof window !== 'undefined' ? navigator.userAgent : 'Server';
+  const detectedOS = parseDeviceOS(rawUA);
+
   try {
     await addDoc(collection(firestore, collectionName), {
       ...data,
@@ -18,7 +62,8 @@ export const logTelemetryEvent = async (collectionName: string, data: any) => {
       userName: user ? user.displayName || user.email?.split('@')[0] || 'Tester' : 'Anonymous',
       userEmail: user ? user.email : (data.userEmail || null),
       timestamp: serverTimestamp(),
-      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'Server',
+      userAgent: rawUA,
+      deviceOS: detectedOS,
     });
   } catch (err) {
     console.error("Telemetry event failed to log:", err);

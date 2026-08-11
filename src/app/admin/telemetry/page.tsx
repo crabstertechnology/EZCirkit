@@ -29,6 +29,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
+import { parseDeviceOS } from '@/lib/telemetry';
 import {
   Users,
   Cpu,
@@ -517,12 +518,7 @@ export default function AdminTelemetryPage() {
       }
 
       const ua = e.userAgent || '';
-      let deviceOs = 'Desktop Web';
-      if (ua.includes('Windows')) deviceOs = 'Windows PC';
-      else if (ua.includes('Macintosh')) deviceOs = 'Mac OS';
-      else if (ua.includes('Linux')) deviceOs = 'Linux Desktop';
-      else if (ua.includes('Android')) deviceOs = 'Android';
-      else if (ua.includes('iPhone') || ua.includes('iPad')) deviceOs = 'iOS Device';
+      const deviceOs = parseDeviceOS(ua);
 
       return [
         `"${e.id}"`,
@@ -623,13 +619,7 @@ export default function AdminTelemetryPage() {
     const uploadPassed = userUploads.filter((e) => e.status === 'success').length;
 
     const sampleUA = userEvents[0]?.userAgent || 'Unknown Device';
-
-    let deviceSummary = 'Desktop Web';
-    if (sampleUA.includes('Windows')) deviceSummary = 'Windows PC';
-    else if (sampleUA.includes('Macintosh')) deviceSummary = 'Mac OS';
-    else if (sampleUA.includes('Linux')) deviceSummary = 'Linux Desktop';
-    else if (sampleUA.includes('Android')) deviceSummary = 'Android';
-    else if (sampleUA.includes('iPhone')) deviceSummary = 'iOS Device';
+    const deviceSummary = parseDeviceOS(sampleUA);
 
     return {
       email: selectedTesterEmail,
