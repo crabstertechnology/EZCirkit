@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, writeBatch, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -42,10 +42,19 @@ import {
   Search,
   Eye,
   Laptop,
+  Layers,
+  HardDrive,
+  Activity,
+  Zap,
+  Gauge,
+  Server,
+  ExternalLink,
   CheckCircle2,
   XCircle,
-  Layers,
-  HardDrive
+  Terminal,
+  Globe,
+  Sliders,
+  Play
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import {
@@ -60,7 +69,9 @@ import {
   Pie,
   Cell,
   BarChart,
-  Bar
+  Bar,
+  AreaChart,
+  Area
 } from 'recharts';
 
 interface TelemetryLogin {
@@ -156,6 +167,9 @@ const DONUT_COLORS = {
   failure: '#ef4444',
 };
 
+const RENDER_SERVER_URL = "https://ezcirkit.onrender.com";
+const RENDER_SERVICE_ID = "srv-d8sgl0ernols738l68s0";
+
 export default function AdminTelemetryPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -169,7 +183,15 @@ export default function AdminTelemetryPage() {
   const [selectedTesterEmail, setSelectedTesterEmail] = useState<string | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
-  // Phase 4: Delete modal state & retention
+  // Render Server Live Health State
+  const [renderStatus, setRenderStatus] = useState<'checking' | 'online' | 'cold_start' | 'offline'>('checking');
+  const [renderLatency, setRenderLatency] = useState<number | null>(null);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  // Terminal Console Tab Switch
+  const [renderConsoleTab, setRenderConsoleTab] = useState<'logs' | 'links' | 'terminal'>('logs');
+
+  // Delete modal state & retention
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTargetCollection, setDeleteTargetCollection] = useState('all');
   const [deleteMode, setDeleteMode] = useState<'before' | 'range' | 'all'>('before');
@@ -177,6 +199,47 @@ export default function AdminTelemetryPage() {
   const [startDateTime, setStartDateTime] = useState('');
   const [endDateTime, setEndDateTime] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Live Render Container Health Check Function
+  const checkRenderServerHealth = useCallback(async () => {
+    setRenderStatus('checking');
+    const start = performance.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      const res = await fetch(`${RENDER_SERVER_URL}/`, {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+
+      clearTimeout(timeoutId);
+      const elapsed = Math.round(performance.now() - start);
+      setRenderLatency(elapsed);
+      setLastChecked(new Date());
+
+      if (res.ok || res.status === 304) {
+        if (elapsed > 3500) setRenderStatus('cold_start');
+        else setRenderStatus('online');
+      } else {
+        setRenderStatus('offline');
+      }
+    } catch (err) {
+      console.warn('Render health ping failed or timed out:', err);
+      const elapsed = Math.round(performance.now() - start);
+      setRenderLatency(elapsed);
+      setLastChecked(new Date());
+      setRenderStatus('offline');
+    }
+  }, []);
+
+  // Ping Render container on page mount and every 30 seconds
+  useEffect(() => {
+    checkRenderServerHealth();
+    const interval = setInterval(checkRenderServerHealth, 30000);
+    return () => clearInterval(interval);
+  }, [checkRenderServerHealth]);
 
   // Set default beforeDateTime to current time when modal opens
   useEffect(() => {
@@ -243,6 +306,49 @@ export default function AdminTelemetryPage() {
       successRate: Math.round((successList.length / uploads.length) * 100),
     };
   }, [uploads]);
+
+  // Server Latency & Load Measurement Metrics (p50, p90, p95, peak, load buckets)
+  const serverLatencyMetrics = useMemo(() => {
+    if (!compiles || compiles.length === 0) {
+      return { p50: 0, p90: 0, p95: 0, peak: 0, buckets: [] };
+    }
+
+    const latencies = compiles
+      .map((c) => c.latencyMs || 0)
+      .sort((a, b) => a - b);
+
+    const getPercentile = (p: number) => {
+      const index = Math.ceil((p / 100) * latencies.length) - 1;
+      return latencies[Math.max(0, index)] / 1000;
+    };
+
+    const p50 = getPercentile(50);
+    const p90 = getPercentile(90);
+    const p95 = getPercentile(95);
+    const peak = latencies[latencies.length - 1] / 1000;
+
+    let fast = 0;
+    let normal = 0;
+    let heavy = 0;
+    let critical = 0;
+
+    latencies.forEach((ms) => {
+      const sec = ms / 1000;
+      if (sec < 1.5) fast++;
+      else if (sec <= 3.0) normal++;
+      else if (sec <= 5.0) heavy++;
+      else critical++;
+    });
+
+    const buckets = [
+      { category: '⚡ Fast (< 1.5s)', count: fast, fill: '#22c55e' },
+      { category: '🟢 Normal (1.5s - 3s)', count: normal, fill: '#3b82f6' },
+      { category: '⚠️ Heavy (3s - 5s)', count: heavy, fill: '#f59e0b' },
+      { category: '🔴 Critical (> 5s)', count: critical, fill: '#ef4444' },
+    ];
+
+    return { p50, p90, p95, peak, buckets };
+  }, [compiles]);
 
   // Merged stream of all events
   const mergedEvents = useMemo((): MergedEvent[] => {
@@ -347,14 +453,10 @@ export default function AdminTelemetryPage() {
   // Phase 1: Filtered merged events for search & dropdowns
   const filteredEvents = useMemo(() => {
     return mergedEvents.filter((e) => {
-      // Event type match
       if (filterEventType !== 'all' && e.eventType !== filterEventType) return false;
-
-      // Status match
       if (filterStatus === 'success' && e.status !== 'success') return false;
       if (filterStatus === 'failed' && e.status !== 'failed') return false;
 
-      // Search term match
       if (searchTerm.trim() !== '') {
         const term = searchTerm.toLowerCase();
         const emailMatch = (e.userEmail || '').toLowerCase().includes(term);
@@ -368,7 +470,7 @@ export default function AdminTelemetryPage() {
     });
   }, [mergedEvents, filterEventType, filterStatus, searchTerm]);
 
-  // Phase 1: Export Detailed CSV Handler
+  // Export Detailed CSV Handler
   const handleExportCSV = () => {
     if (mergedEvents.length === 0) {
       toast({ title: 'No Data', description: 'No telemetry events available to export.' });
@@ -439,7 +541,7 @@ export default function AdminTelemetryPage() {
     });
   };
 
-  // Phase 2: Active Users directory
+  // Active Users directory
   const activeUsers = useMemo(() => {
     const activeMap = new Map<string, { name: string; email: string; lastSeen: Date; action: string; userAgent: string }>();
     const fifteenMinsAgo = Date.now() - 15 * 60 * 1000;
@@ -465,13 +567,13 @@ export default function AdminTelemetryPage() {
     return Array.from(activeMap.values()).sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime());
   }, [mergedEvents]);
 
-  // Phase 2: Open Tester Inspector Sheet
+  // Open Tester Inspector Sheet
   const handleInspectTester = (email: string) => {
     setSelectedTesterEmail(email);
     setIsInspectorOpen(true);
   };
 
-  // Phase 2: Inspector Data for selected tester
+  // Inspector Data for selected tester
   const testerInspectorData = useMemo(() => {
     if (!selectedTesterEmail) return null;
 
@@ -484,7 +586,6 @@ export default function AdminTelemetryPage() {
 
     const sampleUA = userEvents[0]?.userAgent || 'Unknown Device';
 
-    // Simple OS/Browser parser
     let deviceSummary = 'Desktop Web';
     if (sampleUA.includes('Windows')) deviceSummary = 'Windows PC';
     else if (sampleUA.includes('Macintosh')) deviceSummary = 'Mac OS';
@@ -506,7 +607,7 @@ export default function AdminTelemetryPage() {
     };
   }, [selectedTesterEmail, mergedEvents]);
 
-  // Phase 3: Hardware Board Telemetry Chart Data
+  // Hardware Board Telemetry Chart Data
   const boardDistributionData = useMemo(() => {
     const counts: { [key: string]: number } = {
       'Arduino Uno': 0,
@@ -575,6 +676,7 @@ export default function AdminTelemetryPage() {
       .map((c) => ({
         time: format(parseDate(c.timestamp), 'HH:mm:ss'),
         latency: parseFloat((c.latencyMs / 1000).toFixed(2)),
+        codeLength: c.codeLength || 0,
       }));
   }, [compiles]);
 
@@ -584,7 +686,7 @@ export default function AdminTelemetryPage() {
     return 'destructive';
   };
 
-  // Phase 4: Quick preset filter application for delete modal
+  // Quick preset filter application for delete modal
   const handleApplyPreset = (preset: 'now' | '10m' | '1h' | '24h' | '7d' | '30d') => {
     setDeleteMode('before');
     const now = new Date();
@@ -600,7 +702,7 @@ export default function AdminTelemetryPage() {
     setBeforeDateTime(formatted);
   };
 
-  // Phase 4: Execute log deletion in Firestore
+  // Execute log deletion in Firestore
   const handleDeleteLogs = async () => {
     if (!firestore) return;
     setIsDeleting(true);
@@ -670,7 +772,7 @@ export default function AdminTelemetryPage() {
     setIsDeleteOpen(true);
   };
 
-  // Phase 2: System Health Warning Check
+  // System Health Warning Check
   const hasSystemWarning = compileStats.count > 0 && (compileStats.successRate < 75 || uploadStats.successRate < 70);
 
   return (
@@ -678,9 +780,11 @@ export default function AdminTelemetryPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Telemetry Dashboard</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            Telemetry Dashboard
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Real-time health, performance, and hardware diagnostics for pilot testing sessions.
+            Real-time server latency, health performance, and hardware diagnostics.
           </p>
         </div>
 
@@ -688,14 +792,17 @@ export default function AdminTelemetryPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              checkRenderServerHealth();
+              window.location.reload();
+            }}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isGlobalLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isGlobalLoading || renderStatus === 'checking' ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
 
-          {/* Phase 1: Export CSV Button */}
+          {/* Export CSV Button */}
           <Button
             variant="outline"
             size="sm"
@@ -823,7 +930,6 @@ export default function AdminTelemetryPage() {
                   </div>
                 )}
 
-                {/* Phase 4 Retention Policy Info */}
                 <div className="rounded-md border p-3 bg-muted/30 text-xs text-muted-foreground space-y-1">
                   <span className="font-semibold text-foreground flex items-center gap-1">
                     <HardDrive className="h-3.5 w-3.5" /> Retention Policy Note
@@ -852,7 +958,7 @@ export default function AdminTelemetryPage() {
         </div>
       </div>
 
-      {/* Phase 2: Real-time System Health Alert Banner */}
+      {/* Real-time System Health Alert Banner */}
       {hasSystemWarning && (
         <Alert variant="destructive" className="border-red-500/50 bg-red-500/10">
           <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -863,7 +969,71 @@ export default function AdminTelemetryPage() {
         </Alert>
       )}
 
-      {/* 1. TOP METRIC BAR (4 Live Cards) */}
+      {/* Live Render Backend Health Banner */}
+      <div className="rounded-xl border p-4 bg-card flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
+            <Server className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-base">Compiler Backend Service</h3>
+              <Badge variant="outline" className="text-[10px] font-mono">
+                {RENDER_SERVICE_ID}
+              </Badge>
+              {renderStatus === 'online' && (
+                <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> ONLINE ({renderLatency}ms)
+                </Badge>
+              )}
+              {renderStatus === 'cold_start' && (
+                <Badge className="bg-amber-500 hover:bg-amber-500 text-white flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> COLD START ({renderLatency}ms)
+                </Badge>
+              )}
+              {renderStatus === 'offline' && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <XCircle className="h-3 w-3" /> UNREACHABLE
+                </Badge>
+              )}
+              {renderStatus === 'checking' && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3 animate-spin" /> Pinging...
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+              Host: <a href={RENDER_SERVER_URL} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">{RENDER_SERVER_URL}</a> • Render Docker Free Tier Container
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={checkRenderServerHealth}
+            disabled={renderStatus === 'checking'}
+            className="text-xs gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${renderStatus === 'checking' ? 'animate-spin' : ''}`} />
+            Re-ping Container
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            asChild
+            className="text-xs gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <a href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/logs`} target="_blank" rel="noopener noreferrer">
+              <Terminal className="h-3.5 w-3.5" /> Render Live Logs <ExternalLink className="h-3 w-3" />
+            </a>
+          </Button>
+        </div>
+      </div>
+
+      {/* TOP METRIC BAR (4 Live Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Active Testers Card */}
         <Card>
@@ -950,9 +1120,15 @@ export default function AdminTelemetryPage() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid grid-cols-3 max-w-md">
+        <TabsList className="grid grid-cols-5 max-w-2xl">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="charts">Charts</TabsTrigger>
+          <TabsTrigger value="latency" className="flex items-center gap-1">
+            <Zap className="h-3.5 w-3.5 text-amber-500" /> Server Load
+          </TabsTrigger>
+          <TabsTrigger value="render" className="flex items-center gap-1">
+            <Server className="h-3.5 w-3.5 text-purple-500" /> Render Backend
+          </TabsTrigger>
           <TabsTrigger value="logs">Live Log Feed</TabsTrigger>
         </TabsList>
 
@@ -1150,7 +1326,7 @@ export default function AdminTelemetryPage() {
               </CardContent>
             </Card>
 
-            {/* Phase 3: Hardware Board Telemetry Chart */}
+            {/* Hardware Board Telemetry Chart */}
             <Card>
               <CardHeader>
                 <CardTitle>Microcontroller Board Distribution</CardTitle>
@@ -1175,7 +1351,360 @@ export default function AdminTelemetryPage() {
           </div>
         </TabsContent>
 
-        {/* TAB C — LIVE LOG FEED (Phase 1 & Phase 2 Enhanced) */}
+        {/* TAB C — SERVER LOAD & LATENCY MEASUREMENT */}
+        <TabsContent value="latency" className="space-y-6 mt-4">
+          {/* Server Latency Percentile Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-emerald-500/30 bg-emerald-500/5">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-emerald-600 dark:text-emerald-400">
+                  p50 Median Load
+                </CardTitle>
+                <Zap className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {serverLatencyMetrics.p50.toFixed(2)}s
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Median compilation response time
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-500/30 bg-blue-500/5">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-blue-600 dark:text-blue-400">
+                  p90 Load Latency
+                </CardTitle>
+                <Gauge className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {serverLatencyMetrics.p90.toFixed(2)}s
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  90% of requests compile under this limit
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-amber-600 dark:text-amber-400">
+                  p95 Tail Load
+                </CardTitle>
+                <Activity className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {serverLatencyMetrics.p95.toFixed(2)}s
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Tail response latency under heavy load
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-500/30 bg-red-500/5">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-red-600 dark:text-red-400">
+                  Peak Compile Load
+                </CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {serverLatencyMetrics.peak.toFixed(2)}s
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Worst-case build duration logged
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Server Load Latency Distribution Buckets */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gauge className="h-5 w-5 text-amber-500" /> Server Load Latency Distribution
+                </CardTitle>
+                <CardDescription>
+                  Categorizes compiler load into response duration performance tiers.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={serverLatencyMetrics.buckets} layout="vertical" margin={{ top: 10, right: 20, left: 20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
+                      <YAxis type="category" dataKey="category" tick={{ fontSize: 10 }} width={130} />
+                      <ReChartsTooltip />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        {serverLatencyMetrics.buckets.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Compile Latency Area Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-blue-500" /> Compiler Load Latency Profile
+                </CardTitle>
+                <CardDescription>
+                  Area latency curve over time showing server build performance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {compileLatencyChartData.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8 text-sm">No latency data logged yet.</p>
+                ) : (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={compileLatencyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <ReChartsTooltip />
+                        <Area type="monotone" dataKey="latency" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* TAB D — RENDER BACKEND CONTROL DASHBOARD & LIVE TERMINAL CONSOLE */}
+        <TabsContent value="render" className="space-y-6 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Instance Control Card */}
+            <Card className="lg:col-span-1 border-purple-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Server className="h-5 w-5 text-purple-500" /> Render Container Profile
+                </CardTitle>
+                <CardDescription>
+                  Docker container runtime configuration on Render.com.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div className="space-y-2">
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Service Name</span>
+                    <span className="font-medium">EZCirkit</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Service ID</span>
+                    <span className="font-mono text-xs">{RENDER_SERVICE_ID}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Instance Type</span>
+                    <Badge variant="secondary" className="text-[10px]">Docker (Free Tier)</Badge>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Git Repository</span>
+                    <span className="font-mono text-xs">crabstertechnology/EZCirkit</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Git Branch</span>
+                    <Badge variant="outline" className="text-[10px]">main</Badge>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Compiler Endpoint</span>
+                    <span className="font-mono text-xs text-primary truncate max-w-[150px]">
+                      {RENDER_SERVER_URL}/api/compile
+                    </span>
+                  </div>
+                  <div className="flex justify-between pb-1">
+                    <span className="text-muted-foreground">Last Live Ping</span>
+                    <span className="font-mono text-xs">
+                      {lastChecked ? format(lastChecked, 'HH:mm:ss') : 'Never'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <Button asChild variant="default" className="w-full bg-purple-600 hover:bg-purple-700 text-white gap-2">
+                    <a href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/logs`} target="_blank" rel="noopener noreferrer">
+                      <Terminal className="h-4 w-4" /> Open Render Workstation <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full gap-2">
+                    <a href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/metrics`} target="_blank" rel="noopener noreferrer">
+                      <Activity className="h-4 w-4 text-blue-500" /> View CPU & RAM Metrics <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Embedded Live Compiler Terminal & Render Controls */}
+            <Card className="lg:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Terminal className="h-5 w-5 text-emerald-500" /> Live Compiler Console & Logs
+                  </CardTitle>
+                  <CardDescription>
+                    Direct terminal output, build stdout/stderr traces, and Render management links.
+                  </CardDescription>
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-muted p-1 rounded-lg">
+                  <Button
+                    variant={renderConsoleTab === 'logs' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setRenderConsoleTab('logs')}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    Terminal Logs
+                  </Button>
+                  <Button
+                    variant={renderConsoleTab === 'links' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setRenderConsoleTab('links')}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    Render Links
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* TAB 1: Live Compiler Terminal Stream */}
+                {renderConsoleTab === 'logs' && (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border bg-black/90 text-emerald-400 font-mono text-xs p-4 h-[340px] overflow-y-auto space-y-2 shadow-inner">
+                      <div className="flex items-center justify-between border-b border-emerald-500/30 pb-2 text-[11px] text-emerald-500/70">
+                        <span>EZCIRKIT-DOCKER-COMPILER-CONTAINER v1.0.4</span>
+                        <span>URL: {RENDER_SERVER_URL}</span>
+                      </div>
+
+                      <div className="text-zinc-400 text-[11px]">
+                        [SYSTEM] Connected to Google Cloud Firestore telemetry stream (`telemetry_compiles`)
+                      </div>
+                      <div className="text-emerald-500 text-[11px]">
+                        [HEALTH CHECK] Status: {renderStatus.toUpperCase()} • Roundtrip Ping: {renderLatency || 0}ms
+                      </div>
+
+                      {compiles && compiles.length > 0 ? (
+                        compiles.slice(0, 10).map((c, idx) => (
+                          <div key={c.id || idx} className="pt-1.5 border-t border-zinc-800 space-y-0.5">
+                            <div className="flex items-center justify-between text-zinc-300">
+                              <span className="text-amber-400">
+                                [{format(parseDate(c.timestamp), 'HH:mm:ss')}] POST /api/compile ({c.boardModel || 'Arduino Uno'})
+                              </span>
+                              <span className={c.status === 'success' ? 'text-emerald-400' : 'text-red-400'}>
+                                {c.status === 'success' ? `✓ 200 OK (${(c.latencyMs / 1000).toFixed(2)}s)` : `✗ 500 ERR (${c.errorSource})`}
+                              </span>
+                            </div>
+                            <div className="text-zinc-500 text-[11px] pl-3 truncate">
+                              Tester: {c.userEmail || 'Anonymous'} • Length: {c.codeLength || 0} chars • Lines: {c.codeLines || 0}
+                            </div>
+                            {c.error && (
+                              <div className="text-red-400 text-[11px] pl-3 font-mono bg-red-950/40 p-1.5 rounded border border-red-800/40">
+                                STDERR: {c.error}
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-zinc-500 text-center py-12">
+                          [WAITING] No compilation logs recorded in the active telemetry window.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: Direct Render Control Dashboard */}
+                {renderConsoleTab === 'links' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <a
+                      href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/logs`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-xl border p-4 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all space-y-2 block"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm flex items-center gap-2">
+                          <Terminal className="h-4 w-4 text-purple-500" /> Server Build & Runtime Logs
+                        </span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Inspect stdout/stderr console logs, docker build output, and compiler exception stack traces.
+                      </p>
+                    </a>
+
+                    <a
+                      href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/metrics`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-xl border p-4 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all space-y-2 block"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-blue-500" /> CPU & Memory Usage
+                        </span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Monitor RAM utilization, CPU load spikes, and HTTP request throughput on Render.
+                      </p>
+                    </a>
+
+                    <a
+                      href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/env`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-xl border p-4 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all space-y-2 block"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm flex items-center gap-2">
+                          <Filter className="h-4 w-4 text-amber-500" /> Environment Variables
+                        </span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Configure PORT, compiler secrets, and container environment options.
+                      </p>
+                    </a>
+
+                    <a
+                      href={`https://dashboard.render.com/web/${RENDER_SERVICE_ID}/settings`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-xl border p-4 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all space-y-2 block"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm flex items-center gap-2">
+                          <Server className="h-4 w-4 text-emerald-500" /> Container Settings & Deploy
+                        </span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Trigger manual redeployments, clear build cache, or update instance scaling.
+                      </p>
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* TAB E — LIVE LOG FEED */}
         <TabsContent value="logs" className="mt-4">
           <Card>
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1186,7 +1715,7 @@ export default function AdminTelemetryPage() {
                 </CardDescription>
               </div>
 
-              {/* Phase 1: Search & Filter Toolbar */}
+              {/* Search & Filter Toolbar */}
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <div className="relative w-full sm:w-48">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -1306,7 +1835,7 @@ export default function AdminTelemetryPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Phase 2: Tester Activity Inspector Sheet Drawer */}
+      {/* Tester Activity Inspector Sheet Drawer */}
       <Sheet open={isInspectorOpen} onOpenChange={setIsInspectorOpen}>
         <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
           {testerInspectorData && (
