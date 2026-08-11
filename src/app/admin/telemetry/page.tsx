@@ -470,7 +470,7 @@ export default function AdminTelemetryPage() {
     });
   }, [mergedEvents, filterEventType, filterStatus, searchTerm]);
 
-  // Export Detailed CSV Handler
+  // Export Detailed Enterprise CSV Handler (25 Fields)
   const handleExportCSV = () => {
     if (mergedEvents.length === 0) {
       toast({ title: 'No Data', description: 'No telemetry events available to export.' });
@@ -479,65 +479,103 @@ export default function AdminTelemetryPage() {
 
     const headers = [
       'Event ID',
-      'Timestamp',
+      'Timestamp (Formatted)',
+      'Timestamp (Epoch MS)',
       'Event Type',
       'Status',
       'Tester Name',
       'Tester Email',
+      'Device OS',
       'Latency (ms)',
-      'Board Target',
+      'Latency Performance Tier',
+      'Render Backend Host',
+      'Render Service ID',
+      'Target Board Model',
       'Error Message',
-      'Error Source / Category',
-      'Code Chars',
-      'Code Lines',
-      'Flash Bytes',
-      'RAM Bytes',
+      'Error Source Category',
+      'Code Character Count',
+      'Code Line Count',
+      'Flash Memory Bytes',
+      'RAM Memory Bytes',
       'USB Vendor ID',
       'USB Product ID',
       'Baud Rate',
-      'Flash Retries',
-      'Path / Route',
-      'Event Summary',
+      'Flash Retry Count',
+      'Route / Page Path',
       'Browser User Agent'
     ];
 
-    const rows = filteredEvents.map((e) => [
-      `"${e.id}"`,
-      `"${format(parseDate(e.timestamp), 'yyyy-MM-dd HH:mm:ss')}"`,
-      `"${e.eventType}"`,
-      `"${e.status || 'N/A'}"`,
-      `"${(e.userName || '').replace(/"/g, '""')}"`,
-      `"${(e.userEmail || '').replace(/"/g, '""')}"`,
-      `"${e.latencyMs || 0}"`,
-      `"${e.boardModel || 'N/A'}"`,
-      `"${(e.error || '').replace(/"/g, '""')}"`,
-      `"${e.errorSource || 'N/A'}"`,
-      `"${e.codeLength || 0}"`,
-      `"${e.codeLines || 0}"`,
-      `"${e.flashUsedBytes || 0}"`,
-      `"${e.ramUsedBytes || 0}"`,
-      `"${e.vendorId || 'N/A'}"`,
-      `"${e.productId || 'N/A'}"`,
-      `"${e.baudRate || 115200}"`,
-      `"${e.retryCount || 0}"`,
-      `"${e.path || 'N/A'}"`,
-      `"${e.details.replace(/"/g, '""')}"`,
-      `"${(e.userAgent || '').replace(/"/g, '""')}"`,
-    ]);
+    const rows = filteredEvents.map((e) => {
+      const parsedDt = parseDate(e.timestamp);
+      const latencySec = (e.latencyMs || 0) / 1000;
+      let latencyTier = 'N/A';
+      if (e.eventType === 'compile' || e.eventType === 'upload') {
+        if (latencySec < 1.5) latencyTier = '⚡ Fast (< 1.5s)';
+        else if (latencySec <= 3.0) latencyTier = '🟢 Normal (1.5s - 3s)';
+        else if (latencySec <= 5.0) latencyTier = '⚠️ Heavy (3s - 5s)';
+        else latencyTier = '🔴 Critical (> 5s)';
+      }
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const ua = e.userAgent || '';
+      let deviceOs = 'Desktop Web';
+      if (ua.includes('Windows')) deviceOs = 'Windows PC';
+      else if (ua.includes('Macintosh')) deviceOs = 'Mac OS';
+      else if (ua.includes('Linux')) deviceOs = 'Linux Desktop';
+      else if (ua.includes('Android')) deviceOs = 'Android';
+      else if (ua.includes('iPhone') || ua.includes('iPad')) deviceOs = 'iOS Device';
+
+      return [
+        `"${e.id}"`,
+        `"${format(parsedDt, 'yyyy-MM-dd HH:mm:ss')}"`,
+        `"${parsedDt.getTime()}"`,
+        `"${e.eventType}"`,
+        `"${e.status || 'N/A'}"`,
+        `"${(e.userName || '').replace(/"/g, '""')}"`,
+        `"${(e.userEmail || '').replace(/"/g, '""')}"`,
+        `"${deviceOs}"`,
+        `"${e.latencyMs || 0}"`,
+        `"${latencyTier}"`,
+        `"${RENDER_SERVER_URL}"`,
+        `"${RENDER_SERVICE_ID}"`,
+        `"${e.boardModel || 'N/A'}"`,
+        `"${(e.error || '').replace(/"/g, '""')}"`,
+        `"${e.errorSource || 'N/A'}"`,
+        `"${e.codeLength || 0}"`,
+        `"${e.codeLines || 0}"`,
+        `"${e.flashUsedBytes || 0}"`,
+        `"${e.ramUsedBytes || 0}"`,
+        `"${e.vendorId || 'N/A'}"`,
+        `"${e.productId || 'N/A'}"`,
+        `"${e.baudRate || 115200}"`,
+        `"${e.retryCount || 0}"`,
+        `"${e.path || 'N/A'}"`,
+        `"${ua.replace(/"/g, '""')}"`,
+      ];
+    });
+
+    const metadataHeader = [
+      `# EZCirkit Telemetry & Hardware Pilot Enterprise Export`,
+      `# Generated Date: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}`,
+      `# Total Records: ${filteredEvents.length}`,
+      `# Render Container ID: ${RENDER_SERVICE_ID}`,
+      `# Render Container URL: ${RENDER_SERVER_URL}`,
+      `# Applied Filters: EventType=${filterEventType}, Status=${filterStatus}, Search="${searchTerm}"`,
+      ``
+    ].join('\n');
+
+    const csvContent = metadataHeader + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `ezcirkit_telemetry_full_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+    link.setAttribute('download', `ezcirkit_telemetry_enterprise_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     toast({
-      title: 'Detailed CSV Exported',
-      description: `Downloaded ${filteredEvents.length} telemetry records with 21 detailed fields.`,
+      title: 'Enterprise CSV Exported',
+      description: `Downloaded ${filteredEvents.length} telemetry records with 25 diagnostic fields & Render backend metadata.`,
     });
   };
 
