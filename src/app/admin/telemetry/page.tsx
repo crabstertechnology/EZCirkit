@@ -82,7 +82,10 @@ interface TelemetryCompile {
   userEmail: string | null;
   status: 'success' | 'failed';
   latencyMs: number;
-  codeLength: number;
+  codeLength?: number;
+  codeLines?: number;
+  flashUsedBytes?: number;
+  ramUsedBytes?: number;
   boardModel?: string;
   error: string | null;
   errorSource: 'network' | 'compiler_server' | 'compiler_error' | 'none';
@@ -97,8 +100,12 @@ interface TelemetryUpload {
   userEmail: string | null;
   status: 'success' | 'failed';
   latencyMs: number;
-  pageSize: number;
+  pageSize?: number;
   boardModel?: string;
+  vendorId?: string | null;
+  productId?: string | null;
+  baudRate?: number;
+  retryCount?: number;
   portType?: string;
   error: string | null;
   timestamp: any;
@@ -128,6 +135,15 @@ interface MergedEvent {
   error?: string | null;
   errorSource?: string;
   boardModel?: string;
+  codeLength?: number;
+  codeLines?: number;
+  flashUsedBytes?: number;
+  ramUsedBytes?: number;
+  vendorId?: string | null;
+  productId?: string | null;
+  baudRate?: number;
+  retryCount?: number;
+  path?: string;
   timestamp: any;
   userAgent?: string;
   eventType: 'login' | 'compile' | 'upload' | 'interaction';
@@ -266,6 +282,10 @@ export default function AdminTelemetryPage() {
         error: c.error,
         errorSource: c.errorSource,
         boardModel: board,
+        codeLength: c.codeLength,
+        codeLines: c.codeLines,
+        flashUsedBytes: c.flashUsedBytes,
+        ramUsedBytes: c.ramUsedBytes,
         timestamp: c.timestamp,
         userAgent: c.userAgent,
         eventType: 'compile',
@@ -290,6 +310,10 @@ export default function AdminTelemetryPage() {
         latencyMs: u.latencyMs,
         error: u.error,
         boardModel: board,
+        vendorId: u.vendorId,
+        productId: u.productId,
+        baudRate: u.baudRate,
+        retryCount: u.retryCount,
         timestamp: u.timestamp,
         userAgent: u.userAgent,
         eventType: 'upload',
@@ -307,6 +331,7 @@ export default function AdminTelemetryPage() {
         userId: i.userId,
         userName: i.userName,
         userEmail: i.userEmail,
+        path: i.path,
         timestamp: i.timestamp,
         userAgent: i.userAgent,
         eventType: 'interaction',
@@ -343,15 +368,39 @@ export default function AdminTelemetryPage() {
     });
   }, [mergedEvents, filterEventType, filterStatus, searchTerm]);
 
-  // Phase 1: Export CSV Handler
+  // Phase 1: Export Detailed CSV Handler
   const handleExportCSV = () => {
     if (mergedEvents.length === 0) {
       toast({ title: 'No Data', description: 'No telemetry events available to export.' });
       return;
     }
 
-    const headers = ['Timestamp', 'Event Type', 'Status', 'Tester Name', 'Tester Email', 'Latency (ms)', 'Board Model', 'Details', 'User Agent'];
+    const headers = [
+      'Event ID',
+      'Timestamp',
+      'Event Type',
+      'Status',
+      'Tester Name',
+      'Tester Email',
+      'Latency (ms)',
+      'Board Target',
+      'Error Message',
+      'Error Source / Category',
+      'Code Chars',
+      'Code Lines',
+      'Flash Bytes',
+      'RAM Bytes',
+      'USB Vendor ID',
+      'USB Product ID',
+      'Baud Rate',
+      'Flash Retries',
+      'Path / Route',
+      'Event Summary',
+      'Browser User Agent'
+    ];
+
     const rows = filteredEvents.map((e) => [
+      `"${e.id}"`,
       `"${format(parseDate(e.timestamp), 'yyyy-MM-dd HH:mm:ss')}"`,
       `"${e.eventType}"`,
       `"${e.status || 'N/A'}"`,
@@ -359,6 +408,17 @@ export default function AdminTelemetryPage() {
       `"${(e.userEmail || '').replace(/"/g, '""')}"`,
       `"${e.latencyMs || 0}"`,
       `"${e.boardModel || 'N/A'}"`,
+      `"${(e.error || '').replace(/"/g, '""')}"`,
+      `"${e.errorSource || 'N/A'}"`,
+      `"${e.codeLength || 0}"`,
+      `"${e.codeLines || 0}"`,
+      `"${e.flashUsedBytes || 0}"`,
+      `"${e.ramUsedBytes || 0}"`,
+      `"${e.vendorId || 'N/A'}"`,
+      `"${e.productId || 'N/A'}"`,
+      `"${e.baudRate || 115200}"`,
+      `"${e.retryCount || 0}"`,
+      `"${e.path || 'N/A'}"`,
       `"${e.details.replace(/"/g, '""')}"`,
       `"${(e.userAgent || '').replace(/"/g, '""')}"`,
     ]);
@@ -368,14 +428,14 @@ export default function AdminTelemetryPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `ezcirkit_telemetry_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+    link.setAttribute('download', `ezcirkit_telemetry_full_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     toast({
-      title: 'CSV Exported',
-      description: `Downloaded ${filteredEvents.length} telemetry records to CSV.`,
+      title: 'Detailed CSV Exported',
+      description: `Downloaded ${filteredEvents.length} telemetry records with 21 detailed fields.`,
     });
   };
 
