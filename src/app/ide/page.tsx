@@ -63,11 +63,19 @@ export default function IdeSelectionPage() {
   const isAdmin = userData?.isAdmin ?? false;
   const hasTutorialAccess = userData?.hasTutorialAccess ?? false;
 
+  // General settings (for bypass check)
+  const generalDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'general') : null),
+    [firestore]
+  );
+  const { data: generalData, isLoading: isLoadingGeneral } = useDoc<{ bypassPurchaseValidation?: boolean }>(generalDocRef);
+  const bypassPurchaseValidation = generalData?.bypassPurchaseValidation ?? false;
+
   // Verify purchase
   useEffect(() => {
     let isActive = true;
 
-    if (isAdmin || hasTutorialAccess) {
+    if (isAdmin || hasTutorialAccess || bypassPurchaseValidation) {
       setHasPurchased(true);
       setIsVerifying(false);
       return;
@@ -110,7 +118,7 @@ export default function IdeSelectionPage() {
     return () => {
       isActive = false;
     };
-  }, [user, isUserLoading, firestore, isAdmin, hasTutorialAccess]);
+  }, [user, isUserLoading, firestore, isAdmin, hasTutorialAccess, bypassPurchaseValidation]);
 
   // Load chapters & tutorials
   useEffect(() => {
@@ -203,7 +211,7 @@ export default function IdeSelectionPage() {
     });
   }, [allTutorials, searchQuery, selectedChapter]);
 
-  const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc;
+  const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc || isLoadingGeneral;
 
   const handleTutorialClick = (e: React.MouseEvent, tut: Tutorial) => {
     if (!hasPurchased) {

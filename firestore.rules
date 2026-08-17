@@ -134,7 +134,7 @@ service cloud.firestore {
     }
 
     match /settings/{documentId} {
-      // Anyone can read settings.
+      // Anyone can read settings (e.g., announcementBar, general settings bypassPurchaseValidation).
       allow read: if true;
       // Only admins can write.
       allow write: if isAdmin();

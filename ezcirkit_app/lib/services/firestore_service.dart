@@ -181,6 +181,23 @@ class FirestoreService {
         'Content-Type': 'application/json',
       };
 
+      // 0. Check if kit verification is globally bypassed
+      try {
+        final settingsUrl = Uri.parse('$_baseUrl/settings/general');
+        final settingsRes = await http.get(settingsUrl, headers: headers);
+        if (settingsRes.statusCode == 200) {
+          final settingsData = json.decode(settingsRes.body);
+          final fields = settingsData['fields'] ?? {};
+          final bypass = fields['bypassPurchaseValidation'] != null &&
+              fields['bypassPurchaseValidation']['booleanValue'] == true;
+          if (bypass) {
+            return true;
+          }
+        }
+      } catch (e) {
+        print('Error checking bypass settings: $e');
+      }
+
       // 1. Fetch user doc
       final userUrl = Uri.parse('$_baseUrl/users/$uid');
       final userRes = await http.get(userUrl, headers: headers);

@@ -56,9 +56,14 @@ const SettingsPage = () => {
     () => (firestore ? doc(firestore, 'settings', 'homepage') : null),
     [firestore]
   );
+  const generalDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'general') : null),
+    [firestore]
+  );
 
   const { data: remoteSettings, isLoading: isLoadingSettings } = useDoc<AnnouncementBarSettings>(settingsDocRef);
   const { data: remoteHomepage, isLoading: isLoadingHomepage } = useDoc<{ selectedExperiments?: string[] }>(homepageDocRef);
+  const { data: remoteGeneral, isLoading: isLoadingGeneral } = useDoc<{ bypassPurchaseValidation?: boolean }>(generalDocRef);
 
   const [allExperiments, setAllExperiments] = useState<any[]>([]);
   const [isLoadingExps, setIsLoadingExps] = useState(true);
@@ -76,10 +81,11 @@ const SettingsPage = () => {
     }
   }, []);
 
-  const isLoading = isLoadingSettings || isLoadingHomepage || isLoadingExps;
+  const isLoading = isLoadingSettings || isLoadingHomepage || isLoadingExps || isLoadingGeneral;
   
   const [settings, setSettings] = useState<AnnouncementBarSettings>(DEFAULT_SETTINGS);
   const [selectedExps, setSelectedExps] = useState<string[]>([]);
+  const [bypassPurchaseValidation, setBypassPurchaseValidation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -100,6 +106,12 @@ const SettingsPage = () => {
       setSelectedExps(remoteHomepage.selectedExperiments || []);
     }
   }, [remoteHomepage]);
+
+  useEffect(() => {
+    if (remoteGeneral) {
+      setBypassPurchaseValidation(remoteGeneral.bypassPurchaseValidation ?? false);
+    }
+  }, [remoteGeneral]);
 
   useEffect(() => {
     if (!firestore) {
@@ -155,6 +167,7 @@ const SettingsPage = () => {
     try {
       await setDoc(doc(firestore, 'settings', 'announcementBar'), settings);
       await setDoc(doc(firestore, 'settings', 'homepage'), { selectedExperiments: selectedExps });
+      await setDoc(doc(firestore, 'settings', 'general'), { bypassPurchaseValidation });
       toast({
         title: 'Settings Saved',
         description: 'All settings updated successfully.',
@@ -172,6 +185,7 @@ const SettingsPage = () => {
 
   const handleReset = () => {
     setSettings(DEFAULT_SETTINGS);
+    setBypassPurchaseValidation(false);
     toast({
       description: 'Reset fields to system default values (click Save to apply).',
     });
@@ -589,6 +603,17 @@ const SettingsPage = () => {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-2xl bg-zinc-50 dark:bg-zinc-900/10">
+                    <div className="space-y-1">
+                        <h3 className="font-semibold text-sm">Bypass Kit Verification</h3>
+                        <p className="text-xs text-muted-foreground font-medium">Unlock all tutorials and IDE selection for all registered users (for testing).</p>
+                    </div>
+                    <Switch
+                        id="bypass-purchase"
+                        checked={bypassPurchaseValidation}
+                        onCheckedChange={setBypassPurchaseValidation}
+                    />
+                </div>
                 <div className="flex items-center justify-between p-4 border rounded-2xl bg-zinc-50 dark:bg-zinc-900/10">
                     <div>
                         <h3 className="font-semibold text-sm">User Roles</h3>
