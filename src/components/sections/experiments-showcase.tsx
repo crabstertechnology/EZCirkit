@@ -148,13 +148,13 @@ export default function ExperimentsShowcase() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-black text-primary uppercase tracking-widest">
-              <FlaskConical className="h-3.5 w-3.5" /> Hands-on Coding
+              <FlaskConical className="h-3.5 w-3.5" /> Hands-on STEM Learning
             </div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">
-              What You Will <span className="text-primary">Learn & Build</span>
+              Electronics Projects & <span className="text-primary">Step-by-Step Tutorials</span>
             </h2>
             <p className="text-muted-foreground text-sm md:text-base max-w-2xl leading-relaxed">
-              Pre-load code and start building right inside our interactive Web IDE workspace with video-assisted tutorials.
+              Explore practical Arduino circuits, wiring layouts, and interactive coding experiments with video-assisted lessons.
             </p>
           </div>
           <Link

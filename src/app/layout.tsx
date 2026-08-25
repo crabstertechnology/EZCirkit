@@ -11,8 +11,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'EZCirkit – Learn Electronics Made Easy | Crabster Technology',
-    template: '%s | EZCirkit'
+    default: 'Electronics Components, Learning Kits & Projects | Crabster Technology',
+    template: '%s | Crabster Technology'
   },
   description: 'Learn electronics and programming easily with the EZCirkit STEM kit. Real-time simulation, step-by-step interactive experiments, and video tutorials by Crabster Technology.',
   keywords: [
@@ -100,12 +100,12 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'OnlineStore',
-              name: 'EZCirkit by Crabster Technology',
-              alternateName: 'EZCirkit',
+              name: 'Crabster Technology',
+              alternateName: ['Crabster Technology Electronics', 'Crabster Technology Electronics Components', 'EZCirkit'],
               url: 'https://shop.crabstertech.in',
               logo: 'https://shop.crabstertech.in/logo.png',
               description:
-                'EZCirkit is an online store for electronic components, sensors, development boards, Arduino kits, and STEM learning kits in India. Buy online with fast delivery and Cash on Delivery.',
+                'Crabster Technology is an online store for electronic components, sensors, development boards, Arduino kits, and STEM learning kits in India. Buy online with fast delivery and Cash on Delivery.',
               foundingDate: '2023',
               areaServed: { '@type': 'Country', name: 'India' },
               contactPoint: {

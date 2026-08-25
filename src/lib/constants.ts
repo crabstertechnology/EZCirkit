@@ -6,6 +6,8 @@ export const SHIPPING_COST = 0;
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
+  { href: '/components', label: 'Components' },
+  { href: '/tutorials', label: 'Tutorials' },
   { href: '/ide', label: 'EZCirkit IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
@@ -40,15 +42,19 @@ export const PRODUCT_FEATURES = [
 ];
 
 export const FOOTER_LINKS = {
-  about: [
-    { href: '/about', label: 'Our Story' },
-    { href: '/blog', label: 'Blog' },
-    { href: '/careers', label: 'Careers' },
+  categories: [
+    { href: '/components/sensors', label: 'Sensors' },
+    { href: '/components/arduino-boards', label: 'Arduino Boards' },
+    { href: '/components/development-boards', label: 'Development Boards' },
+    { href: '/components/displays', label: 'Displays' },
+    { href: '/components/power-modules', label: 'Power Modules' },
   ],
   quickLinks: [
     { href: '/', label: 'Home' },
-    { href: '/products', label: 'Products' },
-    { href: '/cart', label: 'Cart' },
+    { href: '/products', label: 'All Products' },
+    { href: '/components', label: 'Components Hub' },
+    { href: '/tutorials', label: 'Tutorials & Guides' },
+    { href: '/ide', label: 'Online Web IDE' },
   ],
   support: [
     { href: '/privacy-policy', label: 'Privacy Policy' },

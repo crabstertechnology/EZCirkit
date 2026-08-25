@@ -316,7 +316,7 @@ const FlagshipProductSection = () => {
             {/* Product Name */}
             <div>
               <h2 className="text-2xl md:text-3xl font-black tracking-tight text-foreground leading-tight">
-                {product.name}
+                {product.name === 'EZCirkit' ? 'EZCirkit Electronics Learning Kit' : product.name}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                 {product.description ||

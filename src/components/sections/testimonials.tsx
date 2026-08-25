@@ -41,7 +41,7 @@ interface TestimonialVideo {
   order: number;
 }
 
-const PRODUCT_DOC_ID = 'pro1'; 
+const PRODUCT_DOC_ID = 'azTYls91q9XKl58LRY4g';
 
 interface TestimonialsProps {
   reviews: Review[];

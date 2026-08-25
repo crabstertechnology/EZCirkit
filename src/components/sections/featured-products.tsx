@@ -112,17 +112,17 @@ const FeaturedProducts = () => {
         <div className="flex items-end justify-between mb-8">
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary mb-1.5">
-              Featured Products
+              Crabster Technology Electronics
             </p>
             <h2 className="text-3xl md:text-4xl font-black text-foreground leading-tight tracking-tight">
-              Best-selling components
+              Electronics Components & Sensors for Students and Beginners
             </h2>
           </div>
           <Link
-            href="/products"
+            href="/components"
             className="relative group hidden sm:flex items-center gap-1.5 text-sm font-bold tracking-wide text-primary transition-all duration-300 py-1"
           >
-            <span>Shop all products</span>
+            <span>Explore Components Library</span>
             <svg 
               className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover:translate-x-1" 
               viewBox="0 0 24 24" 

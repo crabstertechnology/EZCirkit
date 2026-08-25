@@ -130,7 +130,7 @@ export default function ShopPage() {
   const reviewsQuery = useMemoFirebase(
     () =>
       firestore
-        ? query(collection(firestore, 'products', 'pro1', 'reviews'))
+        ? query(collection(firestore, 'products', 'azTYls91q9XKl58LRY4g', 'reviews'))
         : null,
     [firestore]
   );
@@ -395,7 +395,7 @@ export default function ShopPage() {
                         <div className="flex items-center gap-0.5">
                           <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                           <span className="text-[10px] font-semibold text-muted-foreground">
-                            {p.id === 'pro1' ? `${flagshipRating.average}` : '4.8'}
+                            {p.id === 'azTYls91q9XKl58LRY4g' ? `${flagshipRating.average}` : '4.8'}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-auto pt-1">

@@ -14,7 +14,7 @@ import { collection, query, where, limit } from 'firebase/firestore';
 import { PROJECTS_DATA } from '@/lib/projects';
 import { cn } from '@/lib/utils';
 
-const PRODUCT_ID = 'pro1';
+const PRODUCT_ID = 'azTYls91q9XKl58LRY4g';
 
 interface Product {
   id: string; 

@@ -43,7 +43,7 @@ interface ProductShowcaseProps {
   isLoadingReviews: boolean;
 }
 
-const PRODUCT_ID = 'pro1';
+const PRODUCT_ID = 'azTYls91q9XKl58LRY4g';
 
 const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRating, reviewCount, isLoadingReviews }) => {
   const { addToCart, decrementItem, cartItems } = useCart();

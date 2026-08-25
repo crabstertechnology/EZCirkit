@@ -31,7 +31,7 @@ const Footer = () => {
   return (
     <footer className="bg-[#1a1a1a] text-gray-300">
       <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Column 1: About */}
           <div className="space-y-4">
             <Logo isFooter={true} />
@@ -48,7 +48,26 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Column 2: Quick Links */}
+          {/* Column 2: Categories */}
+          <div>
+            <h3 className="text-lg font-semibold text-gradient bg-primary-gradient mb-4">
+              Categories
+            </h3>
+            <ul className="space-y-2">
+              {FOOTER_LINKS.categories.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 3: Quick Links */}
           <div>
             <h3 className="text-lg font-semibold text-gradient bg-primary-gradient mb-4">
               Quick Links

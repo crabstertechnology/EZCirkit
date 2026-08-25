@@ -39,15 +39,15 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
 
             {/* Title */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight font-headline text-foreground leading-tight">
-              Learn Electronics <br />
+              Electronics Components, <br />
               <span className="text-primary bg-primary-gradient bg-clip-text text-transparent">
-                Made Easy
+                Learning Kits & Projects
               </span>
             </h1>
 
             {/* Paragraph */}
             <p className="max-w-xl text-base md:text-lg text-foreground/75 leading-relaxed">
-              Stop learning only theory. Build, experiment, and understand electronics through hands-on projects — at home, at your own pace.
+              Build, experiment, and understand electronics with EZCirkit by Crabster Technology. Discover individual electronic components, sensors, learning kits, and guided Arduino tutorials designed for students and beginners in India.
             </p>
 
             {/* CTA Buttons */}

@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { CATEGORY_SLUGS, COMPONENT_ID_TO_SLUG, slugify } from '@/lib/seo-mappings';
 
 function getAdminFirestore() {
   if (!getApps().length) {
@@ -22,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
   const now = formatDate(new Date());
 
-  // Static routes with their priorities and change frequencies
+  // 1. Static Core Routes
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -37,22 +38,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/components`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/tutorials`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
       url: `${baseUrl}/projects`,
       lastModified: now,
       changeFrequency: 'weekly',
-      priority: 0.7,
+      priority: 0.75,
     },
     {
       url: `${baseUrl}/ide`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/tutorials`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.6,
     },
     {
       url: `${baseUrl}/contact-us`,
@@ -86,27 +93,55 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Dynamically include all product pages
-  let productRoutes: MetadataRoute.Sitemap = [];
+  // 2. Component Category Routes
+  const categoryRoutes: MetadataRoute.Sitemap = Object.keys(CATEGORY_SLUGS).map((slug) => ({
+    url: `${baseUrl}/components/${slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
+  // 3. Dynamic Component & Product Pages
+  let componentRoutes: MetadataRoute.Sitemap = [];
+  let tutorialRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const db = getAdminFirestore();
-    const productsSnap = await db.collection('products').get();
 
-    productRoutes = productsSnap.docs.map((doc) => {
+    // Fetch Products
+    const productsSnap = await db.collection('products').get();
+    componentRoutes = productsSnap.docs.map((doc) => {
       const updateTime = doc.updateTime?.toDate();
+      const p = doc.data();
+      const cleanSlug = COMPONENT_ID_TO_SLUG[doc.id] || slugify(p.name || doc.id);
       return {
-        url: `${baseUrl}/products/${doc.id}`,
+        url: `${baseUrl}/components/${cleanSlug}`,
         lastModified: updateTime ? formatDate(updateTime) : now,
         changeFrequency: 'weekly' as const,
-        priority: 0.85,
+        priority: 0.9,
       };
     });
+
+    // Fetch Tutorials
+    const tutsSnap = await db.collectionGroup('tutorials').get();
+    tutorialRoutes = tutsSnap.docs.map((doc) => {
+      const updateTime = doc.updateTime?.toDate();
+      return {
+        url: `${baseUrl}/tutorials/${doc.id}`,
+        lastModified: updateTime ? formatDate(updateTime) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.8,
+      };
+    });
+
   } catch (err) {
-    console.error('[Sitemap] Failed to fetch products from Firestore:', err);
-    // Gracefully fall back to no product routes — don't crash the build
+    console.error('[Sitemap] Failed to fetch dynamic routes from Firestore:', err);
   }
 
-  return [...staticRoutes, ...productRoutes];
+  return [
+    ...staticRoutes,
+    ...categoryRoutes,
+    ...componentRoutes,
+    ...tutorialRoutes,
+  ];
 }
-

@@ -10,7 +10,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { Review } from '@/components/sections/testimonials';
 
-const PRODUCT_DOC_ID = 'pro1';
+const PRODUCT_DOC_ID = 'azTYls91q9XKl58LRY4g';
 
 export default function Home() {
   const firestore = useFirestore();

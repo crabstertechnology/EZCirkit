@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { COMPONENT_ID_TO_SLUG } from '@/lib/seo-mappings';
 
 // ── Firebase Admin initialisation (server-only) ──────────────────────────────
 function getAdminFirestore() {
@@ -52,7 +53,8 @@ export async function generateMetadata({
       p.metaDescription ||
       `Buy ${productName} online at ₹${price.toLocaleString('en-IN')}. ${category} from EZCirkit by Crabster Technology. Fast shipping across India. Cash on Delivery available.`; // 140–160 chars
 
-    const canonicalUrl = `${baseUrl}/products/${id}`;
+    const cleanSlug = COMPONENT_ID_TO_SLUG[id];
+    const canonicalUrl = cleanSlug ? `${baseUrl}/components/${cleanSlug}` : `${baseUrl}/products/${id}`;
     const imageUrl: string =
       p.image?.startsWith('http') ? p.image : `${baseUrl}${p.image || '/logo.png'}`;
 
