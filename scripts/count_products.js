@@ -29,7 +29,7 @@ async function run() {
   try {
     const snapshot = await db.collection('products').get();
     console.log(`TOTAL_PRODUCTS_IN_FIRESTORE: ${snapshot.size}`);
-    
+
     console.log('\nAll products in Firestore:');
     snapshot.docs.forEach((doc, idx) => {
       console.log(`${idx + 1}. [${doc.id}]: ${doc.data().name}`);

@@ -50,9 +50,13 @@ export async function GET() {
       };
 
       const link = escapeXml(`${baseUrl}/products/${id}`);
-      const imageUrl = escapeXml(p.image?.startsWith('http')
-        ? p.image
-        : `${baseUrl}${p.image || '/logo.png'}`);
+      let rawImage = p.image || '/logo.png';
+      if (rawImage.startsWith('data:')) {
+        rawImage = '/logo.png';
+      }
+      const imageUrl = escapeXml(rawImage.startsWith('http')
+        ? rawImage
+        : `${baseUrl}${rawImage}`);
       
       const price = typeof p.price === 'number' ? p.price : 0;
       const availability = (p.stock ?? 1) > 0 ? 'in_stock' : 'out_of_stock';
