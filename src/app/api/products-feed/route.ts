@@ -36,10 +36,23 @@ export async function GET() {
       // Replace any XML/HTML tags or problematic characters in description
       description = description.replace(/<[^>]*>/g, '');
 
-      const link = `${baseUrl}/products/${id}`;
-      const imageUrl = p.image?.startsWith('http')
+      const escapeXml = (unsafe: string) => {
+        return unsafe.replace(/[<>&'"]/g, (c) => {
+          switch (c) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '\'': return '&apos;';
+            case '"': return '&quot;';
+            default: return c;
+          }
+        });
+      };
+
+      const link = escapeXml(`${baseUrl}/products/${id}`);
+      const imageUrl = escapeXml(p.image?.startsWith('http')
         ? p.image
-        : `${baseUrl}${p.image || '/logo.png'}`;
+        : `${baseUrl}${p.image || '/logo.png'}`);
       
       const price = typeof p.price === 'number' ? p.price : 0;
       const availability = (p.stock ?? 1) > 0 ? 'in_stock' : 'out_of_stock';
@@ -59,6 +72,7 @@ export async function GET() {
       <g:brand><![CDATA[${brand}]]></g:brand>
       <g:condition>new</g:condition>
       <g:mpn><![CDATA[${sku}]]></g:mpn>
+      <g:identifier_exists>false</g:identifier_exists>
       <g:google_product_category><![CDATA[${category}]]></g:google_product_category>
     </item>`;
     });
