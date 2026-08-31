@@ -36,10 +36,11 @@ interface FAQ {
   answer: string;
 }
 
-export default function ProductDetailPage({ overrideId }: { overrideId?: string } = {}) {
-  const params = useParams();
+export default function ProductDetailPage(props: any) {
+  const { overrideId } = props || {};
+  const routeParams = useParams();
   const router = useRouter();
-  const productId = overrideId || (params.id as string);
+  const productId = overrideId || (routeParams.id as string);
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { addToCart, cartItems } = useCart();

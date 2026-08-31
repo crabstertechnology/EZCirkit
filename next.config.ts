@@ -63,6 +63,11 @@ const nextConfig: NextConfig = {
 
   async rewrites() {
     return [
+      // Google Merchant Center feed rewrite
+      {
+        source: '/products-feed.xml',
+        destination: '/api/products-feed',
+      },
       // Redirect old kit image paths to the new kit folder
       {
         source: '/new-kit-front.png',

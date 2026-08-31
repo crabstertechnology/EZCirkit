@@ -37,22 +37,6 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState('All Products');
   const [sortBy, setSortBy] = useState('Featured');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [offset, setOffset] = useState(8);
-
-  React.useEffect(() => {
-    const updateOffset = () => {
-      if (window.innerWidth < 768) {
-        setOffset(4);
-      } else if (window.innerWidth < 1024) {
-        setOffset(6);
-      } else {
-        setOffset(8);
-      }
-    };
-    updateOffset();
-    window.addEventListener('resize', updateOffset);
-    return () => window.removeEventListener('resize', updateOffset);
-  }, []);
 
   // Sync wishlist from localStorage
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -161,8 +145,8 @@ export default function ShopPage() {
 
   // Combine query results and default fallback items
   const displayProducts = React.useMemo(() => {
-    // Show only database products listed by the admin, excluding those shown on the homepage.
-    let list = localProducts.slice(offset);
+    // Show all database products listed by the admin.
+    let list = [...localProducts];
 
     // Filter by Category
     if (selectedCategory !== 'All Products') {
@@ -190,7 +174,7 @@ export default function ShopPage() {
     }
 
     return list;
-  }, [products, selectedCategory, searchQuery, sortBy, offset]);
+  }, [localProducts, selectedCategory, searchQuery, sortBy]);
 
   // Calculate discount percentage
   const getDiscountPercent = (price: number, originalPrice?: number) => {
