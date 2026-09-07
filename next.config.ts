@@ -61,6 +61,16 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  async redirects() {
+    return [
+      {
+        source: '/tutorials',
+        destination: '/ide',
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       // Google Merchant Center feed rewrite

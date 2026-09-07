@@ -7,8 +7,7 @@ export const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
   { href: '/components', label: 'Components' },
-  { href: '/tutorials', label: 'Tutorials' },
-  { href: '/ide', label: 'EZCirkit IDE' },
+  { href: '/ide', label: 'Launch IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
 
@@ -53,8 +52,7 @@ export const FOOTER_LINKS = {
     { href: '/', label: 'Home' },
     { href: '/products', label: 'All Products' },
     { href: '/components', label: 'Components Hub' },
-    { href: '/tutorials', label: 'Tutorials & Guides' },
-    { href: '/ide', label: 'Online Web IDE' },
+    { href: '/ide', label: 'Launch IDE' },
   ],
   support: [
     { href: '/privacy-policy', label: 'Privacy Policy' },

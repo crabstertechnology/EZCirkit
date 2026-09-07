@@ -160,8 +160,8 @@ export default function TutorialDetailPage() {
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center pt-20 text-center px-4">
         <h1 className="text-4xl font-black">Tutorial Not Found</h1>
         <p className="text-sm text-muted-foreground mt-2 max-w-sm">The tutorial lesson has been removed or modified.</p>
-        <Link href="/tutorials" className="mt-4 text-xs font-black text-primary hover:underline">
-          Return to Tutorials Library
+        <Link href="/ide" className="mt-4 text-xs font-black text-primary hover:underline">
+          Return to IDE Experiments
         </Link>
       </div>
     );
@@ -183,7 +183,7 @@ export default function TutorialDetailPage() {
         <nav className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold mb-6">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <ChevronRight className="h-3 w-3" />
-          <Link href="/tutorials" className="hover:text-primary transition-colors">Tutorials</Link>
+          <Link href="/ide" className="hover:text-primary transition-colors">IDE</Link>
           <ChevronRight className="h-3 w-3" />
           {chapterTitle && (
             <>

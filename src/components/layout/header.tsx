@@ -215,7 +215,9 @@ const Header = () => {
       case 'Products': return <ShoppingBag className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'Projects': return <Package className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'KIT': return <Package className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
-      case 'EZCirkit IDE': return <Code className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
+      case 'EZCirkit IDE':
+      case 'Launch IDE':
+      case 'Launch Ide': return <Code className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
       case 'Reviews': return <Star className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />;
       default: return null;
     }
