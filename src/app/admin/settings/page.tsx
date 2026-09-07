@@ -62,7 +62,7 @@ const SettingsPage = () => {
   );
 
   const { data: remoteSettings, isLoading: isLoadingSettings } = useDoc<AnnouncementBarSettings>(settingsDocRef);
-  const { data: remoteHomepage, isLoading: isLoadingHomepage } = useDoc<{ selectedExperiments?: string[] }>(homepageDocRef);
+  const { data: remoteHomepage, isLoading: isLoadingHomepage } = useDoc<{ enabled?: boolean; selectedExperiments?: string[] }>(homepageDocRef);
   const { data: remoteGeneral, isLoading: isLoadingGeneral } = useDoc<{ bypassPurchaseValidation?: boolean }>(generalDocRef);
 
   const [allExperiments, setAllExperiments] = useState<any[]>([]);
@@ -85,6 +85,7 @@ const SettingsPage = () => {
   
   const [settings, setSettings] = useState<AnnouncementBarSettings>(DEFAULT_SETTINGS);
   const [selectedExps, setSelectedExps] = useState<string[]>([]);
+  const [homepageEnabled, setHomepageEnabled] = useState<boolean>(true);
   const [bypassPurchaseValidation, setBypassPurchaseValidation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -103,6 +104,7 @@ const SettingsPage = () => {
 
   useEffect(() => {
     if (remoteHomepage) {
+      setHomepageEnabled(remoteHomepage.enabled !== false);
       setSelectedExps(remoteHomepage.selectedExperiments || []);
     }
   }, [remoteHomepage]);
@@ -166,7 +168,10 @@ const SettingsPage = () => {
     setIsSaving(true);
     try {
       await setDoc(doc(firestore, 'settings', 'announcementBar'), settings);
-      await setDoc(doc(firestore, 'settings', 'homepage'), { selectedExperiments: selectedExps });
+      await setDoc(doc(firestore, 'settings', 'homepage'), { 
+        enabled: homepageEnabled,
+        selectedExperiments: selectedExps 
+      });
       await setDoc(doc(firestore, 'settings', 'general'), { bypassPurchaseValidation });
       toast({
         title: 'Settings Saved',
@@ -528,70 +533,90 @@ const SettingsPage = () => {
         <TabsContent value="homepage" className="space-y-6 animate-in fade-in duration-200">
           <Card className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
             <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/30 border-b border-zinc-100 dark:border-zinc-800 py-5">
-              <div className="flex justify-between items-center flex-wrap gap-2">
+              <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
                     <FlaskConical className="h-5 w-5 text-primary" />
-                    <span>Select Homepage Experiments</span>
+                    <span>Homepage Experiments Section</span>
                   </CardTitle>
-                  <CardDescription>Choose which projects to display in the learning carousel/grid on the homepage.</CardDescription>
+                  <CardDescription>Toggle visibility and select which projects to display on the homepage.</CardDescription>
                 </div>
-                <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-black">
-                  {selectedExps.length} selected
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="homepage-enabled-switch" className="text-xs font-bold text-muted-foreground cursor-pointer">
+                      {homepageEnabled ? 'Section Enabled' : 'Section Disabled'}
+                    </Label>
+                    <Switch
+                      id="homepage-enabled-switch"
+                      checked={homepageEnabled}
+                      onCheckedChange={setHomepageEnabled}
+                    />
+                  </div>
+                  {homepageEnabled && (
+                    <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-black">
+                      {selectedExps.length} selected
+                    </div>
+                  )}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {allExperiments.map((proj) => {
-                  const isSelected = selectedExps.includes(proj.id);
-                  return (
-                    <div
-                      key={proj.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedExps(selectedExps.filter(id => id !== proj.id));
-                        } else {
-                          setSelectedExps([...selectedExps, proj.id]);
-                        }
-                      }}
-                      className={cn(
-                        "group cursor-pointer p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-4 hover:shadow-md",
-                        isSelected
-                          ? "bg-primary/5 border-primary shadow-sm"
-                          : "bg-background border-border/80 hover:border-zinc-400"
-                      )}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-start gap-2">
-                          <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {proj.duration || '5 mins'}
-                          </span>
-                          <Switch
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedExps([...selectedExps, proj.id]);
-                              } else {
-                                setSelectedExps(selectedExps.filter(id => id !== proj.id));
-                              }
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
+            {homepageEnabled ? (
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {allExperiments.map((proj) => {
+                    const isSelected = selectedExps.includes(proj.id);
+                    return (
+                      <div
+                        key={proj.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedExps(selectedExps.filter(id => id !== proj.id));
+                          } else {
+                            setSelectedExps([...selectedExps, proj.id]);
+                          }
+                        }}
+                        className={cn(
+                          "group cursor-pointer p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-4 hover:shadow-md",
+                          isSelected
+                            ? "bg-primary/5 border-primary shadow-sm"
+                            : "bg-background border-border/80 hover:border-zinc-400"
+                        )}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3.5 w-3.5" />
+                              {proj.duration || '5 mins'}
+                            </span>
+                            <Switch
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedExps([...selectedExps, proj.id]);
+                                } else {
+                                  setSelectedExps(selectedExps.filter(id => id !== proj.id));
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">
+                            {proj.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {proj.description}
+                          </p>
                         </div>
-                        <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">
-                          {proj.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {proj.description}
-                        </p>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            ) : (
+              <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                The Homepage Experiments section is currently disabled. Toggle the switch above to enable it and select experiments.
+              </CardContent>
+            )}
           </Card>
         </TabsContent>
 

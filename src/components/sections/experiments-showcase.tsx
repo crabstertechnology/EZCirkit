@@ -11,14 +11,19 @@ export default function ExperimentsShowcase() {
   const firestore = useFirestore();
   const [allExperiments, setAllExperiments] = useState<any[]>([]);
   const [isLoadingExps, setIsLoadingExps] = useState(true);
+  const [cachedSettings, setCachedSettings] = useState<{ enabled?: boolean; selectedExperiments?: string[] } | null>(null);
 
-  // Load from localStorage cache immediately on client-side mount to make loading instant
+  // Load from localStorage cache immediately on client-side mount
   useEffect(() => {
     try {
       const cached = localStorage.getItem('ez_experiments_cache');
       if (cached) {
         setAllExperiments(JSON.parse(cached));
         setIsLoadingExps(false);
+      }
+      const cachedSt = localStorage.getItem('ez_homepage_experiments_settings');
+      if (cachedSt) {
+        setCachedSettings(JSON.parse(cachedSt));
       }
     } catch (e) {
       console.error("Error loading experiments cache:", e);
@@ -30,8 +35,20 @@ export default function ExperimentsShowcase() {
     [firestore]
   );
 
-  const { data: homepageSettings } = useDoc<{ selectedExperiments?: string[] }>(settingsDocRef);
-  const selectedIds = homepageSettings?.selectedExperiments || [];
+  const { data: remoteSettings, isLoading: isLoadingSettings } = useDoc<{ enabled?: boolean; selectedExperiments?: string[] }>(settingsDocRef);
+
+  // Sync settings to localStorage cache
+  useEffect(() => {
+    if (remoteSettings) {
+      try {
+        localStorage.setItem('ez_homepage_experiments_settings', JSON.stringify(remoteSettings));
+      } catch (e) {
+        console.error("Error saving homepage settings cache:", e);
+      }
+    }
+  }, [remoteSettings]);
+
+  const activeSettings = remoteSettings !== undefined ? remoteSettings : cachedSettings;
 
   // Load experiments from Firestore
   useEffect(() => {
@@ -91,52 +108,27 @@ export default function ExperimentsShowcase() {
     return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '/logo.png';
   };
 
-  // Filter projects based on settings or default to the first 3
+  // If settings explicitly disable the section, or if 0 experiments are selected, do not show
+  const isExplicitlyDisabled = activeSettings?.enabled === false || (activeSettings?.selectedExperiments && activeSettings.selectedExperiments.length === 0);
+
+  // Filter projects based on settings
   const projectsToShow = React.useMemo(() => {
-    if (selectedIds.length > 0) {
-      return allExperiments.filter(p => selectedIds.includes(p.id))
+    if (!activeSettings || isExplicitlyDisabled) {
+      return [];
+    }
+
+    const selectedIds = activeSettings.selectedExperiments;
+    if (selectedIds && selectedIds.length > 0) {
+      return allExperiments
+        .filter(p => selectedIds.includes(p.id))
         .sort((a, b) => selectedIds.indexOf(a.id) - selectedIds.indexOf(b.id));
     }
-    return allExperiments.slice(0, 3);
-  }, [selectedIds, allExperiments]);
 
-  if (isLoadingExps) {
-    return (
-      <section className="bg-zinc-50/50 dark:bg-zinc-950 py-16 md:py-24 border-t border-border/60">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          {/* Header Skeleton */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
-            <div className="space-y-3 w-full md:max-w-2xl">
-              <div className="h-6 w-32 bg-primary/10 rounded-full animate-pulse" />
-              <div className="h-10 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
-              <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-            </div>
-            <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse shrink-0" />
-          </div>
+    return [];
+  }, [activeSettings, isExplicitlyDisabled, allExperiments]);
 
-          {/* Grid Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="flex flex-col rounded-2xl overflow-hidden border border-border/60 bg-white dark:bg-zinc-900 space-y-5 p-5"
-              >
-                <div className="aspect-[16/10] w-full bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
-                <div className="space-y-2">
-                  <div className="h-5 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                  <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                  <div className="h-4 w-5/6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                </div>
-                <div className="h-10 w-full bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (projectsToShow.length === 0) {
+  // If disabled or no projects to show, render nothing (no flash)
+  if (isExplicitlyDisabled || projectsToShow.length === 0) {
     return null;
   }
 
@@ -151,7 +143,7 @@ export default function ExperimentsShowcase() {
               <FlaskConical className="h-3.5 w-3.5" /> Hands-on STEM Learning
             </div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">
-              Electronics Projects & <span className="text-primary">Step-by-Step Tutorials</span>
+              Electronics Projects & <span className="text-primary">Coding Experiments</span>
             </h2>
             <p className="text-muted-foreground text-sm md:text-base max-w-2xl leading-relaxed">
               Explore practical Arduino circuits, wiring layouts, and interactive coding experiments with video-assisted lessons.
