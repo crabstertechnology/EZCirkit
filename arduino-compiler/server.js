@@ -25,6 +25,15 @@ async function init() {
 }
 init();
 
+// Health check endpoints for monitoring and Render live check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'arduino-compiler', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'arduino-compiler', timestamp: new Date().toISOString() });
+});
+
 // Route to compile Arduino code
 app.post('/api/compile', async (req, res) => {
   const { code } = req.body;
@@ -191,6 +200,14 @@ function autoInjectHeaders(code) {
     {
       keywords: ['Stepper'],
       headers: ['<Stepper.h>']
+    },
+    {
+      keywords: ['TM1637Display', 'showNumberDec', 'TM1637'],
+      headers: ['<TM1637Display.h>']
+    },
+    {
+      keywords: ['LiquidCrystal '],
+      headers: ['<LiquidCrystal.h>']
     }
   ];
 

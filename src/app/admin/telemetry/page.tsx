@@ -207,9 +207,9 @@ export default function AdminTelemetryPage() {
     const start = performance.now();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-      const res = await fetch(`${RENDER_SERVER_URL}/`, {
+      const res = await fetch(`${RENDER_SERVER_URL}/health`, {
         method: 'GET',
         signal: controller.signal,
         cache: 'no-store',

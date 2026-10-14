@@ -353,7 +353,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, getDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       projectId: "studio-2519724075-3b571",
@@ -367,6 +367,29 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    // Global Telemetry Logging Helper
+    window.logTelemetryEvent = async (collectionName, data) => {
+      const user = auth.currentUser;
+      try {
+        await addDoc(collection(db, collectionName), {
+          ...data,
+          userId: user ? user.uid : null,
+          userName: user ? user.displayName : null,
+          userEmail: user ? user.email : null,
+          timestamp: serverTimestamp(),
+          userAgent: navigator.userAgent
+        });
+      } catch (err) {
+        console.error("Telemetry event failed to log:", err);
+      }
+    };
+
+    // Log page view event
+    window.logTelemetryEvent('telemetry_interactions', {
+      type: 'page_view',
+      path: window.location.pathname + window.location.search
+    });
 
     // DOM Elements
     const userProfileDropdown = document.getElementById('userProfileDropdown');

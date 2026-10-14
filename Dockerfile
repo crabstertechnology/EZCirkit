@@ -28,6 +28,7 @@ RUN arduino-cli lib install \
     "DHT sensor library" \
     "Adafruit Unified Sensor" \
     "LiquidCrystal I2C" \
+    "LiquidCrystal" \
     "U8g2" \
     "NewPing" \
     "IRremote" \
@@ -35,7 +36,12 @@ RUN arduino-cli lib install \
     "Keypad" \
     "ArduinoJson" \
     "FastLED" \
-    "Adafruit NeoPixel"
+    "Adafruit NeoPixel" \
+    "Servo" \
+    "OneWire" \
+    "DallasTemperature" \
+    "Stepper" \
+    "TM1637"
 
 # Set working directory
 WORKDIR /app

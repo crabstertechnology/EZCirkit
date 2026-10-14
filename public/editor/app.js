@@ -761,6 +761,10 @@ async function handleCompile() {
       editorStatus.textContent = 'Error';
       editorStatus.className = 'status-indicator error';
       endProgress(false);
+
+      // Automatically switch to Compiler Output tab so user immediately sees error
+      const consoleTabBtn = document.querySelector('.tab-btn[data-tab="console"]');
+      if (consoleTabBtn) consoleTabBtn.click();
     }
   } catch (err) {
     compiledHex = null;
@@ -769,6 +773,10 @@ async function handleCompile() {
     editorStatus.textContent = 'Failed';
     editorStatus.className = 'status-indicator error';
     endProgress(false);
+
+    // Automatically switch to Compiler Output tab so user immediately sees error
+    const consoleTabBtn = document.querySelector('.tab-btn[data-tab="console"]');
+    if (consoleTabBtn) consoleTabBtn.click();
   } finally {
     verifyBtn.disabled = false;
   }
