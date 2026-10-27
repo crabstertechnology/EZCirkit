@@ -141,6 +141,7 @@ export default function AdminBillingPage() {
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
+  const [mobilePanel, setMobilePanel] = useState<'catalog' | 'cart'>('catalog');
 
   // Modals state
   const [editingCartItem, setEditingCartItem] = useState<BillingCartItem | null>(null);
@@ -211,10 +212,6 @@ export default function AdminBillingPage() {
         isReturn: false,
       };
       setCart((prev) => [newItem, ...prev]);
-      toast({
-        title: 'Item Added',
-        description: `${product.name} (1 ${product.unit || 'Piece'}) added to cart.`,
-      });
     }
   };
 
@@ -405,9 +402,38 @@ export default function AdminBillingPage() {
       {/* TAB 1: ACTIVE POS BILLING SCREEN */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'pos' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 lg:min-h-0 lg:overflow-hidden">
-          {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (5 cols on lg) */}
-          <div className="lg:col-span-5 flex flex-col h-[420px] sm:h-[460px] lg:h-full space-y-2 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Mobile Switcher Tab (< lg) */}
+          <div className="lg:hidden grid grid-cols-2 p-1 bg-zinc-200/80 dark:bg-zinc-800 rounded-xl gap-1 shrink-0 mb-1">
+            <button
+              type="button"
+              onClick={() => setMobilePanel('catalog')}
+              className={`h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                mobilePanel === 'catalog'
+                  ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Search className="h-3.5 w-3.5" />
+              Catalog ({filteredProducts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobilePanel('cart')}
+              className={`h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                mobilePanel === 'cart'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Cart ({cart.reduce((acc, i) => acc + i.quantity, 0)}) • ₹{grandTotal.toFixed(0)}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 overflow-hidden">
+            {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID */}
+            <div className={`lg:col-span-5 flex-col h-full space-y-2 min-h-0 ${mobilePanel === 'catalog' ? 'flex flex-1' : 'hidden lg:flex'}`}>
             {/* Search and Action Bar */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl shrink-0 p-3">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -577,10 +603,37 @@ export default function AdminBillingPage() {
                 )}
               </ScrollArea>
             </Card>
+
+            {/* Sticky Mobile Cart Bar when on Catalog (< lg) */}
+            {cart.length > 0 && (
+              <div className="lg:hidden shrink-0 pt-1 pb-0.5 z-30">
+                <div className="p-2 bg-white dark:bg-zinc-900 border border-primary/40 rounded-xl shadow-lg flex items-center justify-between gap-2">
+                  <div
+                    onClick={() => setMobilePanel('cart')}
+                    className="flex flex-col cursor-pointer pl-1"
+                  >
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <ShoppingCart className="h-3 w-3 text-primary" />
+                      {cart.reduce((acc, i) => acc + i.quantity, 0)} Items
+                    </span>
+                    <span className="text-sm font-black text-foreground">
+                      ₹{grandTotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setMobilePanel('cart')}
+                    className="h-8 px-3 text-xs font-black rounded-lg bg-primary hover:bg-primary/95 text-white shadow-sm gap-1"
+                  >
+                    Collect Payment →
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
+          {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE */}
+          <div className={`lg:col-span-7 flex-col h-full space-y-2 min-h-0 ${mobilePanel === 'cart' ? 'flex flex-1' : 'hidden lg:flex'}`}>
             {/* Customer Association Header */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl shrink-0 p-2.5 relative">
               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
@@ -607,7 +660,7 @@ export default function AdminBillingPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 <div className="relative">
                   <Input
                     placeholder="Customer Name (Optional)"
@@ -701,9 +754,9 @@ export default function AdminBillingPage() {
                 )}
               </div>
 
-              {/* Header row for cart columns */}
+              {/* Header row for cart columns (desktop only, hidden on mobile to prevent overflow) */}
               {cart.length > 0 && (
-                <div className="px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
+                <div className="hidden sm:flex px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-muted-foreground uppercase items-center justify-between gap-1.5 sm:gap-2 shrink-0">
                   <span className="flex-1">Item Details</span>
                   <span className="w-20 sm:w-24 text-center">Qty</span>
                   <span className="w-14 sm:w-16 text-right">Price</span>
@@ -730,122 +783,247 @@ export default function AdminBillingPage() {
                       const isRet = item.isReturn;
 
                       return (
-                        <div
-                          key={item.id}
-                          className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center justify-between gap-2 transition-all ${
-                            isRet
-                              ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
-                              : 'bg-zinc-50/40 dark:bg-zinc-800/20 border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50'
-                          }`}
-                        >
-                          {/* Item Details */}
-                          <div className="flex-1 min-w-0 pr-2">
-                            <div className="flex items-center gap-1.5">
-                              {isRet && (
-                                <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0">
-                                  RETURN
-                                </Badge>
-                              )}
-                              <span className="font-bold text-foreground text-xs truncate block" title={item.product.name}>
-                                {item.product.name}
-                              </span>
+                        <React.Fragment key={item.id}>
+                          {/* Mobile View (< sm): Fully responsive card with ZERO horizontal scrolling */}
+                          <div
+                            className={`sm:hidden p-2 rounded-lg border text-xs space-y-1.5 transition-all ${
+                              isRet
+                                ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
+                                : 'bg-zinc-50/60 dark:bg-zinc-800/30 border-zinc-200/80 dark:border-zinc-800'
+                            }`}
+                          >
+                            {/* Row 1: Item Details + Line Total + Remove */}
+                            <div className="flex items-start justify-between gap-1.5">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  {isRet && (
+                                    <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0">
+                                      RETURN
+                                    </Badge>
+                                  )}
+                                  <span
+                                    className="font-bold text-foreground text-xs truncate block cursor-pointer hover:text-primary"
+                                    title={item.product.name}
+                                    onClick={() => {
+                                      setEditingCartItem(item);
+                                      setIsQuantityModalOpen(true);
+                                    }}
+                                  >
+                                    {item.product.name}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5">
+                                  <span>{item.product.sku || 'N/A'}</span>
+                                  {!isRet && (
+                                    <>
+                                      <span>•</span>
+                                      <span>Stk: {item.product.stock}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`font-black text-xs ${lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}`}>
+                                  {lineTotal < 0 ? `-₹${Math.abs(lineTotal).toFixed(2)}` : `₹${lineTotal.toFixed(2)}`}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCartItem(item.id)}
+                                  className="text-zinc-400 hover:text-rose-500 p-0.5"
+                                  title="Remove item"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
-                              <span>{item.product.sku || 'N/A'}</span>
-                              {!isRet && (
-                                <>
-                                  <span>•</span>
-                                  <span>Stock: {item.product.stock}</span>
-                                </>
-                              )}
-                              {isRet && item.returnReason && (
-                                <span className="text-rose-600 font-semibold">• {item.returnReason}</span>
+
+                            {/* Row 2: QTY, PRICE, and DISC Controls (fits 100% on phone screens) */}
+                            <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800/60 gap-1 flex-wrap">
+                              {/* Quantity Stepper */}
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground font-semibold">Qty</span>
+                                <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 h-6">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
+                                    className="px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full font-bold text-xs"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min="0.01"
+                                    value={item.quantity}
+                                    onChange={(e) =>
+                                      handleUpdateItemQuantity(item.id, parseFloat(e.target.value) || 0)
+                                    }
+                                    className="w-7 text-center text-xs font-bold bg-transparent outline-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
+                                    className="px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full font-bold text-xs"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Price / Rate Input */}
+                              <div className="flex items-center gap-0.5">
+                                <span className="text-[10px] text-muted-foreground font-semibold">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.customUnitPrice}
+                                  onChange={(e) =>
+                                    handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
+                                  }
+                                  className="w-14 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                  title="Unit Price"
+                                />
+                              </div>
+
+                              {/* Disc Input */}
+                              {!isRet ? (
+                                <div className="flex items-center gap-0.5">
+                                  <span className="text-[10px] text-emerald-600 font-semibold">Disc</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={item.discountAmount || ''}
+                                    onChange={(e) =>
+                                      handleUpdateDiscount(item.id, parseFloat(e.target.value) || 0)
+                                    }
+                                    className="w-12 h-6 px-1 text-xs text-right text-emerald-600 font-bold rounded border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
+                                    title="Discount"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-[9px] text-rose-600 font-semibold">Return</span>
                               )}
                             </div>
                           </div>
 
-                          {/* Quantity Editor Stepper */}
-                          <div className="w-20 sm:w-24 flex items-center justify-center shrink-0">
-                            <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 overflow-hidden h-6">
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
-                                className="px-1 sm:px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min="0.01"
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  handleUpdateItemQuantity(item.id, parseFloat(e.target.value) || 0)
-                                }
-                                className="w-7 sm:w-8 text-center text-xs font-bold bg-transparent outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
-                                className="px-1 sm:px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
-                              >
-                                +
-                              </button>
+                          {/* Desktop View (>= sm): Full horizontal table row */}
+                          <div
+                            className={`hidden sm:flex px-2.5 py-1.5 rounded-lg border text-xs items-center justify-between gap-2 transition-all ${
+                              isRet
+                                ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
+                                : 'bg-zinc-50/40 dark:bg-zinc-800/20 border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50'
+                            }`}
+                          >
+                            {/* Item Details */}
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5">
+                                {isRet && (
+                                  <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0">
+                                    RETURN
+                                  </Badge>
+                                )}
+                                <span className="font-bold text-foreground text-xs truncate block" title={item.product.name}>
+                                  {item.product.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+                                <span>{item.product.sku || 'N/A'}</span>
+                                {!isRet && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Stock: {item.product.stock}</span>
+                                  </>
+                                )}
+                                {isRet && item.returnReason && (
+                                  <span className="text-rose-600 font-semibold">• {item.returnReason}</span>
+                                )}
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Unit Price */}
-                          <div className="w-14 sm:w-16 text-right shrink-0">
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.customUnitPrice}
-                              onChange={(e) =>
-                                handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
-                              }
-                              className="w-14 sm:w-16 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-                            />
-                          </div>
+                            {/* Quantity Editor Stepper */}
+                            <div className="w-20 sm:w-24 flex items-center justify-center shrink-0">
+                              <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 overflow-hidden h-6">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
+                                  className="px-1 sm:px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0.01"
+                                  value={item.quantity}
+                                  onChange={(e) =>
+                                    handleUpdateItemQuantity(item.id, parseFloat(e.target.value) || 0)
+                                  }
+                                  className="w-7 sm:w-8 text-center text-xs font-bold bg-transparent outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
+                                  className="px-1 sm:px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
 
-                          {/* Line Discount */}
-                          <div className="hidden sm:block w-14 text-right shrink-0">
-                            {!isRet ? (
+                            {/* Unit Price */}
+                            <div className="w-14 sm:w-16 text-right shrink-0">
                               <input
                                 type="number"
                                 min="0"
-                                placeholder="0"
-                                value={item.discountAmount || ''}
+                                value={item.customUnitPrice}
                                 onChange={(e) =>
-                                  handleUpdateDiscount(item.id, parseFloat(e.target.value) || 0)
+                                  handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
                                 }
-                                className="w-14 h-6 px-1 text-xs text-right text-emerald-600 font-bold rounded border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
+                                className="w-14 sm:w-16 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
                               />
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground">-</span>
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Line Total */}
-                          <div className="w-16 sm:w-20 text-right shrink-0 font-black text-xs">
-                            <span
-                              className={lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}
-                            >
-                              {lineTotal < 0
-                                ? `-₹${Math.abs(lineTotal).toFixed(2)}`
-                                : `₹${lineTotal.toFixed(2)}`}
-                            </span>
-                          </div>
+                            {/* Line Discount */}
+                            <div className="hidden sm:block w-14 text-right shrink-0">
+                              {!isRet ? (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={item.discountAmount || ''}
+                                  onChange={(e) =>
+                                    handleUpdateDiscount(item.id, parseFloat(e.target.value) || 0)
+                                  }
+                                  className="w-14 h-6 px-1 text-xs text-right text-emerald-600 font-bold rounded border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
+                                />
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground">-</span>
+                              )}
+                            </div>
 
-                          {/* Remove item button */}
-                          <div className="w-6 text-right shrink-0">
-                            <button
-                              onClick={() => handleRemoveCartItem(item.id)}
-                              className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
-                              title="Remove item"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            {/* Line Total */}
+                            <div className="w-16 sm:w-20 text-right shrink-0 font-black text-xs">
+                              <span
+                                className={lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}
+                              >
+                                {lineTotal < 0
+                                  ? `-₹${Math.abs(lineTotal).toFixed(2)}`
+                                  : `₹${lineTotal.toFixed(2)}`}
+                              </span>
+                            </div>
+
+                            {/* Remove item button */}
+                            <div className="w-6 text-right shrink-0">
+                              <button
+                                onClick={() => handleRemoveCartItem(item.id)}
+                                className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
+                                title="Remove item"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
@@ -1013,7 +1191,8 @@ export default function AdminBillingPage() {
             </Card>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* ------------------------------------------------------------- */}
       {/* TAB 2: SALES INVOICES HISTORY */}
@@ -1068,7 +1247,6 @@ export default function AdminBillingPage() {
         onClose={() => setIsCustomModalOpen(false)}
         onAddCustomItem={(item) => {
           setCart((prev) => [item, ...prev]);
-          toast({ title: 'Custom Item Added', description: `${item.product.name} added to cart.` });
         }}
       />
 
@@ -1079,10 +1257,6 @@ export default function AdminBillingPage() {
         products={products}
         onAddReturnItem={(item) => {
           setCart((prev) => [item, ...prev]);
-          toast({
-            title: 'Return Line Added',
-            description: `${item.product.name} credit added. Will restock catalog inventory on checkout.`,
-          });
         }}
       />
 

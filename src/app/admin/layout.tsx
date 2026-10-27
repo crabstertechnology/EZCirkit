@@ -112,8 +112,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setIsCollapsed={setIsSidebarCollapsed}
       />
       
-      <div className={cn("flex-1", pathname === '/admin/billing' ? "lg:h-screen lg:overflow-hidden min-h-screen overflow-y-auto" : "overflow-y-auto")}>
-        <main className={cn(pathname === '/admin/billing' ? "p-2 sm:p-3 lg:h-full flex flex-col" : "p-4 sm:p-6 lg:p-8")}>
+      <div className={cn("flex-1", pathname === '/admin/billing' ? "h-[calc(100vh-56px)] lg:h-screen overflow-hidden flex flex-col" : "overflow-y-auto")}>
+        <main className={cn(pathname === '/admin/billing' ? "p-1.5 sm:p-2 lg:p-3 h-full flex flex-col overflow-hidden" : "p-4 sm:p-6 lg:p-8")}>
           {children}
         </main>
       </div>
