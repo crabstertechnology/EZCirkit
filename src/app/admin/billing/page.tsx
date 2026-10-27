@@ -957,6 +957,9 @@ export default function AdminBillingPage() {
               setCompletedSale(sale);
               setIsReceiptModalOpen(true);
             }}
+            onSaleDeleted={() => {
+              refreshCustomersAndSales();
+            }}
           />
         </div>
       )}
@@ -1020,6 +1023,10 @@ export default function AdminBillingPage() {
         onClose={() => setIsReceiptModalOpen(false)}
         sale={completedSale}
         onNewBill={handleClearCart}
+        onSaleDeleted={() => {
+          refreshCustomersAndSales();
+          setCompletedSale(null);
+        }}
         storeName="Crabster Technology / EZCirkit"
       />
     </div>

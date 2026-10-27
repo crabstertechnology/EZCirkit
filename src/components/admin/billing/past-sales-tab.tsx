@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Printer, MessageSquare, Ban, Eye, FileText, RefreshCw } from 'lucide-react';
+import { Search, Printer, MessageSquare, Ban, Trash2, FileText, RefreshCw } from 'lucide-react';
 import { formatWhatsAppInvoice, generateWhatsAppLink } from '@/lib/billing-engine';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -24,18 +24,27 @@ import {
 interface PastSalesTabProps {
   onSelectSaleForReceipt: (sale: BillingSale) => void;
   adminUserName: string;
+  onSaleDeleted?: (saleId: string) => void;
 }
 
 export const PastSalesTab: React.FC<PastSalesTabProps> = ({
   onSelectSaleForReceipt,
   adminUserName,
+  onSaleDeleted,
 }) => {
   const { toast } = useToast();
   const [sales, setSales] = useState<BillingSale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  // Void state
   const [saleToVoid, setSaleToVoid] = useState<BillingSale | null>(null);
   const [isVoiding, setIsVoiding] = useState(false);
+
+  // Permanent Delete state
+  const [saleToDelete, setSaleToDelete] = useState<BillingSale | null>(null);
+  const [rollbackStockOnDelete, setRollbackStockOnDelete] = useState<boolean>(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchSales = async () => {
     setIsLoading(true);
@@ -94,7 +103,7 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
         description: `Order ${saleToVoid.billNumber} was successfully cancelled and catalog inventory restored.`,
       });
       setSaleToVoid(null);
-      fetchSales(); // Refresh list
+      fetchSales();
     } catch (err: any) {
       console.error(err);
       toast({
@@ -104,6 +113,48 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
       });
     } finally {
       setIsVoiding(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!saleToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/billing/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          saleId: saleToDelete.id,
+          rollbackStock: rollbackStockOnDelete,
+          adminUser: adminUserName,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete invoice');
+      }
+
+      toast({
+        title: 'Bill Deleted Permanently',
+        description: `Invoice ${saleToDelete.billNumber} was permanently deleted${
+          rollbackStockOnDelete && saleToDelete.status !== 'cancelled' ? ' and stock was restored' : ''
+        }.`,
+      });
+      setSaleToDelete(null);
+      fetchSales();
+      if (onSaleDeleted) {
+        onSaleDeleted(saleToDelete.id);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to delete bill',
+        description: err.message || 'Error deleting invoice.',
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -126,7 +177,7 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
                 </CardTitle>
               </div>
               <CardDescription className="text-xs">
-                Review completed POS orders, re-print thermal receipts, re-dispatch WhatsApp bills, or void sales.
+                Review completed POS orders, re-print thermal receipts, dispatch WhatsApp bills, void or delete records.
               </CardDescription>
             </div>
 
@@ -232,7 +283,7 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-lg"
-                              title="View & Print Receipt"
+                              title="View & Print Thermal Receipt"
                               onClick={() => onSelectSaleForReceipt(sale)}
                             >
                               <Printer className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
@@ -254,13 +305,26 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600"
-                                title="Void Order & Rollback Stock"
+                                className="h-8 w-8 rounded-lg text-amber-500 hover:text-amber-600"
+                                title="Void Order & Restock Inventory"
                                 onClick={() => setSaleToVoid(sale)}
                               >
                                 <Ban className="h-4 w-4" />
                               </Button>
                             )}
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              title="Delete Bill Permanently"
+                              onClick={() => {
+                                setSaleToDelete(sale);
+                                setRollbackStockOnDelete(sale.status !== 'cancelled');
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -277,15 +341,16 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
       <AlertDialog open={!!saleToVoid} onOpenChange={() => setSaleToVoid(null)}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-bold text-rose-600">
+            <AlertDialogTitle className="text-base font-bold text-amber-600 flex items-center gap-2">
+              <Ban className="h-5 w-5" />
               Void Invoice #{saleToVoid?.billNumber}?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs space-y-2">
+            <AlertDialogDescription className="text-xs space-y-2 pt-2 text-muted-foreground">
               <p>
                 Are you sure you want to void this bill?
               </p>
               <p className="font-semibold text-foreground">
-                This action will mark the bill as cancelled, immediately roll back all inventory changes to live stocks, and write a signed correction audit ledger entry.
+                This will mark the bill as cancelled, immediately roll back all inventory changes to live stocks, and write a signed correction audit ledger entry.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -296,9 +361,58 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
             <AlertDialogAction
               onClick={handleConfirmVoid}
               disabled={isVoiding}
-              className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold"
+              className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold"
             >
               {isVoiding ? 'Restocking...' : 'Yes, Void & Restock'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Permanent Delete Confirmation Alert Dialog */}
+      <AlertDialog open={!!saleToDelete} onOpenChange={() => setSaleToDelete(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold text-rose-600 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Permanently Delete Invoice #{saleToDelete?.billNumber}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs space-y-3 pt-2 text-muted-foreground">
+              <p>
+                Are you sure you want to permanently delete this bill? This cannot be undone.
+              </p>
+              {saleToDelete?.status !== 'cancelled' ? (
+                <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-1.5 text-left">
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={rollbackStockOnDelete}
+                      onChange={(e) => setRollbackStockOnDelete(e.target.checked)}
+                      className="rounded border-zinc-400 text-rose-600 focus:ring-rose-500 h-4 w-4"
+                    />
+                    <span>Restore inventory stock for sold items ({saleToDelete?.items?.length || 0} items)</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground pl-6">
+                    When checked, the quantity of products sold in this bill will be returned to your live catalog stocks.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-amber-600 font-medium">
+                  Note: This invoice was already cancelled, so its stocks were already restored.
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl text-xs" disabled={isDeleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Permanently'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

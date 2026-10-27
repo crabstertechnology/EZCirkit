@@ -213,7 +213,7 @@ export async function voidBillingSale(
       
       // If original item was sold (signed quantity was > 0), restore stock by (+quantity)
       // If original item was returned (signed quantity was < 0), deduct back (-abs(quantity))
-      const rollbackDelta = -item.quantity;
+      const rollbackDelta = item.quantity;
 
       batch.update(productRef, {
         stock: increment(rollbackDelta),

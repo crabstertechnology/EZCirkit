@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
       const isCustom = item.productId.startsWith('custom-');
       if (!isCustom) {
         const productRef = db.collection('products').doc(item.productId);
-        const rollbackDelta = -item.quantity;
+        // For sales, item.quantity > 0, so adding +quantity restores the sold units to stock
+        // For returns, item.quantity < 0, so adding -quantity removes the returned units from stock
+        const rollbackDelta = item.quantity;
 
         batch.update(productRef, {
           stock: FieldValue.increment(rollbackDelta),
