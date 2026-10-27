@@ -127,7 +127,7 @@ export default function AdminBillingPage() {
   const [stockFilter, setStockFilter] = useState<StockFilterType>('All');
 
   // Customer state
-  const [customerName, setCustomerName] = useState('Walk-in Customer');
+  const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -135,7 +135,7 @@ export default function AdminBillingPage() {
 
   // Financial & Payment state
   const [orderDiscount, setOrderDiscount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'online' | 'split'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card'>('cash');
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -249,7 +249,7 @@ export default function AdminBillingPage() {
     setCart([]);
     setOrderDiscount(0);
     setCashReceived(0);
-    setCustomerName('Walk-in Customer');
+    setCustomerName('');
     setCustomerPhone('');
     setCustomerAddress('');
     setCustomerId(null);
@@ -306,7 +306,7 @@ export default function AdminBillingPage() {
           items: cart,
           customer: {
             id: customerId,
-            name: customerName,
+            name: customerName.trim() || 'Walk-in Customer',
             phone: customerPhone,
             address: customerAddress,
           },
@@ -348,34 +348,34 @@ export default function AdminBillingPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-3 md:p-6 space-y-3 bg-zinc-50/50 dark:bg-zinc-950/50 overflow-hidden font-sans">
+    <div className="flex flex-col h-full space-y-2 bg-zinc-50/50 dark:bg-zinc-950/50 overflow-hidden font-sans">
       {/* Top Header / Mode Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black">
-            <Receipt className="h-5 w-5" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black shrink-0">
+            <Receipt className="h-4 w-4" />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-foreground">
-              Billing Engine & POS
+            <h1 className="text-base font-black tracking-tight text-foreground leading-none">
+              Billing Engine &amp; POS
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Live e-commerce stock sync, returns, exchanges, inventory audit ledger & thermal invoicing.
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Live e-commerce stock sync, returns, exchanges, inventory audit ledger &amp; thermal invoicing.
             </p>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} className="w-auto">
-          <TabsList className="bg-zinc-200/60 dark:bg-zinc-900 rounded-xl h-10 p-1">
-            <TabsTrigger value="pos" className="text-xs font-bold rounded-lg gap-1.5 px-3">
+          <TabsList className="bg-zinc-200/60 dark:bg-zinc-900 rounded-xl h-8 p-0.5">
+            <TabsTrigger value="pos" className="text-xs font-bold rounded-lg gap-1.5 px-3 h-7">
               <ShoppingCart className="h-3.5 w-3.5" />
               Active Billing
             </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs font-bold rounded-lg gap-1.5 px-3">
+            <TabsTrigger value="history" className="text-xs font-bold rounded-lg gap-1.5 px-3 h-7">
               <History className="h-3.5 w-3.5" />
               Sales History
             </TabsTrigger>
-            <TabsTrigger value="ledger" className="text-xs font-bold rounded-lg gap-1.5 px-3">
+            <TabsTrigger value="ledger" className="text-xs font-bold rounded-lg gap-1.5 px-3 h-7">
               <Layers className="h-3.5 w-3.5" />
               Audit Ledger
             </TabsTrigger>
@@ -387,9 +387,9 @@ export default function AdminBillingPage() {
       {/* TAB 1: ACTIVE POS BILLING SCREEN */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'pos' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
-          {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col h-full space-y-3 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-hidden">
+          {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col h-full space-y-2 min-h-0">
             {/* Search and Action Bar */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl shrink-0 p-3">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -483,7 +483,7 @@ export default function AdminBillingPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                     {filteredProducts.map((p) => {
                       const isOutOfStock = p.stock <= 0;
                       const isLowStock = p.stock > 0 && p.stock <= (p.minStockLevel || 5);
@@ -561,60 +561,83 @@ export default function AdminBillingPage() {
             </Card>
           </div>
 
-          {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col h-full space-y-3 min-h-0">
+          {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE (7 cols) */}
+          <div className="lg:col-span-7 flex flex-col h-full space-y-2 min-h-0">
             {/* Customer Association Header */}
-            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl shrink-0 p-3 relative">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl shrink-0 p-2.5 relative">
+              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                   <User className="h-3.5 w-3.5 text-primary" />
-                  Customer Information
+                  <span>Customer Information</span>
+                  <span className="text-[10px] text-muted-foreground font-normal italic">
+                    (Optional - defaults to Walk-in Customer)
+                  </span>
                 </div>
-                {customerName !== 'Walk-in Customer' && (
+                {(customerName || customerPhone) && (
                   <button
+                    type="button"
                     onClick={() => {
-                      setCustomerName('Walk-in Customer');
+                      setCustomerName('');
                       setCustomerPhone('');
                       setCustomerId(null);
                     }}
-                    className="text-[10px] text-primary hover:underline font-semibold"
+                    className="text-[10px] text-rose-500 hover:underline font-semibold flex items-center gap-1"
                   >
-                    Reset to Walk-in
+                    <X className="h-3 w-3" />
+                    Clear
                   </button>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1 relative">
+                <div className="relative">
                   <Input
-                    placeholder="Customer Name"
+                    placeholder="Customer Name (Optional)"
                     value={customerName}
                     onFocus={() => setShowCustomerSuggestions(true)}
                     onChange={(e) => {
                       setCustomerName(e.target.value);
                       setShowCustomerSuggestions(true);
                     }}
-                    className="h-8 text-xs rounded-xl"
+                    className="h-8 text-xs rounded-lg"
                   />
+                  {customerName && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomerName('')}
+                      className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
 
-                <div className="space-y-1 relative">
+                <div className="relative">
                   <Input
-                    placeholder="Phone (10 digits)"
+                    placeholder="Phone (10 digits - Optional)"
                     value={customerPhone}
                     onFocus={() => setShowCustomerSuggestions(true)}
                     onChange={(e) => {
                       setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
                       setShowCustomerSuggestions(true);
                     }}
-                    className="h-8 text-xs rounded-xl font-mono"
+                    className="h-8 text-xs rounded-lg font-mono"
                   />
+                  {customerPhone && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomerPhone('')}
+                      className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Autocomplete Dropdown */}
               {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                <div className="absolute top-full left-3 right-3 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-2 right-2 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                   <div className="p-1.5 text-[10px] font-bold text-muted-foreground uppercase bg-zinc-50 dark:bg-zinc-800/50">
                     Existing Customers
                   </div>
@@ -639,9 +662,9 @@ export default function AdminBillingPage() {
               )}
             </Card>
 
-            {/* Cart Line Items Table */}
-            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden">
-              <div className="p-3 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center shrink-0">
+            {/* Cart Line Items Table - Expanded View */}
+            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl flex-1 min-h-0 flex flex-col overflow-hidden">
+              <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-primary" />
                   <span className="text-xs font-bold text-foreground">
@@ -653,25 +676,37 @@ export default function AdminBillingPage() {
                     variant="ghost"
                     size="sm"
                     onClick={handleClearCart}
-                    className="h-7 text-[11px] text-rose-500 hover:text-rose-600 px-2 font-semibold"
+                    className="h-6 text-[11px] text-rose-500 hover:text-rose-600 px-2 font-semibold"
                   >
                     Clear Cart
                   </Button>
                 )}
               </div>
 
+              {/* Header row for cart columns */}
+              {cart.length > 0 && (
+                <div className="px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-between gap-2 shrink-0">
+                  <span className="flex-1">Item Details</span>
+                  <span className="w-24 text-center">Qty</span>
+                  <span className="w-16 text-right">Price</span>
+                  <span className="w-14 text-right">Disc</span>
+                  <span className="w-20 text-right">Total</span>
+                  <span className="w-6"></span>
+                </div>
+              )}
+
               {/* Scrollable Line Items */}
               <ScrollArea className="flex-1 p-2">
                 {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-44 text-center p-4 text-muted-foreground space-y-1">
+                  <div className="flex flex-col items-center justify-center h-full min-h-[160px] text-center p-4 text-muted-foreground space-y-1">
                     <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mb-1" />
                     <p className="text-xs font-bold">Cart is empty</p>
                     <p className="text-[11px] text-muted-foreground">
-                      Click catalog products on the left or add custom charges.
+                      Click catalog products on the left or add custom items.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {cart.map((item) => {
                       const lineTotal = calculateLineTotal(item);
                       const isRet = item.isReturn;
@@ -679,47 +714,45 @@ export default function AdminBillingPage() {
                       return (
                         <div
                           key={item.id}
-                          className={`p-2 rounded-xl border text-xs flex flex-col gap-1.5 transition-all ${
+                          className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center justify-between gap-2 transition-all ${
                             isRet
                               ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
-                              : 'bg-zinc-50/50 dark:bg-zinc-800/30 border-zinc-200/80 dark:border-zinc-800'
+                              : 'bg-zinc-50/40 dark:bg-zinc-800/20 border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50'
                           }`}
                         >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                {isRet && (
-                                  <Badge className="bg-rose-600 text-white text-[9px] px-1 py-0 h-4">
-                                    RETURN
-                                  </Badge>
-                                )}
-                                <span className="font-bold text-foreground truncate block">
-                                  {item.product.name}
-                                </span>
-                              </div>
+                          {/* Item Details */}
+                          <div className="flex-1 min-w-0 pr-2">
+                            <div className="flex items-center gap-1.5">
+                              {isRet && (
+                                <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0">
+                                  RETURN
+                                </Badge>
+                              )}
+                              <span className="font-bold text-foreground text-xs truncate block" title={item.product.name}>
+                                {item.product.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+                              <span>{item.product.sku || 'N/A'}</span>
+                              {!isRet && (
+                                <>
+                                  <span>•</span>
+                                  <span>Stock: {item.product.stock}</span>
+                                </>
+                              )}
                               {isRet && item.returnReason && (
-                                <span className="text-[10px] text-rose-600 font-semibold block">
-                                  Reason: {item.returnReason}
-                                </span>
+                                <span className="text-rose-600 font-semibold">• {item.returnReason}</span>
                               )}
                             </div>
-
-                            <button
-                              onClick={() => handleRemoveCartItem(item.id)}
-                              className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
                           </div>
 
-                          {/* Controls Row: Quantity, Unit Price, Line Discount, Line Total */}
-                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
-                            {/* Quantity Editor Buttons */}
-                            <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 overflow-hidden h-7">
+                          {/* Quantity Editor Stepper */}
+                          <div className="w-24 flex items-center justify-center shrink-0">
+                            <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 overflow-hidden h-6">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
-                                className="px-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold"
+                                className="px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
                               >
                                 -
                               </button>
@@ -730,60 +763,69 @@ export default function AdminBillingPage() {
                                 onChange={(e) =>
                                   handleUpdateItemQuantity(item.id, parseFloat(e.target.value) || 0)
                                 }
-                                className="w-10 text-center text-xs font-bold bg-transparent outline-none"
+                                className="w-8 text-center text-xs font-bold bg-transparent outline-none"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
-                                className="px-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold"
+                                className="px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
                               >
                                 +
                               </button>
                             </div>
+                          </div>
 
-                            {/* Custom Unit Price */}
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-muted-foreground">@ ₹</span>
+                          {/* Unit Price */}
+                          <div className="w-16 text-right shrink-0">
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.customUnitPrice}
+                              onChange={(e) =>
+                                handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
+                              }
+                              className="w-16 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                            />
+                          </div>
+
+                          {/* Line Discount */}
+                          <div className="w-14 text-right shrink-0">
+                            {!isRet ? (
                               <input
                                 type="number"
                                 min="0"
-                                value={item.customUnitPrice}
+                                placeholder="0"
+                                value={item.discountAmount || ''}
                                 onChange={(e) =>
-                                  handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
+                                  handleUpdateDiscount(item.id, parseFloat(e.target.value) || 0)
                                 }
-                                className="w-14 h-7 px-1.5 text-xs text-right font-bold rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                className="w-14 h-6 px-1 text-xs text-right text-emerald-600 font-bold rounded border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
                               />
-                            </div>
-
-                            {/* Item Discount (Only if sale) */}
-                            {!isRet && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] text-emerald-600">Disc:</span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  placeholder="0"
-                                  value={item.discountAmount || ''}
-                                  onChange={(e) =>
-                                    handleUpdateDiscount(item.id, parseFloat(e.target.value) || 0)
-                                  }
-                                  className="w-12 h-7 px-1 text-xs text-right text-emerald-600 font-bold rounded-lg border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
-                                />
-                              </div>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">-</span>
                             )}
+                          </div>
 
-                            {/* Line Total */}
-                            <div className="text-right min-w-[70px]">
-                              <span
-                                className={`font-black text-sm ${
-                                  lineTotal < 0 ? 'text-rose-600' : 'text-foreground'
-                                }`}
-                              >
-                                {lineTotal < 0
-                                  ? `-₹${Math.abs(lineTotal).toFixed(2)}`
-                                  : `₹${lineTotal.toFixed(2)}`}
-                              </span>
-                            </div>
+                          {/* Line Total */}
+                          <div className="w-20 text-right shrink-0 font-black text-xs">
+                            <span
+                              className={lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}
+                            >
+                              {lineTotal < 0
+                                ? `-₹${Math.abs(lineTotal).toFixed(2)}`
+                                : `₹${lineTotal.toFixed(2)}`}
+                            </span>
+                          </div>
+
+                          {/* Remove item button */}
+                          <div className="w-6 text-right shrink-0">
+                            <button
+                              onClick={() => handleRemoveCartItem(item.id)}
+                              className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
+                              title="Remove item"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
                       );
@@ -793,38 +835,30 @@ export default function AdminBillingPage() {
               </ScrollArea>
 
               {/* Financial Breakdown & Settlement Engine */}
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0 space-y-2">
+              <div className="p-2.5 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0 space-y-2">
                 {/* Summary Lines */}
                 <div className="space-y-1 text-xs">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal:</span>
-                    <span>₹{grossSubtotal.toFixed(2)}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                    <span className="flex items-center gap-1">
-                      Total Discount:
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span className="flex items-center gap-2">
+                      <span>Subtotal: ₹{grossSubtotal.toFixed(2)}</span>
+                      {totalTax > 0 && <span>• Tax (GST): ₹{totalTax.toFixed(2)}</span>}
+                    </span>
+                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span>Order Disc:</span>
                       <input
                         type="number"
                         min="0"
-                        placeholder="Order Disc"
+                        placeholder="₹0"
                         value={orderDiscount || ''}
                         onChange={(e) => setOrderDiscount(parseFloat(e.target.value) || 0)}
-                        className="w-16 h-5 px-1 text-[10px] text-right rounded border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 ml-1"
+                        className="w-14 h-5 px-1 text-[10px] text-right rounded border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 ml-0.5"
                       />
+                      <span>(-₹{totalDiscount.toFixed(2)})</span>
                     </span>
-                    <span className="font-bold">-₹{totalDiscount.toFixed(2)}</span>
                   </div>
 
-                  {totalTax > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Total Tax (GST):</span>
-                      <span>₹{totalTax.toFixed(2)}</span>
-                    </div>
-                  )}
-
                   {/* Grand Total Bar */}
-                  <div className="flex justify-between items-center pt-1.5 border-t border-zinc-200 dark:border-zinc-800">
+                  <div className="flex justify-between items-center pt-1 border-t border-zinc-200 dark:border-zinc-800">
                     <span className="text-xs font-black uppercase tracking-wider text-foreground">
                       {isRefundMode ? 'NET REFUND TO CUSTOMER' : 'GRAND TOTAL PAYABLE'}
                     </span>
@@ -838,15 +872,14 @@ export default function AdminBillingPage() {
                   </div>
                 </div>
 
-                {/* Payment Methods Bar */}
+                {/* Payment Methods Bar (Split Removed) */}
                 {!isRefundMode && (
-                  <div className="pt-2 border-t border-zinc-200/80 dark:border-zinc-800 space-y-2">
-                    <div className="grid grid-cols-4 gap-1.5">
+                  <div className="pt-1.5 border-t border-zinc-200/80 dark:border-zinc-800 space-y-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {[
                         { id: 'cash', label: 'Cash', icon: Banknote },
                         { id: 'upi', label: 'UPI / QR', icon: QrCode },
                         { id: 'card', label: 'Card', icon: CreditCard },
-                        { id: 'split', label: 'Split', icon: Layers },
                       ].map((mode) => (
                         <Button
                           key={mode.id}
@@ -854,7 +887,7 @@ export default function AdminBillingPage() {
                           variant={paymentMethod === mode.id ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => setPaymentMethod(mode.id as any)}
-                          className="h-8 text-[11px] font-bold rounded-xl gap-1"
+                          className="h-8 text-xs font-bold rounded-lg gap-1.5"
                         >
                           <mode.icon className="h-3.5 w-3.5" />
                           {mode.label}
@@ -864,48 +897,47 @@ export default function AdminBillingPage() {
 
                     {/* Cash Tender & Change Calculations */}
                     {paymentMethod === 'cash' && (
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                      <div className="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <Label className="text-xs font-bold text-foreground">
+                          <Label className="text-xs font-bold text-foreground whitespace-nowrap">
                             Cash Received (₹):
                           </Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={cashReceived || ''}
-                            onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
-                            className="h-8 w-28 text-right font-black text-sm rounded-lg"
-                          />
-                        </div>
-
-                        {/* Quick Presets */}
-                        <div className="flex gap-1.5 justify-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCashReceived(grandTotal)}
-                            className="h-6 px-2 text-[10px] font-bold rounded-md"
-                          >
-                            Exact
-                          </Button>
-                          {[100, 500, 2000].map((preset) => (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={cashReceived || ''}
+                              onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
+                              className="h-7 w-24 text-right font-black text-xs rounded-lg"
+                            />
+                            {/* Quick Presets */}
                             <Button
-                              key={preset}
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => setCashReceived(preset)}
-                              className="h-6 px-2 text-[10px] font-bold rounded-md"
+                              onClick={() => setCashReceived(grandTotal)}
+                              className="h-7 px-2 text-[10px] font-bold rounded-md"
                             >
-                              ₹{preset}
+                              Exact
                             </Button>
-                          ))}
+                            {[100, 500, 2000].map((preset) => (
+                              <Button
+                                key={preset}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCashReceived(preset)}
+                                className="h-7 px-1.5 text-[10px] font-bold rounded-md"
+                              >
+                                ₹{preset}
+                              </Button>
+                            ))}
+                          </div>
                         </div>
 
                         {/* Cash Balance Display */}
                         <div
-                          className={`text-xs font-bold flex items-center justify-between p-2 rounded-lg ${
+                          className={`text-xs font-bold flex items-center justify-between px-2.5 py-1 rounded-md ${
                             cashBalanceResult.status === 'CHANGE_TO_RETURN'
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
                               : cashBalanceResult.status === 'CUSTOMER_OWES'
@@ -913,7 +945,7 @@ export default function AdminBillingPage() {
                               : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
                           }`}
                         >
-                          <span>Status:</span>
+                          <span>Cash Status:</span>
                           <span>{cashBalanceResult.label}</span>
                         </div>
                       </div>
@@ -926,7 +958,7 @@ export default function AdminBillingPage() {
                   type="button"
                   onClick={handleCheckout}
                   disabled={isSubmitting || cart.length === 0}
-                  className={`w-full h-11 text-sm font-black rounded-xl shadow-lg transition-all ${
+                  className={`w-full h-10 text-sm font-black rounded-xl shadow-lg transition-all ${
                     isRefundMode
                       ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20'
                       : 'bg-primary hover:bg-primary/95 text-white shadow-primary/20'

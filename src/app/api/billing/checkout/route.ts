@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       id: saleId,
       billNumber,
       customerId,
-      customerName: customer?.name || 'Walk-in Customer',
+      customerName: customer?.name?.trim() || 'Walk-in Customer',
       customerPhone: cleanPhone || 'Walk-in',
       amount: Number(amount.toFixed(2)),
       discount: Number(discount.toFixed(2)),

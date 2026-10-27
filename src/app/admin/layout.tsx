@@ -112,8 +112,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setIsCollapsed={setIsSidebarCollapsed}
       />
       
-      <div className="flex-1 overflow-y-auto">
-        <main className="p-4 sm:p-6 lg:p-8">
+      <div className={cn("flex-1", pathname === '/admin/billing' ? "h-screen overflow-hidden" : "overflow-y-auto")}>
+        <main className={cn(pathname === '/admin/billing' ? "p-2 sm:p-3 h-full flex flex-col overflow-hidden" : "p-4 sm:p-6 lg:p-8")}>
           {children}
         </main>
       </div>
