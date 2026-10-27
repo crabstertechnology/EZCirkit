@@ -21,6 +21,7 @@ import { QuantityModal } from '@/components/admin/billing/quantity-modal';
 import { CustomItemModal } from '@/components/admin/billing/custom-item-modal';
 import { ReturnModal } from '@/components/admin/billing/return-modal';
 import { ReceiptModal } from '@/components/admin/billing/receipt-modal';
+import { printThermalReceipt } from '@/lib/thermal-printer';
 import { PastSalesTab } from '@/components/admin/billing/past-sales-tab';
 import { InventoryLedgerTab } from '@/components/admin/billing/inventory-ledger-tab';
 
@@ -57,6 +58,7 @@ import {
   PackageCheck,
   PackageX,
   X,
+  Loader2,
 } from 'lucide-react';
 
 export default function AdminBillingPage() {
@@ -138,6 +140,7 @@ export default function AdminBillingPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card'>('cash');
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
 
   // Modals state
   const [editingCartItem, setEditingCartItem] = useState<BillingCartItem | null>(null);
@@ -326,10 +329,25 @@ export default function AdminBillingPage() {
       }
 
       const sale = data.sale;
+      // Immediately open receipt and reset cart for maximum cashier speed
       setCompletedSale(sale);
       setIsReceiptModalOpen(true);
       handleClearCart();
-      refreshCustomersAndSales();
+      setSalesCount((prev) => prev + 1);
+
+      // Instantly print thermal receipt if enabled
+      if (autoPrintOnCheckout) {
+        try {
+          printThermalReceipt(sale);
+        } catch (printErr) {
+          console.warn('Auto print error:', printErr);
+        }
+      }
+
+      // Non-blocking background sync of customers and sales database
+      setTimeout(() => {
+        refreshCustomersAndSales();
+      }, 50);
 
       toast({
         title: isRefundMode ? 'Refund Processed & Restocked' : 'Sale Completed Successfully',
@@ -348,7 +366,7 @@ export default function AdminBillingPage() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-2 bg-zinc-50/50 dark:bg-zinc-950/50 overflow-hidden font-sans">
+    <div className="flex flex-col lg:h-full space-y-2 bg-zinc-50/50 dark:bg-zinc-950/50 lg:overflow-hidden font-sans">
       {/* Top Header / Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2.5">
@@ -387,9 +405,9 @@ export default function AdminBillingPage() {
       {/* TAB 1: ACTIVE POS BILLING SCREEN */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'pos' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-hidden">
-          {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col h-full space-y-2 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 lg:min-h-0 lg:overflow-hidden">
+          {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (5 cols on lg) */}
+          <div className="lg:col-span-5 flex flex-col h-[420px] sm:h-[460px] lg:h-full space-y-2 min-h-0">
             {/* Search and Action Bar */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl shrink-0 p-3">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -483,7 +501,7 @@ export default function AdminBillingPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
                     {filteredProducts.map((p) => {
                       const isOutOfStock = p.stock <= 0;
                       const isLowStock = p.stock > 0 && p.stock <= (p.minStockLevel || 5);
@@ -562,7 +580,7 @@ export default function AdminBillingPage() {
           </div>
 
           {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col h-full space-y-2 min-h-0">
+          <div className="lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
             {/* Customer Association Header */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl shrink-0 p-2.5 relative">
               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
@@ -589,7 +607,7 @@ export default function AdminBillingPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="relative">
                   <Input
                     placeholder="Customer Name (Optional)"
@@ -685,12 +703,12 @@ export default function AdminBillingPage() {
 
               {/* Header row for cart columns */}
               {cart.length > 0 && (
-                <div className="px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-between gap-2 shrink-0">
+                <div className="px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
                   <span className="flex-1">Item Details</span>
-                  <span className="w-24 text-center">Qty</span>
-                  <span className="w-16 text-right">Price</span>
-                  <span className="w-14 text-right">Disc</span>
-                  <span className="w-20 text-right">Total</span>
+                  <span className="w-20 sm:w-24 text-center">Qty</span>
+                  <span className="w-14 sm:w-16 text-right">Price</span>
+                  <span className="hidden sm:inline-block w-14 text-right">Disc</span>
+                  <span className="w-16 sm:w-20 text-right">Total</span>
                   <span className="w-6"></span>
                 </div>
               )}
@@ -747,12 +765,12 @@ export default function AdminBillingPage() {
                           </div>
 
                           {/* Quantity Editor Stepper */}
-                          <div className="w-24 flex items-center justify-center shrink-0">
+                          <div className="w-20 sm:w-24 flex items-center justify-center shrink-0">
                             <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 overflow-hidden h-6">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
-                                className="px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
+                                className="px-1 sm:px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
                               >
                                 -
                               </button>
@@ -763,12 +781,12 @@ export default function AdminBillingPage() {
                                 onChange={(e) =>
                                   handleUpdateItemQuantity(item.id, parseFloat(e.target.value) || 0)
                                 }
-                                className="w-8 text-center text-xs font-bold bg-transparent outline-none"
+                                className="w-7 sm:w-8 text-center text-xs font-bold bg-transparent outline-none"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleUpdateItemQuantity(item.id, item.quantity + 1)}
-                                className="px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
+                                className="px-1 sm:px-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 h-full flex items-center justify-center font-bold text-xs"
                               >
                                 +
                               </button>
@@ -776,7 +794,7 @@ export default function AdminBillingPage() {
                           </div>
 
                           {/* Unit Price */}
-                          <div className="w-16 text-right shrink-0">
+                          <div className="w-14 sm:w-16 text-right shrink-0">
                             <input
                               type="number"
                               min="0"
@@ -784,12 +802,12 @@ export default function AdminBillingPage() {
                               onChange={(e) =>
                                 handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
                               }
-                              className="w-16 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                              className="w-14 sm:w-16 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
                             />
                           </div>
 
                           {/* Line Discount */}
-                          <div className="w-14 text-right shrink-0">
+                          <div className="hidden sm:block w-14 text-right shrink-0">
                             {!isRet ? (
                               <input
                                 type="number"
@@ -807,7 +825,7 @@ export default function AdminBillingPage() {
                           </div>
 
                           {/* Line Total */}
-                          <div className="w-20 text-right shrink-0 font-black text-xs">
+                          <div className="w-16 sm:w-20 text-right shrink-0 font-black text-xs">
                             <span
                               className={lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}
                             >
@@ -902,13 +920,13 @@ export default function AdminBillingPage() {
                           <Label className="text-xs font-bold text-foreground whitespace-nowrap">
                             Cash Received (₹):
                           </Label>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
                             <Input
                               type="number"
                               min="0"
                               value={cashReceived || ''}
                               onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
-                              className="h-7 w-24 text-right font-black text-xs rounded-lg"
+                              className="h-7 w-20 sm:w-24 text-right font-black text-xs rounded-lg"
                             />
                             {/* Quick Presets */}
                             <Button
@@ -953,6 +971,22 @@ export default function AdminBillingPage() {
                   </div>
                 )}
 
+                {/* Auto-print toggle & Bill number preview */}
+                <div className="flex items-center justify-between text-xs px-0.5 pt-0.5">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-foreground select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoPrintOnCheckout}
+                      onChange={(e) => setAutoPrintOnCheckout(e.target.checked)}
+                      className="rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                    />
+                    <span>Auto-print thermal receipt</span>
+                  </label>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    Bill #{generateSequentialBillNumber(salesCount, 'INV', 1)}
+                  </span>
+                </div>
+
                 {/* Primary Action Button */}
                 <Button
                   type="button"
@@ -965,7 +999,10 @@ export default function AdminBillingPage() {
                   }`}
                 >
                   {isSubmitting ? (
-                    'Processing Transaction...'
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Committing Transaction...
+                    </span>
                   ) : isRefundMode ? (
                     `ISSUE REFUND & RESTOCK (₹${Math.abs(grandTotal).toFixed(2)})`
                   ) : (

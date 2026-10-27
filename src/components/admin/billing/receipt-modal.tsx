@@ -251,8 +251,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <p className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
                 THANK YOU FOR VISITING!
               </p>
-              <p className="text-[9px] text-zinc-400 dark:text-zinc-500">
-                Goods once sold can be returned/exchanged within 7 days with this bill.
+              <div className="py-1 border-y border-dashed border-zinc-200 dark:border-zinc-800">
+                <p className="text-[10px] font-black tracking-wider text-rose-600 dark:text-rose-400">
+                  *** NO RETURN • NO REFUND ***
+                </p>
+              </div>
+              <p className="text-[9px] text-zinc-500 dark:text-zinc-400">
+                Goods once sold will not be returned or refunded.
               </p>
             </div>
           </div>

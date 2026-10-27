@@ -24,7 +24,11 @@ async function initAdmin() {
   }
 }
 
+let cachedDb: FirebaseFirestore.Firestore | null = null;
+let cachedAuth: any = null;
+
 export async function getAdminDb() {
+  if (cachedDb) return cachedDb;
   await initAdmin();
   const { getFirestore } = await import('firebase-admin/firestore');
   const db = getFirestore();
@@ -33,13 +37,16 @@ export async function getAdminDb() {
   } catch (e) {
     // Settings may already be locked if already initialized
   }
-  return db;
+  cachedDb = db;
+  return cachedDb;
 }
 
 export async function getAdminAuth() {
+  if (cachedAuth) return cachedAuth;
   await initAdmin();
   const { getAuth } = await import('firebase-admin/auth');
-  return getAuth();
+  cachedAuth = getAuth();
+  return cachedAuth;
 }
 
 export const ADMIN_SECRET =

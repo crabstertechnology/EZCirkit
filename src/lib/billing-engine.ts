@@ -180,6 +180,7 @@ export function formatWhatsAppInvoice(sale: BillingSale, storeName: string = 'Cr
   lines.push(`💰 *${grandLabel}:* ₹${Math.abs(sale.grandTotal).toFixed(2)}`);
   lines.push(`💳 *Payment Method:* ${sale.paymentMethod.toUpperCase()}`);
   lines.push('━━━━━━━━━━━━━━━━━━━━');
+  lines.push('⛔ *NOTE: Strictly NO RETURN • NO REFUND*');
   lines.push('Thank you for shopping with Crabster Technology!');
 
   return lines.join('\n');

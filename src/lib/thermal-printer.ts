@@ -92,6 +92,13 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    @media print {
+      body {
+        width: 76mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+      }
+    }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
     .font-bold { font-weight: bold; }
@@ -253,9 +260,10 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
   <div class="dashed-divider"></div>
 
   <div class="footer">
-    <div class="font-bold" style="margin-bottom: 2px;">THANK YOU FOR SHOPPING!</div>
-    <div>Goods once sold can be returned/exchanged within 7 days with this invoice.</div>
-    <div style="margin-top: 5px; font-size: 8.5px; color: #666;">*** END OF RECEIPT ***</div>
+    <div class="font-bold" style="margin-bottom: 3px;">THANK YOU FOR SHOPPING!</div>
+    <div class="font-bold" style="font-size: 11px; margin: 4px 0; letter-spacing: 0.5px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 2px 0;">*** NO RETURN • NO REFUND ***</div>
+    <div style="font-size: 8.5px; color: #222; margin-top: 2px;">Goods once sold will not be taken back or refunded.</div>
+    <div style="margin-top: 6px; font-size: 8px; color: #666;">*** END OF RECEIPT ***</div>
   </div>
 </body>
 </html>`;
