@@ -30,8 +30,8 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
 
   const storeName = storeInfo.storeName || 'Crabster Technology';
   const storeAddress = storeInfo.storeAddress || 'Making Electronics Easy, Affordable, and Understandable.';
-  const storePhone = storeInfo.storePhone || '+91 98765 43210';
-  const storeGstin = storeInfo.storeGstin || '33ABCDE1234F1Z5';
+  const storePhone = storeInfo.storePhone || '7010396642';
+  const storeGstin = storeInfo.storeGstin || '';
 
   const isRefund = sale.grandTotal < 0 || sale.status === 'refunded';
   const formattedDate = new Date(sale.date).toLocaleString('en-IN', {
@@ -174,9 +174,8 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
   <div class="header">
     <div class="store-name">${escapeHtml(storeName)}</div>
     <div class="store-sub">${escapeHtml(storeAddress)}</div>
-    <div class="store-sub">Phone: ${escapeHtml(storePhone)}</div>
-    ${storeGstin ? `<div class="store-sub">GSTIN: ${escapeHtml(storeGstin)}</div>` : ''}
-    <div class="invoice-title">${isRefund ? 'REFUND CREDIT NOTE' : 'RETAIL TAX INVOICE'}</div>
+    <div class="store-sub">Ph. No: ${escapeHtml(storePhone)}</div>
+    <div class="invoice-title">${isRefund ? 'REFUND CREDIT NOTE' : 'RETAIL INVOICE'}</div>
   </div>
 
   <div style="padding: 2px 0;">
@@ -233,7 +232,7 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
     </div>` : ''}
     ${sale.tax > 0 ? `
     <div class="flex-row">
-      <span>Tax (GST):</span>
+      <span>Tax:</span>
       <span>Rs. ${sale.tax.toFixed(2)}</span>
     </div>` : ''}
     <div class="grand-total-box">

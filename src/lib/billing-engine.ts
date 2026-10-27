@@ -151,7 +151,7 @@ export function formatWhatsAppInvoice(sale: BillingSale, storeName: string = 'Cr
   });
 
   const lines = [
-    `🧾 *[${storeName.toUpperCase()}] - TAX INVOICE*`,
+    `🧾 *[${storeName.toUpperCase()}] - INVOICE*`,
     '━━━━━━━━━━━━━━━━━━━━',
     `📄 *Bill No:* ${sale.billNumber}`,
     `📅 *Date:* ${formattedDate}`,
@@ -173,7 +173,7 @@ export function formatWhatsAppInvoice(sale: BillingSale, storeName: string = 'Cr
     lines.push(`🎁 *Discount:* -₹${sale.discount.toFixed(2)}`);
   }
   if (sale.tax > 0) {
-    lines.push(`🏛️ *Tax (GST):* ₹${sale.tax.toFixed(2)}`);
+    lines.push(`🏛️ *Tax:* ₹${sale.tax.toFixed(2)}`);
   }
 
   const grandLabel = sale.grandTotal < 0 ? 'NET REFUND ISSUED' : 'GRAND TOTAL';

@@ -859,7 +859,7 @@ export default function AdminBillingPage() {
                   <div className="flex justify-between items-center text-muted-foreground">
                     <span className="flex items-center gap-2">
                       <span>Subtotal: ₹{grossSubtotal.toFixed(2)}</span>
-                      {totalTax > 0 && <span>• Tax (GST): ₹{totalTax.toFixed(2)}</span>}
+                      {totalTax > 0 && <span>• Tax: ₹{totalTax.toFixed(2)}</span>}
                     </span>
                     <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
                       <span>Order Disc:</span>
@@ -1098,6 +1098,8 @@ export default function AdminBillingPage() {
         }}
         storeName="Crabster Technology"
         storeAddress="Making Electronics Easy, Affordable, and Understandable."
+        storePhone="7010396642"
+        storeGstin=""
       />
     </div>
   );

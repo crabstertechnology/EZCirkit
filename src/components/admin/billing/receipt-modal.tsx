@@ -40,8 +40,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   onSaleDeleted,
   storeName = 'Crabster Technology',
   storeAddress = 'Making Electronics Easy, Affordable, and Understandable.',
-  storePhone = '+91 98765 43210',
-  storeGstin = '33ABCDE1234F1Z5',
+  storePhone = '7010396642',
+  storeGstin = '',
 }) => {
   const { toast } = useToast();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -134,10 +134,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <div className="text-center space-y-1 pb-3 border-b border-dashed border-zinc-300 dark:border-zinc-700">
               <h2 className="text-base font-black uppercase tracking-wider">{storeName}</h2>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{storeAddress}</p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Phone: {storePhone}</p>
-              {storeGstin && <p className="text-[10px] text-zinc-500 dark:text-zinc-400">GSTIN: {storeGstin}</p>}
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Ph. No: {storePhone}</p>
               <p className="text-[11px] font-bold mt-1 text-primary">
-                {isRefund ? 'REFUND CREDIT NOTE' : 'RETAIL TAX INVOICE'}
+                {isRefund ? 'REFUND CREDIT NOTE' : 'RETAIL INVOICE'}
               </p>
             </div>
 
@@ -216,7 +215,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               )}
               {sale.tax > 0 && (
                 <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                  <span>Tax (GST):</span>
+                  <span>Tax:</span>
                   <span>₹{sale.tax.toFixed(2)}</span>
                 </div>
               )}
