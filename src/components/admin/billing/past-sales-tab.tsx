@@ -1,16 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BillingSale } from '@/types/billing';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Printer, MessageSquare, Ban, Eye, FileText } from 'lucide-react';
-import { voidBillingSale } from '@/lib/billing-checkout';
+import { Search, Printer, MessageSquare, Ban, Eye, FileText, RefreshCw } from 'lucide-react';
 import { formatWhatsAppInvoice, generateWhatsAppLink } from '@/lib/billing-engine';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -33,20 +30,33 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
   onSelectSaleForReceipt,
   adminUserName,
 }) => {
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const [sales, setSales] = useState<BillingSale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [saleToVoid, setSaleToVoid] = useState<BillingSale | null>(null);
   const [isVoiding, setIsVoiding] = useState(false);
 
-  const salesQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'sales'), orderBy('date', 'desc'), limit(100)) : null),
-    [firestore]
-  );
-  const { data: sales, isLoading } = useCollection<BillingSale>(salesQuery);
+  const fetchSales = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/billing/sales');
+      const data = await res.json();
+      if (data.sales) {
+        setSales(data.sales);
+      }
+    } catch (e) {
+      console.error('Failed to fetch sales:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSales();
+  }, []);
 
   const filtered = React.useMemo(() => {
-    if (!sales) return [];
     return sales.filter((s) => {
       const q = search.toLowerCase().trim();
       if (!q) return true;
@@ -61,15 +71,30 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
   }, [sales, search]);
 
   const handleConfirmVoid = async () => {
-    if (!firestore || !saleToVoid) return;
+    if (!saleToVoid) return;
     setIsVoiding(true);
     try {
-      await voidBillingSale(firestore, saleToVoid, adminUserName);
+      const res = await fetch('/api/billing/void', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          saleId: saleToVoid.id,
+          adminUser: adminUserName,
+          voidReason: 'Cancelled by administrator',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to void bill');
+      }
+
       toast({
         title: 'Bill Voided & Restocked',
         description: `Order ${saleToVoid.billNumber} was successfully cancelled and catalog inventory restored.`,
       });
       setSaleToVoid(null);
+      fetchSales(); // Refresh list
     } catch (err: any) {
       console.error(err);
       toast({
@@ -105,14 +130,26 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
               </CardDescription>
             </div>
 
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search bill number, customer, phone..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 text-xs h-9 rounded-xl"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search bill number, customer, phone..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 text-xs h-9 rounded-xl"
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={fetchSales}
+                className="h-9 w-9 rounded-xl shrink-0"
+                title="Refresh sales list"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
           </div>
         </CardHeader>

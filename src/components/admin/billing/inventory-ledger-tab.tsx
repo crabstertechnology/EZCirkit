@@ -1,29 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InventoryTransaction } from '@/types/billing';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, History, ArrowDownRight, ArrowUpRight, Wrench, RefreshCw } from 'lucide-react';
 
 export const InventoryLedgerTab: React.FC = () => {
-  const firestore = useFirestore();
+  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const ledgerQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'inventory_transactions'), orderBy('date', 'desc'), limit(200)) : null),
-    [firestore]
-  );
-  const { data: transactions, isLoading } = useCollection<InventoryTransaction>(ledgerQuery);
+  const fetchLedger = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/billing/ledger');
+      const data = await res.json();
+      if (data.transactions) {
+        setTransactions(data.transactions);
+      }
+    } catch (e) {
+      console.error('Failed to fetch ledger:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLedger();
+  }, []);
 
   const filtered = React.useMemo(() => {
-    if (!transactions) return [];
     return transactions.filter((tx) => {
       const q = search.toLowerCase().trim();
       const matchSearch =
@@ -113,6 +125,16 @@ export const InventoryLedgerTab: React.FC = () => {
                 <SelectItem value="correction">Void Corrections</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchLedger}
+              className="h-9 w-9 rounded-xl shrink-0"
+              title="Refresh ledger"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
       </CardHeader>

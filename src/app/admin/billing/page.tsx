@@ -95,20 +95,28 @@ export default function AdminBillingPage() {
     }));
   }, [rawProducts]);
 
-  // Query customers for autocomplete
-  const customersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'customers') : null),
-    [firestore]
-  );
-  const { data: existingCustomers } = useCollection<BillingCustomer>(customersQuery);
+  // Customers for autocomplete (fetched safely via API)
+  const [existingCustomers, setExistingCustomers] = useState<BillingCustomer[]>([]);
+  const [salesCount, setSalesCount] = useState<number>(0);
 
-  // Query sales count for sequential invoice generation
-  const salesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'sales') : null),
-    [firestore]
-  );
-  const { data: salesList } = useCollection<any>(salesQuery);
-  const salesCount = salesList ? salesList.length : 0;
+  const refreshCustomersAndSales = async () => {
+    try {
+      const [custRes, salesRes] = await Promise.all([
+        fetch('/api/billing/customers'),
+        fetch('/api/billing/sales'),
+      ]);
+      const custData = await custRes.json();
+      const salesData = await salesRes.json();
+      if (custData.customers) setExistingCustomers(custData.customers);
+      if (salesData.sales) setSalesCount(salesData.sales.length);
+    } catch (e) {
+      console.error('Error fetching customers/sales for billing:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshCustomersAndSales();
+  }, []);
 
   // -------------------------------------------------------------
   // POS Cart State
@@ -291,26 +299,37 @@ export default function AdminBillingPage() {
     try {
       const generatedBillNumber = generateSequentialBillNumber(salesCount, 'INV', 1);
 
-      const sale = await commitBillingCheckout(firestore, {
-        items: cart,
-        customer: {
-          id: customerId,
-          name: customerName,
-          phone: customerPhone,
-          address: customerAddress,
-        },
-        billNumber: generatedBillNumber,
-        paymentMethod,
-        cashReceived: paymentMethod === 'cash' ? cashReceived : grandTotal,
-        changeReturned: paymentMethod === 'cash' ? Math.max(0, cashReceived - grandTotal) : 0,
-        orderDiscount,
-        cashierName: user?.displayName || user?.email?.split('@')[0] || 'Admin',
-        cashierEmail: user?.email || '',
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart,
+          customer: {
+            id: customerId,
+            name: customerName,
+            phone: customerPhone,
+            address: customerAddress,
+          },
+          billNumber: generatedBillNumber,
+          paymentMethod,
+          cashReceived: paymentMethod === 'cash' ? cashReceived : grandTotal,
+          changeReturned: paymentMethod === 'cash' ? Math.max(0, cashReceived - grandTotal) : 0,
+          orderDiscount,
+          cashierName: user?.displayName || user?.email?.split('@')[0] || 'Admin',
+          cashierEmail: user?.email || '',
+        }),
       });
 
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Checkout failed');
+      }
+
+      const sale = data.sale;
       setCompletedSale(sale);
       setIsReceiptModalOpen(true);
       handleClearCart();
+      refreshCustomersAndSales();
 
       toast({
         title: isRefundMode ? 'Refund Processed & Restocked' : 'Sale Completed Successfully',

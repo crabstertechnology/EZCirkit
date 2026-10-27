@@ -27,7 +27,13 @@ async function initAdmin() {
 export async function getAdminDb() {
   await initAdmin();
   const { getFirestore } = await import('firebase-admin/firestore');
-  return getFirestore();
+  const db = getFirestore();
+  try {
+    db.settings({ ignoreUndefinedProperties: true });
+  } catch (e) {
+    // Settings may already be locked if already initialized
+  }
+  return db;
 }
 
 export async function getAdminAuth() {

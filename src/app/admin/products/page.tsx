@@ -82,9 +82,7 @@ const ProductsPage = () => {
     setStockLevels(prev => ({ ...prev, [productId]: isNaN(newStock as number) ? '' : newStock }));
   };
 
-  const handleUpdateStock = (productId: string) => {
-    if (!firestore) return;
-    
+  const handleUpdateStock = async (productId: string) => {
     const newStock = stockLevels[productId];
     if (newStock === undefined || newStock === '') {
       toast({ variant: 'destructive', title: 'Invalid stock value.' });
@@ -96,38 +94,31 @@ const ProductsPage = () => {
       return;
     }
 
-    const targetProduct = products?.find(p => p.id === productId);
-    const prevStock = targetProduct?.stock ?? 0;
-    const delta = Number(newStock) - prevStock;
-
-    const productDocRef = doc(firestore, 'products', productId);
-    updateDoc(productDocRef, { stock: Number(newStock) })
-      .then(() => {
-        toast({ title: 'Stock updated successfully!' });
-
-        // Record signed audit ledger entry if stock level changed
-        if (delta !== 0) {
-          addDoc(collection(firestore, 'inventory_transactions'), {
-            productId,
-            productName: targetProduct?.name || productId,
-            sku: targetProduct?.sku || 'N/A',
-            quantity: delta,
-            type: 'manual_adjustment',
-            date: new Date().toISOString(),
-            user: user?.displayName || user?.email || 'Admin',
-            referenceId: 'manual_admin',
-            notes: `Manual stock level adjustment from ${prevStock} to ${newStock}`,
-          }).catch(console.error);
-        }
-      })
-      .catch((err) => {
-         const permissionError = new FirestorePermissionError({
-          path: productDocRef.path,
-          operation: 'update',
-          requestResourceData: { stock: Number(newStock) },
-        });
-        errorEmitter.emit('permission-error', permissionError);
+    try {
+      const res = await fetch('/api/billing/stock-adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          newStock: newStockVal,
+          adminUser: user?.displayName || user?.email || 'Admin',
+        }),
       });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update stock');
+      }
+
+      toast({ title: 'Stock updated successfully!' });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update stock',
+        description: err.message || 'Error occurred.',
+      });
+    }
   };
   
   const handleDeleteProduct = async (productId: string) => {
