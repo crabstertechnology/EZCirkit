@@ -345,13 +345,15 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
               <Ban className="h-5 w-5" />
               Void Invoice #{saleToVoid?.billNumber}?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs space-y-2 pt-2 text-muted-foreground">
-              <p>
-                Are you sure you want to void this bill?
-              </p>
-              <p className="font-semibold text-foreground">
-                This will mark the bill as cancelled, immediately roll back all inventory changes to live stocks, and write a signed correction audit ledger entry.
-              </p>
+            <AlertDialogDescription asChild>
+              <div className="text-xs space-y-2 pt-2 text-muted-foreground">
+                <p>
+                  Are you sure you want to void this bill?
+                </p>
+                <p className="font-semibold text-foreground">
+                  This will mark the bill as cancelled, immediately roll back all inventory changes to live stocks, and write a signed correction audit ledger entry.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -377,30 +379,32 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
               <Trash2 className="h-5 w-5" />
               Permanently Delete Invoice #{saleToDelete?.billNumber}?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs space-y-3 pt-2 text-muted-foreground">
-              <p>
-                Are you sure you want to permanently delete this bill? This cannot be undone.
-              </p>
-              {saleToDelete?.status !== 'cancelled' ? (
-                <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-1.5 text-left">
-                  <label className="flex items-center gap-2 cursor-pointer font-medium text-foreground">
-                    <input
-                      type="checkbox"
-                      checked={rollbackStockOnDelete}
-                      onChange={(e) => setRollbackStockOnDelete(e.target.checked)}
-                      className="rounded border-zinc-400 text-rose-600 focus:ring-rose-500 h-4 w-4"
-                    />
-                    <span>Restore inventory stock for sold items ({saleToDelete?.items?.length || 0} items)</span>
-                  </label>
-                  <p className="text-[11px] text-muted-foreground pl-6">
-                    When checked, the quantity of products sold in this bill will be returned to your live catalog stocks.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-[11px] text-amber-600 font-medium">
-                  Note: This invoice was already cancelled, so its stocks were already restored.
+            <AlertDialogDescription asChild>
+              <div className="text-xs space-y-3 pt-2 text-muted-foreground">
+                <p>
+                  Are you sure you want to permanently delete this bill? This cannot be undone.
                 </p>
-              )}
+                {saleToDelete?.status !== 'cancelled' ? (
+                  <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-1.5 text-left">
+                    <label className="flex items-center gap-2 cursor-pointer font-medium text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={rollbackStockOnDelete}
+                        onChange={(e) => setRollbackStockOnDelete(e.target.checked)}
+                        className="rounded border-zinc-400 text-rose-600 focus:ring-rose-500 h-4 w-4"
+                      />
+                      <span>Restore inventory stock for sold items ({saleToDelete?.items?.length || 0} items)</span>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground pl-6">
+                      When checked, the quantity of products sold in this bill will be returned to your live catalog stocks.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-amber-600 font-medium">
+                    Note: This invoice was already cancelled, so its stocks were already restored.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

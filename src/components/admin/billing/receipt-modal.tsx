@@ -314,13 +314,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <Trash2 className="h-5 w-5" />
               Permanently Delete Bill #{sale.billNumber}?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs space-y-2 pt-2 text-muted-foreground">
-              <p>
-                Are you sure you want to permanently delete invoice <span className="font-mono font-bold text-foreground">#{sale.billNumber}</span>?
-              </p>
-              <p className="font-medium text-foreground">
-                This will delete the invoice record and restore catalog inventory stock for all sold items.
-              </p>
+            <AlertDialogDescription asChild>
+              <div className="text-xs space-y-2 pt-2 text-muted-foreground">
+                <p>
+                  Are you sure you want to permanently delete invoice <span className="font-mono font-bold text-foreground">#{sale.billNumber}</span>?
+                </p>
+                <p className="font-medium text-foreground">
+                  This will delete the invoice record and restore catalog inventory stock for all sold items.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
