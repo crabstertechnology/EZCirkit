@@ -38,8 +38,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   sale,
   onNewBill,
   onSaleDeleted,
-  storeName = 'Crabster Technology / EZCirkit',
-  storeAddress = 'Electronics Innovation Lab, India',
+  storeName = 'Crabster Technology',
+  storeAddress = 'Making Electronics Easy, Affordable, and Understandable.',
   storePhone = '+91 98765 43210',
   storeGstin = '33ABCDE1234F1Z5',
 }) => {

@@ -1096,7 +1096,8 @@ export default function AdminBillingPage() {
           refreshCustomersAndSales();
           setCompletedSale(null);
         }}
-        storeName="Crabster Technology / EZCirkit"
+        storeName="Crabster Technology"
+        storeAddress="Making Electronics Easy, Affordable, and Understandable."
       />
     </div>
   );

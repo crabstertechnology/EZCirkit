@@ -28,8 +28,8 @@ function escapeHtml(text?: string): string {
 export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}) {
   if (typeof window === 'undefined' || !sale) return;
 
-  const storeName = storeInfo.storeName || 'Crabster Technology / EZCirkit';
-  const storeAddress = storeInfo.storeAddress || 'Electronics Innovation Lab, India';
+  const storeName = storeInfo.storeName || 'Crabster Technology';
+  const storeAddress = storeInfo.storeAddress || 'Making Electronics Easy, Affordable, and Understandable.';
   const storePhone = storeInfo.storePhone || '+91 98765 43210';
   const storeGstin = storeInfo.storeGstin || '33ABCDE1234F1Z5';
 
