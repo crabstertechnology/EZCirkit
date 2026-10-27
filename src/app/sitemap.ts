@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { CATEGORY_SLUGS, COMPONENT_ID_TO_SLUG, slugify } from '@/lib/seo-mappings';
 
 function getAdminFirestore() {
   if (!getApps().length) {
@@ -36,12 +35,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/components`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.95,
     },
     {
       url: `${baseUrl}/projects`,
@@ -87,16 +80,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // 2. Component Category Routes
-  const categoryRoutes: MetadataRoute.Sitemap = Object.keys(CATEGORY_SLUGS).map((slug) => ({
-    url: `${baseUrl}/components/${slug}`,
-    lastModified: now,
-    changeFrequency: 'weekly',
-    priority: 0.85,
-  }));
-
-  // 3. Dynamic Component & Product Pages
-  let componentRoutes: MetadataRoute.Sitemap = [];
+  // 2. Dynamic Product & Tutorial Pages
+  let productRoutes: MetadataRoute.Sitemap = [];
   let tutorialRoutes: MetadataRoute.Sitemap = [];
 
   try {
@@ -104,12 +89,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Fetch Products
     const productsSnap = await db.collection('products').get();
-    componentRoutes = productsSnap.docs.map((doc) => {
+    productRoutes = productsSnap.docs.map((doc) => {
       const updateTime = doc.updateTime?.toDate();
-      const p = doc.data();
-      const cleanSlug = COMPONENT_ID_TO_SLUG[doc.id] || slugify(p.name || doc.id);
       return {
-        url: `${baseUrl}/components/${cleanSlug}`,
+        url: `${baseUrl}/products/${doc.id}`,
         lastModified: updateTime ? formatDate(updateTime) : now,
         changeFrequency: 'weekly' as const,
         priority: 0.9,
@@ -134,8 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes,
-    ...categoryRoutes,
-    ...componentRoutes,
+    ...productRoutes,
     ...tutorialRoutes,
   ];
 }

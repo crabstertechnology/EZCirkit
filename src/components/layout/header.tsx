@@ -12,7 +12,6 @@ import CartSidebar from '@/components/layout/cart-sidebar';
 import Logo from '@/components/shared/logo';
 import { NAV_LINKS } from '@/lib/constants';
 import { FEATURES } from '@/lib/features';
-import { COMPONENTS_DATA } from '@/lib/components';
 import { useCart } from '@/context/cart-context';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import {
@@ -490,9 +489,9 @@ const Header = () => {
             <Logo size="lg" />
           </div>
 
-          {/* Left Nav Links (Home, Products) */}
+          {/* Left Nav Links (Products) */}
           <nav className="hidden lg:flex flex-1 justify-end items-center gap-2 xl:gap-4 pr-4">
-            <NavLinks items={NAV_LINKS.slice(0, 2)} />
+            <NavLinks items={NAV_LINKS.slice(0, 1)} />
           </nav>
           
           {/* Center SearchBar */}
@@ -500,9 +499,9 @@ const Header = () => {
             <SearchBar />
           </div>
 
-          {/* Right Nav Links (EZCirkit IDE, Reviews) */}
+          {/* Right Nav Links (Launch IDE, Reviews) */}
           <nav className="hidden lg:flex flex-1 justify-start items-center gap-2 xl:gap-4 pl-4">
-            <NavLinks items={NAV_LINKS.slice(2, 4)} />
+            <NavLinks items={NAV_LINKS.slice(1)} />
           </nav>
 
           {/* Action Buttons (Far Right) */}

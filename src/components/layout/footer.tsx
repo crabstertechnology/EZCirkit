@@ -55,7 +55,7 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {FOOTER_LINKS.categories.map((link) => (
-                <li key={link.href}>
+                <li key={`${link.label}-${link.href}`}>
                   <Link
                     href={link.href}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
@@ -74,7 +74,7 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {FOOTER_LINKS.quickLinks.map((link) => (
-                <li key={link.href}>
+                <li key={`${link.label}-${link.href}`}>
                   <Link
                     href={link.href}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
@@ -93,7 +93,7 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {FOOTER_LINKS.support.map((link) => (
-                <li key={link.href}>
+                <li key={`${link.label}-${link.href}`}>
                   <Link
                     href={link.href}
                     className="text-sm text-gray-400 hover:text-white transition-colors"

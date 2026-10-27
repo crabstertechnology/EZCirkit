@@ -174,5 +174,24 @@ service cloud.firestore {
       allow create: if true;
       allow read, update, delete: if isAdmin();
     }
+
+    //-------------------------------------------------------------------------
+    // Billing Engine & POS Collections
+    //-------------------------------------------------------------------------
+    match /sales/{saleId} {
+      allow read, write: if isAdmin();
+      match /items/{itemId} {
+        allow read, write: if isAdmin();
+      }
+    }
+    match /sale_items/{itemId} {
+      allow read, write: if isAdmin();
+    }
+    match /inventory_transactions/{txId} {
+      allow read, write: if isAdmin();
+    }
+    match /customers/{customerId} {
+      allow read, write: if isAdmin();
+    }
   }
 }

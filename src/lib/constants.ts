@@ -1,12 +1,10 @@
 import { placeholderImages } from './placeholder-images';
-import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity, Receipt } from 'lucide-react';
 
 export const SHIPPING_COST = 0;
 
 export const NAV_LINKS = [
-  { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
-  { href: '/components', label: 'Components' },
   { href: '/ide', label: 'Launch IDE' },
   { href: '/#testimonials', label: 'Reviews' },
 ];
@@ -14,6 +12,7 @@ export const NAV_LINKS = [
 export const ADMIN_NAV_LINKS = [
   { href: '/', label: 'Go to Home', icon: Home },
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/billing', label: 'Billing / POS', icon: Receipt },
   { href: '/admin/telemetry', label: 'Telemetry Logs', icon: Activity },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/users', label: 'Users', icon: Users },
@@ -42,16 +41,15 @@ export const PRODUCT_FEATURES = [
 
 export const FOOTER_LINKS = {
   categories: [
-    { href: '/components/sensors', label: 'Sensors' },
-    { href: '/components/arduino-boards', label: 'Arduino Boards' },
-    { href: '/components/development-boards', label: 'Development Boards' },
-    { href: '/components/displays', label: 'Displays' },
-    { href: '/components/power-modules', label: 'Power Modules' },
+    { href: '/products?category=Sensors', label: 'Sensors' },
+    { href: '/products?category=Arduino+Boards', label: 'Arduino Boards' },
+    { href: '/products?category=Development+Boards', label: 'Development Boards' },
+    { href: '/products?category=Displays', label: 'Displays' },
+    { href: '/products?category=Power+Modules', label: 'Power Modules' },
   ],
   quickLinks: [
     { href: '/', label: 'Home' },
     { href: '/products', label: 'All Products' },
-    { href: '/components', label: 'Components Hub' },
     { href: '/ide', label: 'Launch IDE' },
   ],
   support: [

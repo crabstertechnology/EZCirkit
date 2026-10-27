@@ -119,10 +119,10 @@ const FeaturedProducts = () => {
             </h2>
           </div>
           <Link
-            href="/components"
+            href="/products"
             className="relative group hidden sm:flex items-center gap-1.5 text-sm font-bold tracking-wide text-primary transition-all duration-300 py-1"
           >
-            <span>Explore Components Library</span>
+            <span>Explore All Products</span>
             <svg 
               className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover:translate-x-1" 
               viewBox="0 0 24 24" 

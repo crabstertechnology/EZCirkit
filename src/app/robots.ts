@@ -9,7 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: [
         '/',
         '/products/',
-        '/components/',
         '/tutorials/',
         '/projects/',
         '/ide/',

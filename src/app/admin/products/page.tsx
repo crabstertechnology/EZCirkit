@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
   Table,
@@ -45,9 +45,14 @@ export interface Product {
   stock: number;
   image: string;
   category?: string;
+  sku?: string;
+  purchasePrice?: number;
+  tax?: number;
+  minStockLevel?: number;
 }
 
 const ProductsPage = () => {
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
@@ -91,10 +96,29 @@ const ProductsPage = () => {
       return;
     }
 
+    const targetProduct = products?.find(p => p.id === productId);
+    const prevStock = targetProduct?.stock ?? 0;
+    const delta = Number(newStock) - prevStock;
+
     const productDocRef = doc(firestore, 'products', productId);
     updateDoc(productDocRef, { stock: Number(newStock) })
       .then(() => {
         toast({ title: 'Stock updated successfully!' });
+
+        // Record signed audit ledger entry if stock level changed
+        if (delta !== 0) {
+          addDoc(collection(firestore, 'inventory_transactions'), {
+            productId,
+            productName: targetProduct?.name || productId,
+            sku: targetProduct?.sku || 'N/A',
+            quantity: delta,
+            type: 'manual_adjustment',
+            date: new Date().toISOString(),
+            user: user?.displayName || user?.email || 'Admin',
+            referenceId: 'manual_admin',
+            notes: `Manual stock level adjustment from ${prevStock} to ${newStock}`,
+          }).catch(console.error);
+        }
       })
       .catch((err) => {
          const permissionError = new FirestorePermissionError({
