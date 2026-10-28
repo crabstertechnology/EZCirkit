@@ -36,6 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import {
   Search,
@@ -56,6 +57,7 @@ import {
   AlertCircle,
   Receipt,
   Edit2,
+  Package,
   PackageCheck,
   PackageX,
   X,
@@ -145,6 +147,7 @@ export default function AdminBillingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
   const [isCatalogCollapsed, setIsCatalogCollapsed] = useState(false);
+  const [isMobileCatalogOpen, setIsMobileCatalogOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -372,6 +375,239 @@ export default function AdminBillingPage() {
     }
   };
 
+  // -------------------------------------------------------------
+  // Reusable Catalog & Components View (Desktop Panel & Mobile Modal)
+  // -------------------------------------------------------------
+  const renderCatalogContent = (isMobileModal: boolean = false) => (
+    <div className="flex flex-col h-full space-y-2 min-h-0">
+      {/* Mobile Modal Header */}
+      {isMobileModal && (
+        <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+              <Package className="h-4 w-4" />
+            </div>
+            <div>
+              <DialogTitle className="text-sm font-black text-foreground leading-tight">
+                Add Components to Bill
+              </DialogTitle>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Tap items to add directly to current bill
+              </p>
+            </div>
+          </div>
+          <Badge className="bg-primary text-white text-[10px] px-2 py-0.5 font-bold">
+            {cart.reduce((acc, i) => acc + i.quantity, 0)} In Bill
+          </Badge>
+        </div>
+      )}
+
+      {/* Search and Action Bar */}
+      <Card className={cn(
+        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 shrink-0 p-3",
+        isMobileModal ? "rounded-none border-x-0 border-t-0 border-b shadow-none" : "rounded-2xl"
+      )}>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search catalog by product name, SKU, or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
+              autoFocus={isMobileModal}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCustomModalOpen(true)}
+              className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-zinc-200 dark:border-zinc-800"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              + Custom Item
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReturnModalOpen(true)}
+              className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              + Return Item
+            </Button>
+          </div>
+        </div>
+
+        {/* Category Pills & Stock Filters */}
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-3 overflow-x-auto pb-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                  selectedCategory === cat
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <Select
+            value={stockFilter}
+            onValueChange={(val: any) => setStockFilter(val)}
+          >
+            <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Stocks</SelectItem>
+              <SelectItem value="Low">Low Stock (≤5)</SelectItem>
+              <SelectItem value="Out">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
+      {/* Catalog Grid View */}
+      <Card className={cn(
+        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 flex-1 min-h-0 overflow-hidden flex flex-col",
+        isMobileModal ? "rounded-none border-x-0 border-b-0 shadow-none" : "rounded-2xl"
+      )}>
+        <ScrollArea className="flex-1 p-3">
+          {isProductsLoading ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-xs gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+              Syncing catalog products and live stock levels...
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center p-6 space-y-2">
+              <PackageX className="h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-bold text-foreground">No matching products found</p>
+              <p className="text-xs text-muted-foreground max-w-xs">
+                Try searching another keyword or use "+ Custom Item" to bill an uncatalogued item.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+              {filteredProducts.map((p) => {
+                const isOutOfStock = p.stock <= 0;
+                const isLowStock = p.stock > 0 && p.stock <= (p.minStockLevel || 5);
+                const inCartItem = cart.find((i) => i.product.id === p.id && !i.isReturn);
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleProductClick(p)}
+                    className={`relative flex flex-col text-left p-2.5 rounded-xl border transition-all group ${
+                      inCartItem
+                        ? 'border-primary ring-2 ring-primary/20 bg-primary/[0.03]'
+                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-sm'
+                    }`}
+                  >
+                    {/* Top Badges */}
+                    <div className="flex justify-between items-start gap-1 mb-1.5 w-full">
+                      <span className="text-[9px] font-mono font-bold text-muted-foreground truncate uppercase">
+                        {p.sku}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] px-1.5 py-0 h-4 font-bold border ${
+                          isOutOfStock
+                            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
+                            : isLowStock
+                            ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900'
+                            : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
+                        }`}
+                      >
+                        {p.stock} in stock
+                      </Badge>
+                    </div>
+
+                    {/* Image & Title */}
+                    <div className="flex items-center gap-2 mb-2">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="h-10 w-10 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[10px]">
+                          IC
+                        </div>
+                      )}
+                      <h4 className="text-xs font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                        {p.name}
+                      </h4>
+                    </div>
+
+                    {/* Bottom Price & In-Cart Counter */}
+                    <div className="mt-auto flex justify-between items-center pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 w-full">
+                      <span className="text-sm font-black text-foreground">
+                        ₹{p.sellingPrice ?? p.price}
+                      </span>
+                      {inCartItem ? (
+                        <Badge className="bg-primary text-white text-[10px] h-5 px-1.5 font-bold">
+                          In Cart: {inCartItem.quantity}
+                        </Badge>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground group-hover:text-primary font-semibold">
+                          + Add
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </Card>
+
+      {/* Mobile Modal Footer */}
+      {isMobileModal && (
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex flex-col pl-1 min-w-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 truncate">
+              <ShoppingCart className="h-3 w-3 text-primary shrink-0" />
+              {cart.reduce((acc, i) => acc + i.quantity, 0)} Items In Bill
+            </span>
+            <span className="text-sm font-black text-foreground">
+              Total: ₹{grandTotal.toFixed(2)}
+            </span>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setIsMobileCatalogOpen(false)}
+            className="h-9 px-4 text-xs font-black rounded-xl bg-primary hover:bg-primary/95 text-white shadow-md gap-1.5 shrink-0"
+          >
+            <span>Done &amp; View Bill</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col lg:h-full space-y-2 bg-zinc-50/50 dark:bg-zinc-950/50 lg:overflow-hidden font-sans">
       {/* Top Header / Mode Switcher */}
@@ -413,253 +649,63 @@ export default function AdminBillingPage() {
       {/* ------------------------------------------------------------- */}
       {activeTab === 'pos' && (
         <div className="flex flex-col flex-1 min-h-0 lg:overflow-hidden relative">
-          {/* Mobile Quick Navigation Chips (< lg) */}
-          <div className="lg:hidden grid grid-cols-3 gap-1.5 p-1 bg-zinc-200/80 dark:bg-zinc-800 rounded-xl shrink-0 mb-1">
-            <button
-              type="button"
-              onClick={() => scrollToSection('catalog-section')}
-              className="h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 bg-white dark:bg-zinc-900 text-foreground shadow-xs"
-            >
-              <Search className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="truncate">Catalog ({filteredProducts.length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('cart-section')}
-              className="h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 bg-white dark:bg-zinc-900 text-foreground shadow-xs"
-            >
-              <ShoppingCart className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="truncate">Bill ({cart.reduce((acc, i) => acc + i.quantity, 0)})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('checkout-section')}
-              className={`h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs ${
-                cart.length > 0
-                  ? 'bg-primary text-white'
-                  : 'bg-white dark:bg-zinc-900 text-muted-foreground'
-              }`}
-            >
-              <CreditCard className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Pay ₹{grandTotal.toFixed(0)}</span>
-            </button>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 lg:overflow-hidden pb-20 lg:pb-0">
-            {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID */}
-            <div id="catalog-section" className="lg:col-span-5 flex flex-col lg:h-full space-y-2 min-h-0">
-            {/* Search and Action Bar */}
-            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl shrink-0 p-3">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search catalog by product name, SKU, or category..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      if (isCatalogCollapsed) setIsCatalogCollapsed(false);
-                    }}
-                    className="pl-9 h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
-                    autoFocus
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+            {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (Desktop Only) */}
+            <div className="hidden lg:flex lg:col-span-5 flex-col lg:h-full space-y-2 min-h-0">
+              {renderCatalogContent(false)}
+            </div>
+
+            {/* RIGHT PANEL: BILLING, CUSTOMER & SETTLEMENT ENGINE */}
+            <div id="cart-section" className="col-span-1 lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
+              {/* Mobile Add Components Trigger Bar (< lg) */}
+              <div className="lg:hidden p-2.5 bg-white dark:bg-zinc-900 border border-primary/25 rounded-xl shadow-xs space-y-2 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <Package className="h-4 w-4 text-primary" />
+                    <span>Components &amp; Items</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsCustomModalOpen(true)}
+                      className="h-7 px-2 text-[10px] font-bold rounded-lg border-zinc-200 dark:border-zinc-800"
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCustomModalOpen(true)}
-                    className="h-10 text-xs font-bold rounded-xl gap-1.5 border-zinc-200 dark:border-zinc-800"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    + Custom Item
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsReturnModalOpen(true)}
-                    className="h-10 text-xs font-bold rounded-xl gap-1.5 border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    + Return Item
-                  </Button>
-                </div>
-              </div>
-
-              {/* Category Pills & Stock Filters */}
-              <div className="flex items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-3 overflow-x-auto pb-0.5">
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        if (isCatalogCollapsed) setIsCatalogCollapsed(false);
-                      }}
-                      className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
-                        selectedCategory === cat
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                      }`}
+                      <Sparkles className="h-3 w-3 text-amber-500 mr-1" />
+                      + Custom
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsReturnModalOpen(true)}
+                      className="h-7 px-2 text-[10px] font-bold rounded-lg border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                     >
-                      {cat}
-                    </button>
-                  ))}
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      + Return
+                    </Button>
+                  </div>
                 </div>
 
-                <Select
-                  value={stockFilter}
-                  onValueChange={(val: any) => {
-                    setStockFilter(val);
-                    if (isCatalogCollapsed) setIsCatalogCollapsed(false);
-                  }}
-                >
-                  <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="All">All Stocks</SelectItem>
-                    <SelectItem value="Low">Low Stock (≤5)</SelectItem>
-                    <SelectItem value="Out">Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </Card>
-
-            {/* Catalog Grid View */}
-            <Card className={cn(
-              "border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl flex flex-col overflow-hidden transition-all",
-              "lg:flex-1 lg:min-h-0",
-              isCatalogCollapsed ? "hidden lg:flex" : "flex max-h-72 sm:max-h-84 lg:max-h-none"
-            )}>
-              <div className="lg:hidden flex items-center justify-between px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40">
-                <span className="text-[11px] font-bold text-foreground">
-                  Products Catalog ({filteredProducts.length})
-                </span>
+                {/* Big Tap-to-Search / Add Components Button */}
                 <button
                   type="button"
-                  onClick={() => setIsCatalogCollapsed(true)}
-                  className="text-[10px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  onClick={() => setIsMobileCatalogOpen(true)}
+                  className="w-full h-11 px-3 bg-zinc-50 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/90 dark:border-zinc-700/80 rounded-xl flex items-center justify-between text-xs transition-all group"
                 >
-                  Collapse Grid ▲
+                  <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground">
+                    <Search className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-xs text-foreground/80">
+                      Search &amp; add components from catalog...
+                    </span>
+                  </div>
+                  <Badge className="bg-primary hover:bg-primary text-white text-[10px] h-6 px-2.5 font-bold gap-1 shadow-xs">
+                    <Plus className="h-3 w-3" />
+                    <span>Add Parts</span>
+                  </Badge>
                 </button>
               </div>
-              <ScrollArea className="flex-1 p-3">
-                {isProductsLoading ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-xs gap-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-                    Syncing catalog products and live stock levels...
-                  </div>
-                ) : filteredProducts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-center p-6 space-y-2">
-                    <PackageX className="h-10 w-10 text-muted-foreground/40" />
-                    <p className="text-sm font-bold text-foreground">No matching products found</p>
-                    <p className="text-xs text-muted-foreground max-w-xs">
-                      Try searching another keyword or use "+ Custom Item" to bill an uncatalogued item.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
-                    {filteredProducts.map((p) => {
-                      const isOutOfStock = p.stock <= 0;
-                      const isLowStock = p.stock > 0 && p.stock <= (p.minStockLevel || 5);
-                      const inCartItem = cart.find((i) => i.product.id === p.id && !i.isReturn);
-
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => handleProductClick(p)}
-                          className={`relative flex flex-col text-left p-2.5 rounded-xl border transition-all group ${
-                            inCartItem
-                              ? 'border-primary ring-2 ring-primary/20 bg-primary/[0.03]'
-                              : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-sm'
-                          }`}
-                        >
-                          {/* Top Badges */}
-                          <div className="flex justify-between items-start gap-1 mb-1.5 w-full">
-                            <span className="text-[9px] font-mono font-bold text-muted-foreground truncate uppercase">
-                              {p.sku}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={`text-[9px] px-1.5 py-0 h-4 font-bold border ${
-                                isOutOfStock
-                                  ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
-                                  : isLowStock
-                                  ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900'
-                                  : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
-                              }`}
-                            >
-                              {p.stock} in stock
-                            </Badge>
-                          </div>
-
-                          {/* Image & Title */}
-                          <div className="flex items-center gap-2 mb-2">
-                            {p.image ? (
-                              <img
-                                src={p.image}
-                                alt={p.name}
-                                className="h-10 w-10 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800"
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[10px]">
-                                IC
-                              </div>
-                            )}
-                            <h4 className="text-xs font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                              {p.name}
-                            </h4>
-                          </div>
-
-                          {/* Bottom Price & In-Cart Counter */}
-                          <div className="mt-auto flex justify-between items-center pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 w-full">
-                            <span className="text-sm font-black text-foreground">
-                              ₹{p.sellingPrice ?? p.price}
-                            </span>
-                            {inCartItem ? (
-                              <Badge className="bg-primary text-white text-[10px] h-5 px-1.5 font-bold">
-                                In Cart: {inCartItem.quantity}
-                              </Badge>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground group-hover:text-primary font-semibold">
-                                + Add
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </Card>
-
-            {/* Show Products Grid Expand Button if collapsed on mobile */}
-            {isCatalogCollapsed && (
-              <button
-                type="button"
-                onClick={() => setIsCatalogCollapsed(false)}
-                className="lg:hidden w-full py-2 px-3 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs"
-              >
-                <span>Show Products Catalog ({filteredProducts.length} items) ▼</span>
-              </button>
-            )}
-          </div>
-
-          {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE */}
-          <div id="cart-section" className="lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
             {/* Customer Association Header */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl shrink-0 p-2.5 relative">
               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
@@ -795,12 +841,21 @@ export default function AdminBillingPage() {
               {/* Scrollable Line Items */}
               <ScrollArea className="flex-1 p-2 max-h-72 sm:max-h-84 lg:max-h-none">
                 {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[160px] text-center p-4 text-muted-foreground space-y-1">
-                    <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mb-1" />
-                    <p className="text-xs font-bold">Cart is empty</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Click catalog products on the left or add custom items.
+                  <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center p-4 text-muted-foreground space-y-2">
+                    <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mb-0.5" />
+                    <p className="text-xs font-bold text-foreground">Current bill is empty</p>
+                    <p className="text-[11px] text-muted-foreground max-w-xs">
+                      Tap below or search to add electronic components, kits, or custom items.
                     </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setIsMobileCatalogOpen(true)}
+                      className="lg:hidden mt-1 h-8 px-3.5 text-xs font-bold rounded-lg bg-primary hover:bg-primary/95 text-white shadow-xs gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Components from Catalog</span>
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -1221,27 +1276,39 @@ export default function AdminBillingPage() {
         {/* Sticky Mobile Summary Bar (< lg) */}
         {cart.length > 0 && (
           <div className="fixed bottom-3 left-3 right-3 lg:hidden z-30 pointer-events-auto">
-            <div className="p-2.5 bg-zinc-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-zinc-700/60 rounded-2xl shadow-2xl flex items-center justify-between gap-3">
+            <div className="p-2.5 bg-zinc-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-zinc-700/60 rounded-2xl shadow-2xl flex items-center justify-between gap-2">
               <div
                 onClick={() => scrollToSection('cart-section')}
                 className="flex flex-col cursor-pointer pl-1 min-w-0"
               >
-                <span className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1.5 truncate">
-                  <ShoppingCart className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1 truncate">
+                  <ShoppingCart className="h-3 w-3 text-primary shrink-0" />
                   {cart.reduce((acc, i) => acc + i.quantity, 0)} Items In Bill
                 </span>
-                <span className="text-base font-black text-white">
+                <span className="text-sm font-black text-white">
                   ₹{grandTotal.toFixed(2)}
                 </span>
               </div>
-              <Button
-                type="button"
-                onClick={() => scrollToSection('checkout-section')}
-                className="h-9 px-4 text-xs font-black rounded-xl bg-primary hover:bg-primary/90 text-white shadow-md gap-1.5 shrink-0"
-              >
-                <span>Checkout &amp; Pay</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMobileCatalogOpen(true)}
+                  className="h-8 px-2.5 text-xs font-bold rounded-lg border-zinc-700 bg-zinc-800 text-zinc-100 hover:bg-zinc-700 gap-1 shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5 text-primary" />
+                  <span>Add More</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => scrollToSection('checkout-section')}
+                  className="h-8 px-3 text-xs font-black rounded-lg bg-primary hover:bg-primary/90 text-white shadow-md gap-1 shrink-0"
+                >
+                  <span>Pay ₹{grandTotal.toFixed(0)}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -1329,6 +1396,13 @@ export default function AdminBillingPage() {
         storePhone="7010396642"
         storeGstin=""
       />
+
+      {/* Mobile Components Add Popup Modal (< lg) */}
+      <Dialog open={isMobileCatalogOpen} onOpenChange={setIsMobileCatalogOpen}>
+        <DialogContent className="max-w-xl w-[95vw] sm:w-full h-[90vh] sm:h-[85vh] p-0 flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+          {renderCatalogContent(true)}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
