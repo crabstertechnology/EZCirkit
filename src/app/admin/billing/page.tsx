@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 import {
   Search,
@@ -59,6 +60,8 @@ import {
   PackageX,
   X,
   Loader2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 export default function AdminBillingPage() {
@@ -141,7 +144,14 @@ export default function AdminBillingPage() {
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
-  const [mobilePanel, setMobilePanel] = useState<'catalog' | 'cart'>('catalog');
+  const [isCatalogCollapsed, setIsCatalogCollapsed] = useState(false);
+
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Modals state
   const [editingCartItem, setEditingCartItem] = useState<BillingCartItem | null>(null);
@@ -374,7 +384,7 @@ export default function AdminBillingPage() {
             <h1 className="text-base font-black tracking-tight text-foreground leading-none">
               Billing Engine &amp; POS
             </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">
               Live e-commerce stock sync, returns, exchanges, inventory audit ledger &amp; thermal invoicing.
             </p>
           </div>
@@ -402,38 +412,42 @@ export default function AdminBillingPage() {
       {/* TAB 1: ACTIVE POS BILLING SCREEN */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'pos' && (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {/* Mobile Switcher Tab (< lg) */}
-          <div className="lg:hidden grid grid-cols-2 p-1 bg-zinc-200/80 dark:bg-zinc-800 rounded-xl gap-1 shrink-0 mb-1">
+        <div className="flex flex-col flex-1 min-h-0 lg:overflow-hidden relative">
+          {/* Mobile Quick Navigation Chips (< lg) */}
+          <div className="lg:hidden grid grid-cols-3 gap-1.5 p-1 bg-zinc-200/80 dark:bg-zinc-800 rounded-xl shrink-0 mb-1">
             <button
               type="button"
-              onClick={() => setMobilePanel('catalog')}
-              className={`h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                mobilePanel === 'catalog'
-                  ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              onClick={() => scrollToSection('catalog-section')}
+              className="h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 bg-white dark:bg-zinc-900 text-foreground shadow-xs"
             >
-              <Search className="h-3.5 w-3.5" />
-              Catalog ({filteredProducts.length})
+              <Search className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="truncate">Catalog ({filteredProducts.length})</span>
             </button>
             <button
               type="button"
-              onClick={() => setMobilePanel('cart')}
-              className={`h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                mobilePanel === 'cart'
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+              onClick={() => scrollToSection('cart-section')}
+              className="h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 bg-white dark:bg-zinc-900 text-foreground shadow-xs"
+            >
+              <ShoppingCart className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="truncate">Bill ({cart.reduce((acc, i) => acc + i.quantity, 0)})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('checkout-section')}
+              className={`h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs ${
+                cart.length > 0
+                  ? 'bg-primary text-white'
+                  : 'bg-white dark:bg-zinc-900 text-muted-foreground'
               }`}
             >
-              <ShoppingCart className="h-3.5 w-3.5" />
-              Cart ({cart.reduce((acc, i) => acc + i.quantity, 0)}) • ₹{grandTotal.toFixed(0)}
+              <CreditCard className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Pay ₹{grandTotal.toFixed(0)}</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 lg:overflow-hidden pb-20 lg:pb-0">
             {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID */}
-            <div className={`lg:col-span-5 flex-col h-full space-y-2 min-h-0 ${mobilePanel === 'catalog' ? 'flex flex-1' : 'hidden lg:flex'}`}>
+            <div id="catalog-section" className="lg:col-span-5 flex flex-col lg:h-full space-y-2 min-h-0">
             {/* Search and Action Bar */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl shrink-0 p-3">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -442,7 +456,10 @@ export default function AdminBillingPage() {
                   <Input
                     placeholder="Search catalog by product name, SKU, or category..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (isCatalogCollapsed) setIsCatalogCollapsed(false);
+                    }}
                     className="pl-9 h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
                     autoFocus
                   />
@@ -485,7 +502,10 @@ export default function AdminBillingPage() {
                   {categories.map((cat) => (
                     <button
                       key={cat}
-                      onClick={() => setSelectedCategory(cat)}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        if (isCatalogCollapsed) setIsCatalogCollapsed(false);
+                      }}
                       className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
                         selectedCategory === cat
                           ? 'bg-primary text-white shadow-sm'
@@ -497,7 +517,13 @@ export default function AdminBillingPage() {
                   ))}
                 </div>
 
-                <Select value={stockFilter} onValueChange={(val: any) => setStockFilter(val)}>
+                <Select
+                  value={stockFilter}
+                  onValueChange={(val: any) => {
+                    setStockFilter(val);
+                    if (isCatalogCollapsed) setIsCatalogCollapsed(false);
+                  }}
+                >
                   <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
                     <SelectValue />
                   </SelectTrigger>
@@ -511,7 +537,23 @@ export default function AdminBillingPage() {
             </Card>
 
             {/* Catalog Grid View */}
-            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl flex-1 min-h-0 overflow-hidden flex flex-col">
+            <Card className={cn(
+              "border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-2xl flex flex-col overflow-hidden transition-all",
+              "lg:flex-1 lg:min-h-0",
+              isCatalogCollapsed ? "hidden lg:flex" : "flex max-h-72 sm:max-h-84 lg:max-h-none"
+            )}>
+              <div className="lg:hidden flex items-center justify-between px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40">
+                <span className="text-[11px] font-bold text-foreground">
+                  Products Catalog ({filteredProducts.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCatalogCollapsed(true)}
+                  className="text-[10px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  Collapse Grid ▲
+                </button>
+              </div>
               <ScrollArea className="flex-1 p-3">
                 {isProductsLoading ? (
                   <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-xs gap-2">
@@ -604,36 +646,20 @@ export default function AdminBillingPage() {
               </ScrollArea>
             </Card>
 
-            {/* Sticky Mobile Cart Bar when on Catalog (< lg) */}
-            {cart.length > 0 && (
-              <div className="lg:hidden shrink-0 pt-1 pb-0.5 z-30">
-                <div className="p-2 bg-white dark:bg-zinc-900 border border-primary/40 rounded-xl shadow-lg flex items-center justify-between gap-2">
-                  <div
-                    onClick={() => setMobilePanel('cart')}
-                    className="flex flex-col cursor-pointer pl-1"
-                  >
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                      <ShoppingCart className="h-3 w-3 text-primary" />
-                      {cart.reduce((acc, i) => acc + i.quantity, 0)} Items
-                    </span>
-                    <span className="text-sm font-black text-foreground">
-                      ₹{grandTotal.toFixed(2)}
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => setMobilePanel('cart')}
-                    className="h-8 px-3 text-xs font-black rounded-lg bg-primary hover:bg-primary/95 text-white shadow-sm gap-1"
-                  >
-                    Collect Payment →
-                  </Button>
-                </div>
-              </div>
+            {/* Show Products Grid Expand Button if collapsed on mobile */}
+            {isCatalogCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsCatalogCollapsed(false)}
+                className="lg:hidden w-full py-2 px-3 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs"
+              >
+                <span>Show Products Catalog ({filteredProducts.length} items) ▼</span>
+              </button>
             )}
           </div>
 
           {/* RIGHT PANEL: CART, CUSTOMER & SETTLEMENT ENGINE */}
-          <div className={`lg:col-span-7 flex-col h-full space-y-2 min-h-0 ${mobilePanel === 'cart' ? 'flex flex-1' : 'hidden lg:flex'}`}>
+          <div id="cart-section" className="lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
             {/* Customer Association Header */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl shrink-0 p-2.5 relative">
               <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
@@ -734,7 +760,7 @@ export default function AdminBillingPage() {
             </Card>
 
             {/* Cart Line Items Table - Expanded View */}
-            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl flex-1 min-h-0 flex flex-col overflow-hidden">
+            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl flex flex-col overflow-hidden lg:flex-1 lg:min-h-0">
               <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4 text-primary" />
@@ -767,7 +793,7 @@ export default function AdminBillingPage() {
               )}
 
               {/* Scrollable Line Items */}
-              <ScrollArea className="flex-1 p-2">
+              <ScrollArea className="flex-1 p-2 max-h-72 sm:max-h-84 lg:max-h-none">
                 {cart.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[160px] text-center p-4 text-muted-foreground space-y-1">
                     <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mb-1" />
@@ -1031,7 +1057,7 @@ export default function AdminBillingPage() {
               </ScrollArea>
 
               {/* Financial Breakdown & Settlement Engine */}
-              <div className="p-2.5 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0 space-y-2">
+              <div id="checkout-section" className="p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0 space-y-2.5">
                 {/* Summary Lines */}
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between items-center text-muted-foreground">
@@ -1191,6 +1217,34 @@ export default function AdminBillingPage() {
             </Card>
           </div>
         </div>
+
+        {/* Sticky Mobile Summary Bar (< lg) */}
+        {cart.length > 0 && (
+          <div className="fixed bottom-3 left-3 right-3 lg:hidden z-30 pointer-events-auto">
+            <div className="p-2.5 bg-zinc-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-zinc-700/60 rounded-2xl shadow-2xl flex items-center justify-between gap-3">
+              <div
+                onClick={() => scrollToSection('cart-section')}
+                className="flex flex-col cursor-pointer pl-1 min-w-0"
+              >
+                <span className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1.5 truncate">
+                  <ShoppingCart className="h-3.5 w-3.5 text-primary shrink-0" />
+                  {cart.reduce((acc, i) => acc + i.quantity, 0)} Items In Bill
+                </span>
+                <span className="text-base font-black text-white">
+                  ₹{grandTotal.toFixed(2)}
+                </span>
+              </div>
+              <Button
+                type="button"
+                onClick={() => scrollToSection('checkout-section')}
+                className="h-9 px-4 text-xs font-black rounded-xl bg-primary hover:bg-primary/90 text-white shadow-md gap-1.5 shrink-0"
+              >
+                <span>Checkout &amp; Pay</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     )}
 
