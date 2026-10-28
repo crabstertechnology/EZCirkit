@@ -36,7 +36,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import {
   Search,
@@ -146,8 +145,6 @@ export default function AdminBillingPage() {
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
-  const [isCatalogCollapsed, setIsCatalogCollapsed] = useState(false);
-  const [isMobileCatalogOpen, setIsMobileCatalogOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -213,8 +210,8 @@ export default function AdminBillingPage() {
     const existingIndex = cart.findIndex((item) => item.product.id === product.id && !item.isReturn);
 
     if (existingIndex >= 0) {
-      setEditingCartItem(cart[existingIndex]);
-      setIsQuantityModalOpen(true);
+      const existing = cart[existingIndex];
+      handleUpdateItemQuantity(existing.id, existing.quantity + 1);
     } else {
       const newItem: BillingCartItem = {
         id: `${product.id}-${Date.now()}`,
@@ -376,46 +373,134 @@ export default function AdminBillingPage() {
   };
 
   // -------------------------------------------------------------
-  // Reusable Catalog & Components View (Desktop Panel & Mobile Modal)
+  // Reusable Customer Association Component
+  // variant 'top': visible only on desktop top-right
+  // variant 'checkout': visible only on mobile inside settlement card
   // -------------------------------------------------------------
-  const renderCatalogContent = (isMobileModal: boolean = false) => (
-    <div className="flex flex-col h-full space-y-2 min-h-0">
-      {/* Mobile Modal Header */}
-      {isMobileModal && (
-        <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <Package className="h-4 w-4" />
-            </div>
-            <div>
-              <DialogTitle className="text-sm font-black text-foreground leading-tight">
-                Add Components to Bill
-              </DialogTitle>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Tap items to add directly to current bill
-              </p>
-            </div>
+  const renderCustomerInfo = (variant: 'top' | 'checkout') => (
+    <Card className={cn(
+      "border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl relative",
+      variant === 'top' ? "shrink-0 p-2.5 hidden lg:block" : "p-2.5 border-zinc-200 dark:border-zinc-800 space-y-1.5 lg:hidden mb-2"
+    )}>
+      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+          <User className="h-3.5 w-3.5 text-primary" />
+          <span>{variant === 'checkout' ? 'Customer Details (Optional)' : 'Customer Information'}</span>
+          <span className="text-[10px] text-muted-foreground font-normal italic">
+            (defaults to Walk-in Customer)
+          </span>
+        </div>
+        {(customerName || customerPhone) && (
+          <button
+            type="button"
+            onClick={() => {
+              setCustomerName('');
+              setCustomerPhone('');
+              setCustomerId(null);
+            }}
+            className="text-[10px] text-rose-500 hover:underline font-semibold flex items-center gap-1"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="relative">
+          <Input
+            placeholder="Customer Name (Optional)"
+            value={customerName}
+            onFocus={() => setShowCustomerSuggestions(true)}
+            onChange={(e) => {
+              setCustomerName(e.target.value);
+              setShowCustomerSuggestions(true);
+            }}
+            className="h-8 text-xs rounded-lg"
+          />
+          {customerName && (
+            <button
+              type="button"
+              onClick={() => setCustomerName('')}
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="relative">
+          <Input
+            placeholder="Phone (10 digits - Optional)"
+            value={customerPhone}
+            onFocus={() => setShowCustomerSuggestions(true)}
+            onChange={(e) => {
+              setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
+              setShowCustomerSuggestions(true);
+            }}
+            className="h-8 text-xs rounded-lg font-mono"
+          />
+          {customerPhone && (
+            <button
+              type="button"
+              onClick={() => setCustomerPhone('')}
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Autocomplete Dropdown */}
+      {showCustomerSuggestions && customerSuggestions.length > 0 && (
+        <div className="absolute top-full left-2 right-2 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+          <div className="p-1.5 text-[10px] font-bold text-muted-foreground uppercase bg-zinc-50 dark:bg-zinc-800/50">
+            Existing Customers
           </div>
-          <Badge className="bg-primary text-white text-[10px] px-2 py-0.5 font-bold">
-            {cart.reduce((acc, i) => acc + i.quantity, 0)} In Bill
-          </Badge>
+          {customerSuggestions.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                setCustomerName(c.name);
+                setCustomerPhone(c.phone);
+                setCustomerAddress(c.address || '');
+                setCustomerId(c.id);
+                setShowCustomerSuggestions(false);
+              }}
+              className="w-full text-left p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex justify-between items-center text-xs border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+            >
+              <span className="font-semibold text-foreground">{c.name}</span>
+              <span className="font-mono text-muted-foreground">{c.phone}</span>
+            </button>
+          ))}
         </div>
       )}
+    </Card>
+  );
 
+  // -------------------------------------------------------------
+  // Reusable Catalog & Components View (Desktop Panel & Mobile Inline Section)
+  // -------------------------------------------------------------
+  const renderCatalogContent = (isMobileInline: boolean = false) => (
+    <div className={cn(
+      "flex flex-col space-y-2 min-h-0",
+      isMobileInline ? "w-full" : "h-full"
+    )}>
       {/* Search and Action Bar */}
       <Card className={cn(
-        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 shrink-0 p-3",
-        isMobileModal ? "rounded-none border-x-0 border-t-0 border-b shadow-none" : "rounded-2xl"
+        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 shrink-0",
+        isMobileInline ? "p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800" : "p-3 rounded-2xl"
       )}>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search catalog by product name, SKU, or category..."
+              placeholder="Search components by name, SKU, or category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
-              autoFocus={isMobileModal}
+              className="pl-9 h-9 sm:h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
             />
             {searchQuery && (
               <button
@@ -428,38 +513,40 @@ export default function AdminBillingPage() {
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsCustomModalOpen(true)}
-              className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-zinc-200 dark:border-zinc-800"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              + Custom Item
-            </Button>
+          {!isMobileInline && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCustomModalOpen(true)}
+                className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-zinc-200 dark:border-zinc-800"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                + Custom Item
+              </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsReturnModalOpen(true)}
-              className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              + Return Item
-            </Button>
-          </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsReturnModalOpen(true)}
+                className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                + Return Item
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Category Pills & Stock Filters */}
-        <div className="flex items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-3 overflow-x-auto pb-0.5">
+        <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-3 overflow-x-auto pb-0.5">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
                   selectedCategory === cat
                     ? 'bg-primary text-white shadow-sm'
                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -488,20 +575,31 @@ export default function AdminBillingPage() {
 
       {/* Catalog Grid View */}
       <Card className={cn(
-        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 flex-1 min-h-0 overflow-hidden flex flex-col",
-        isMobileModal ? "rounded-none border-x-0 border-b-0 shadow-none" : "rounded-2xl"
+        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 overflow-hidden flex flex-col",
+        isMobileInline
+          ? "rounded-xl border border-zinc-200 dark:border-zinc-800"
+          : "rounded-2xl flex-1 min-h-0"
       )}>
-        <ScrollArea className="flex-1 p-3">
+        <div className="px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-foreground">
+            Components Catalog ({filteredProducts.length} items)
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            Tap item to add directly to Active Cart above
+          </span>
+        </div>
+
+        <ScrollArea className={cn("p-2.5", isMobileInline ? "max-h-[380px] sm:max-h-[440px]" : "flex-1")}>
           {isProductsLoading ? (
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-xs gap-2">
+            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-xs gap-2">
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
               Syncing catalog products and live stock levels...
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center p-6 space-y-2">
-              <PackageX className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm font-bold text-foreground">No matching products found</p>
-              <p className="text-xs text-muted-foreground max-w-xs">
+            <div className="flex flex-col items-center justify-center h-48 text-center p-4 space-y-2">
+              <PackageX className="h-9 w-9 text-muted-foreground/40" />
+              <p className="text-xs font-bold text-foreground">No matching products found</p>
+              <p className="text-[11px] text-muted-foreground max-w-xs">
                 Try searching another keyword or use "+ Custom Item" to bill an uncatalogued item.
               </p>
             </div>
@@ -517,20 +615,20 @@ export default function AdminBillingPage() {
                     key={p.id}
                     type="button"
                     onClick={() => handleProductClick(p)}
-                    className={`relative flex flex-col text-left p-2.5 rounded-xl border transition-all group ${
+                    className={`relative flex flex-col text-left p-2 rounded-xl border transition-all group ${
                       inCartItem
                         ? 'border-primary ring-2 ring-primary/20 bg-primary/[0.03]'
-                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-sm'
+                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-xs'
                     }`}
                   >
                     {/* Top Badges */}
-                    <div className="flex justify-between items-start gap-1 mb-1.5 w-full">
+                    <div className="flex justify-between items-start gap-1 mb-1 w-full">
                       <span className="text-[9px] font-mono font-bold text-muted-foreground truncate uppercase">
                         {p.sku}
                       </span>
                       <Badge
                         variant="outline"
-                        className={`text-[9px] px-1.5 py-0 h-4 font-bold border ${
+                        className={`text-[8.5px] px-1 py-0 h-3.5 font-bold border ${
                           isOutOfStock
                             ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
                             : isLowStock
@@ -543,34 +641,34 @@ export default function AdminBillingPage() {
                     </div>
 
                     {/* Image & Title */}
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 mb-1.5">
                       {p.image ? (
                         <img
                           src={p.image}
                           alt={p.name}
-                          className="h-10 w-10 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800"
+                          className="h-9 w-9 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[10px]">
+                        <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[9px]">
                           IC
                         </div>
                       )}
-                      <h4 className="text-xs font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                      <h4 className="text-[11px] font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                         {p.name}
                       </h4>
                     </div>
 
                     {/* Bottom Price & In-Cart Counter */}
-                    <div className="mt-auto flex justify-between items-center pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 w-full">
-                      <span className="text-sm font-black text-foreground">
+                    <div className="mt-auto flex justify-between items-center pt-1 border-t border-zinc-100 dark:border-zinc-800/80 w-full">
+                      <span className="text-xs font-black text-foreground">
                         ₹{p.sellingPrice ?? p.price}
                       </span>
                       {inCartItem ? (
-                        <Badge className="bg-primary text-white text-[10px] h-5 px-1.5 font-bold">
+                        <Badge className="bg-primary text-white text-[9px] h-4.5 px-1.5 font-bold">
                           In Cart: {inCartItem.quantity}
                         </Badge>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground group-hover:text-primary font-semibold">
+                        <span className="text-[9px] text-muted-foreground group-hover:text-primary font-semibold">
                           + Add
                         </span>
                       )}
@@ -582,29 +680,6 @@ export default function AdminBillingPage() {
           )}
         </ScrollArea>
       </Card>
-
-      {/* Mobile Modal Footer */}
-      {isMobileModal && (
-        <div className="p-3 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex flex-col pl-1 min-w-0">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 truncate">
-              <ShoppingCart className="h-3 w-3 text-primary shrink-0" />
-              {cart.reduce((acc, i) => acc + i.quantity, 0)} Items In Bill
-            </span>
-            <span className="text-sm font-black text-foreground">
-              Total: ₹{grandTotal.toFixed(2)}
-            </span>
-          </div>
-          <Button
-            type="button"
-            onClick={() => setIsMobileCatalogOpen(false)}
-            className="h-9 px-4 text-xs font-black rounded-xl bg-primary hover:bg-primary/95 text-white shadow-md gap-1.5 shrink-0"
-          >
-            <span>Done &amp; View Bill</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 
@@ -657,153 +732,40 @@ export default function AdminBillingPage() {
 
             {/* RIGHT PANEL: BILLING, CUSTOMER & SETTLEMENT ENGINE */}
             <div id="cart-section" className="col-span-1 lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
-              {/* Mobile Add Components Trigger Bar (< lg) */}
-              <div className="lg:hidden p-2.5 bg-white dark:bg-zinc-900 border border-primary/25 rounded-xl shadow-xs space-y-2 shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <Package className="h-4 w-4 text-primary" />
-                    <span>Components &amp; Items</span>
+              {/* Mobile Top Quick Action Bar (< lg) */}
+              <div className="lg:hidden flex items-center justify-between px-1 py-1 shrink-0">
+                <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
+                  <div className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    <Receipt className="h-3.5 w-3.5" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsCustomModalOpen(true)}
-                      className="h-7 px-2 text-[10px] font-bold rounded-lg border-zinc-200 dark:border-zinc-800"
-                    >
-                      <Sparkles className="h-3 w-3 text-amber-500 mr-1" />
-                      + Custom
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsReturnModalOpen(true)}
-                      className="h-7 px-2 text-[10px] font-bold rounded-lg border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                    >
-                      <RotateCcw className="h-3 w-3 mr-1" />
-                      + Return
-                    </Button>
-                  </div>
+                  <span>POS Bill #{generateSequentialBillNumber(salesCount, 'INV', 1)}</span>
                 </div>
-
-                {/* Big Tap-to-Search / Add Components Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsMobileCatalogOpen(true)}
-                  className="w-full h-11 px-3 bg-zinc-50 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/90 dark:border-zinc-700/80 rounded-xl flex items-center justify-between text-xs transition-all group"
-                >
-                  <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground">
-                    <Search className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-xs text-foreground/80">
-                      Search &amp; add components from catalog...
-                    </span>
-                  </div>
-                  <Badge className="bg-primary hover:bg-primary text-white text-[10px] h-6 px-2.5 font-bold gap-1 shadow-xs">
-                    <Plus className="h-3 w-3" />
-                    <span>Add Parts</span>
-                  </Badge>
-                </button>
-              </div>
-            {/* Customer Association Header */}
-            <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl shrink-0 p-2.5 relative">
-              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                  <User className="h-3.5 w-3.5 text-primary" />
-                  <span>Customer Information</span>
-                  <span className="text-[10px] text-muted-foreground font-normal italic">
-                    (Optional - defaults to Walk-in Customer)
-                  </span>
-                </div>
-                {(customerName || customerPhone) && (
-                  <button
+                <div className="flex items-center gap-1.5">
+                  <Button
                     type="button"
-                    onClick={() => {
-                      setCustomerName('');
-                      setCustomerPhone('');
-                      setCustomerId(null);
-                    }}
-                    className="text-[10px] text-rose-500 hover:underline font-semibold flex items-center gap-1"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCustomModalOpen(true)}
+                    className="h-7 px-2.5 text-[11px] font-bold rounded-lg border-zinc-200 dark:border-zinc-800 gap-1"
                   >
-                    <X className="h-3 w-3" />
-                    Clear
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="relative">
-                  <Input
-                    placeholder="Customer Name (Optional)"
-                    value={customerName}
-                    onFocus={() => setShowCustomerSuggestions(true)}
-                    onChange={(e) => {
-                      setCustomerName(e.target.value);
-                      setShowCustomerSuggestions(true);
-                    }}
-                    className="h-8 text-xs rounded-lg"
-                  />
-                  {customerName && (
-                    <button
-                      type="button"
-                      onClick={() => setCustomerName('')}
-                      className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <Input
-                    placeholder="Phone (10 digits - Optional)"
-                    value={customerPhone}
-                    onFocus={() => setShowCustomerSuggestions(true)}
-                    onChange={(e) => {
-                      setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
-                      setShowCustomerSuggestions(true);
-                    }}
-                    className="h-8 text-xs rounded-lg font-mono"
-                  />
-                  {customerPhone && (
-                    <button
-                      type="button"
-                      onClick={() => setCustomerPhone('')}
-                      className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    + Custom
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsReturnModalOpen(true)}
+                    className="h-7 px-2.5 text-[11px] font-bold rounded-lg border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 gap-1"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    + Return
+                  </Button>
                 </div>
               </div>
 
-              {/* Autocomplete Dropdown */}
-              {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                <div className="absolute top-full left-2 right-2 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                  <div className="p-1.5 text-[10px] font-bold text-muted-foreground uppercase bg-zinc-50 dark:bg-zinc-800/50">
-                    Existing Customers
-                  </div>
-                  {customerSuggestions.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setCustomerName(c.name);
-                        setCustomerPhone(c.phone);
-                        setCustomerAddress(c.address || '');
-                        setCustomerId(c.id);
-                        setShowCustomerSuggestions(false);
-                      }}
-                      className="w-full text-left p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex justify-between items-center text-xs border-b border-zinc-100 dark:border-zinc-800 last:border-0"
-                    >
-                      <span className="font-semibold text-foreground">{c.name}</span>
-                      <span className="font-mono text-muted-foreground">{c.phone}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </Card>
+              {/* Desktop Customer Association Header (Hidden on mobile - asked during checkout) */}
+              {renderCustomerInfo('top')}
 
             {/* Cart Line Items Table - Expanded View */}
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl flex flex-col overflow-hidden lg:flex-1 lg:min-h-0">
@@ -841,21 +803,12 @@ export default function AdminBillingPage() {
               {/* Scrollable Line Items */}
               <ScrollArea className="flex-1 p-2 max-h-72 sm:max-h-84 lg:max-h-none">
                 {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center p-4 text-muted-foreground space-y-2">
-                    <ShoppingCart className="h-8 w-8 text-muted-foreground/30 mb-0.5" />
-                    <p className="text-xs font-bold text-foreground">Current bill is empty</p>
+                  <div className="flex flex-col items-center justify-center min-h-[140px] text-center p-4 text-muted-foreground space-y-1">
+                    <ShoppingCart className="h-7 w-7 text-muted-foreground/30 mb-0.5" />
+                    <p className="text-xs font-bold text-foreground">Active cart is empty</p>
                     <p className="text-[11px] text-muted-foreground max-w-xs">
-                      Tap below or search to add electronic components, kits, or custom items.
+                      Tap any component in the catalog below to add it directly to this bill.
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setIsMobileCatalogOpen(true)}
-                      className="lg:hidden mt-1 h-8 px-3.5 text-xs font-bold rounded-lg bg-primary hover:bg-primary/95 text-white shadow-xs gap-1.5"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Add Components from Catalog</span>
-                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -1111,46 +1064,67 @@ export default function AdminBillingPage() {
                 )}
               </ScrollArea>
 
-              {/* Financial Breakdown & Settlement Engine */}
-              <div id="checkout-section" className="p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0 space-y-2.5">
-                {/* Summary Lines */}
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span className="flex items-center gap-2">
-                      <span>Subtotal: ₹{grossSubtotal.toFixed(2)}</span>
-                      {totalTax > 0 && <span>• Tax: ₹{totalTax.toFixed(2)}</span>}
-                    </span>
-                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                      <span>Order Disc:</span>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="₹0"
-                        value={orderDiscount || ''}
-                        onChange={(e) => setOrderDiscount(parseFloat(e.target.value) || 0)}
-                        className="w-14 h-5 px-1 text-[10px] text-right rounded border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 ml-0.5"
-                      />
-                      <span>(-₹{totalDiscount.toFixed(2)})</span>
-                    </span>
-                  </div>
+              {/* Active Cart Subtotal Bar */}
+              {cart.length > 0 && (
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/40 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center text-xs shrink-0">
+                  <span className="text-muted-foreground font-semibold">
+                    Subtotal ({cart.reduce((acc, i) => acc + i.quantity, 0)} items)
+                  </span>
+                  <span className="font-black text-foreground">
+                    ₹{grossSubtotal.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </Card>
 
-                  {/* Grand Total Bar */}
-                  <div className="flex justify-between items-center pt-1 border-t border-zinc-200 dark:border-zinc-800">
-                    <span className="text-xs font-black uppercase tracking-wider text-foreground">
-                      {isRefundMode ? 'NET REFUND TO CUSTOMER' : 'GRAND TOTAL PAYABLE'}
-                    </span>
-                    <span
-                      className={`text-xl font-black ${
-                        isRefundMode ? 'text-rose-600' : 'text-primary'
-                      }`}
-                    >
-                      ₹{Math.abs(grandTotal).toFixed(2)}
-                    </span>
-                  </div>
+            {/* Mobile Inline Components Catalog (< lg): Rendered DIRECTLY below Active Cart! */}
+            <div className="lg:hidden">
+              {renderCatalogContent(true)}
+            </div>
+
+            {/* Financial Breakdown & Settlement Engine */}
+            <Card id="checkout-section" className="border-border/60 shadow-sm p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shrink-0 space-y-2.5">
+              {/* Summary Lines */}
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <span>Subtotal: ₹{grossSubtotal.toFixed(2)}</span>
+                    {totalTax > 0 && <span>• Tax: ₹{totalTax.toFixed(2)}</span>}
+                  </span>
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <span>Order Disc:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="₹0"
+                      value={orderDiscount || ''}
+                      onChange={(e) => setOrderDiscount(parseFloat(e.target.value) || 0)}
+                      className="w-14 h-5 px-1 text-[10px] text-right rounded border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 ml-0.5"
+                    />
+                    <span>(-₹{totalDiscount.toFixed(2)})</span>
+                  </span>
                 </div>
 
-                {/* Payment Methods Bar (Split Removed) */}
-                {!isRefundMode && (
+                {/* Grand Total Bar */}
+                <div className="flex justify-between items-center pt-1 border-t border-zinc-200 dark:border-zinc-800">
+                  <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                    {isRefundMode ? 'NET REFUND TO CUSTOMER' : 'GRAND TOTAL PAYABLE'}
+                  </span>
+                  <span
+                    className={`text-xl font-black ${
+                      isRefundMode ? 'text-rose-600' : 'text-primary'
+                    }`}
+                  >
+                    ₹{Math.abs(grandTotal).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile Customer Details (Asked right here at checkout on mobile) */}
+              {renderCustomerInfo('checkout')}
+
+              {/* Payment Methods Bar (Split Removed) */}
+              {!isRefundMode && (
                   <div className="pt-1.5 border-t border-zinc-200/80 dark:border-zinc-800 space-y-1.5">
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
@@ -1268,7 +1242,6 @@ export default function AdminBillingPage() {
                     `COLLECT PAYMENT & PRINT (₹${grandTotal.toFixed(2)})`
                   )}
                 </Button>
-              </div>
             </Card>
           </div>
         </div>
@@ -1292,20 +1265,10 @@ export default function AdminBillingPage() {
               <div className="flex items-center gap-1.5">
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMobileCatalogOpen(true)}
-                  className="h-8 px-2.5 text-xs font-bold rounded-lg border-zinc-700 bg-zinc-800 text-zinc-100 hover:bg-zinc-700 gap-1 shrink-0"
-                >
-                  <Plus className="h-3.5 w-3.5 text-primary" />
-                  <span>Add More</span>
-                </Button>
-                <Button
-                  type="button"
                   onClick={() => scrollToSection('checkout-section')}
-                  className="h-8 px-3 text-xs font-black rounded-lg bg-primary hover:bg-primary/90 text-white shadow-md gap-1 shrink-0"
+                  className="h-8 px-4 text-xs font-black rounded-lg bg-primary hover:bg-primary/90 text-white shadow-md gap-1.5 shrink-0"
                 >
-                  <span>Pay ₹{grandTotal.toFixed(0)}</span>
+                  <span>Checkout &amp; Pay</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -1396,13 +1359,6 @@ export default function AdminBillingPage() {
         storePhone="7010396642"
         storeGstin=""
       />
-
-      {/* Mobile Components Add Popup Modal (< lg) */}
-      <Dialog open={isMobileCatalogOpen} onOpenChange={setIsMobileCatalogOpen}>
-        <DialogContent className="max-w-xl w-[95vw] sm:w-full h-[90vh] sm:h-[85vh] p-0 flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
-          {renderCatalogContent(true)}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
