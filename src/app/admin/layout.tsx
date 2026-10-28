@@ -113,7 +113,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       />
       
       <div className={cn("flex-1", pathname === '/admin/billing' ? "h-full lg:h-screen overflow-y-auto lg:overflow-hidden flex flex-col" : "overflow-y-auto")}>
-        <main className={cn(pathname === '/admin/billing' ? "p-2 sm:p-3 lg:p-3 flex-1 flex flex-col overflow-y-auto lg:overflow-hidden" : "p-4 sm:p-6 lg:p-8")}>
+        <main className={cn(pathname === '/admin/billing' ? "p-2 sm:p-3 lg:p-3 flex-1 flex flex-col min-h-0 lg:overflow-hidden" : "p-4 sm:p-6 lg:p-8")}>
           {children}
         </main>
       </div>

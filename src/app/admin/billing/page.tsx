@@ -145,6 +145,7 @@ export default function AdminBillingPage() {
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
+  const [isCatalogExpanded, setIsCatalogExpanded] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -170,7 +171,7 @@ export default function AdminBillingPage() {
     return ['All', ...Array.from(set)];
   }, [products]);
 
-  // Filtered Products for Catalog Search Grid
+  // Filtered Products for Catalog Search Grid (Desktop with Category & Stock filters)
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchSearch = matchProductSearch(p, searchQuery);
@@ -179,6 +180,11 @@ export default function AdminBillingPage() {
       return matchSearch && matchCat && matchStock;
     });
   }, [products, searchQuery, selectedCategory, stockFilter]);
+
+  // Mobile Catalog Products: Search across all 36+ components directly without category/stock restrictions
+  const mobileFilteredProducts = useMemo(() => {
+    return products.filter((p) => matchProductSearch(p, searchQuery));
+  }, [products, searchQuery]);
 
   // Customer Autocomplete Suggestions
   const customerSuggestions = useMemo(() => {
@@ -483,205 +489,244 @@ export default function AdminBillingPage() {
   // -------------------------------------------------------------
   // Reusable Catalog & Components View (Desktop Panel & Mobile Inline Section)
   // -------------------------------------------------------------
-  const renderCatalogContent = (isMobileInline: boolean = false) => (
-    <div className={cn(
-      "flex flex-col space-y-2 min-h-0",
-      isMobileInline ? "w-full" : "h-full"
-    )}>
-      {/* Search and Action Bar */}
-      <Card className={cn(
-        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 shrink-0",
-        isMobileInline ? "p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800" : "p-3 rounded-2xl"
+  const renderCatalogContent = (isMobileInline: boolean = false) => {
+    const currentProducts = isMobileInline ? mobileFilteredProducts : filteredProducts;
+
+    const catalogBody = (
+      <>
+        {isProductsLoading ? (
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-xs gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+            Syncing catalog products and live stock levels...
+          </div>
+        ) : currentProducts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-center p-4 space-y-2">
+            <PackageX className="h-9 w-9 text-muted-foreground/40" />
+            <p className="text-xs font-bold text-foreground">No matching products found</p>
+            <p className="text-[11px] text-muted-foreground max-w-xs">
+              Try searching another keyword or use "+ Custom Item" to bill an uncatalogued item.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+            {currentProducts.map((p) => {
+              const isOutOfStock = p.stock <= 0;
+              const isLowStock = p.stock > 0 && p.stock <= (p.minStockLevel || 5);
+              const inCartItem = cart.find((i) => i.product.id === p.id && !i.isReturn);
+
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleProductClick(p)}
+                  className={`relative flex flex-col text-left p-2 rounded-xl border transition-all select-none touch-pan-y group ${
+                    inCartItem
+                      ? 'border-primary ring-2 ring-primary/20 bg-primary/[0.03]'
+                      : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-xs active:scale-[0.98]'
+                  }`}
+                  style={{ touchAction: 'pan-y' }}
+                >
+                  {/* Top Badges */}
+                  <div className="flex justify-between items-start gap-1 mb-1 w-full pointer-events-none">
+                    <span className="text-[9px] font-mono font-bold text-muted-foreground truncate uppercase">
+                      {p.sku}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[8.5px] px-1 py-0 h-3.5 font-bold border ${
+                        isOutOfStock
+                          ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
+                          : isLowStock
+                          ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900'
+                          : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
+                      }`}
+                    >
+                      {p.stock} in stock
+                    </Badge>
+                  </div>
+
+                  {/* Image & Title */}
+                  <div className="flex items-center gap-1.5 mb-1.5 pointer-events-none">
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="h-9 w-9 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800 pointer-events-none"
+                      />
+                    ) : (
+                      <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[9px] pointer-events-none">
+                        IC
+                      </div>
+                    )}
+                    <h4 className="text-[11px] font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors pointer-events-none">
+                      {p.name}
+                    </h4>
+                  </div>
+
+                  {/* Bottom Price & In-Cart Counter */}
+                  <div className="mt-auto flex justify-between items-center pt-1 border-t border-zinc-100 dark:border-zinc-800/80 w-full pointer-events-none">
+                    <span className="text-xs font-black text-foreground">
+                      ₹{p.sellingPrice ?? p.price}
+                    </span>
+                    {inCartItem ? (
+                      <Badge className="bg-primary text-white text-[9px] h-4.5 px-1.5 font-bold">
+                        In Cart: {inCartItem.quantity}
+                      </Badge>
+                    ) : (
+                      <span className="text-[9px] text-muted-foreground group-hover:text-primary font-semibold">
+                        + Add
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </>
+    );
+
+    return (
+      <div className={cn(
+        "flex flex-col space-y-2 min-h-0",
+        isMobileInline ? "w-full" : "h-full"
       )}>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search components by name, SKU, or category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 sm:h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
-            />
-            {searchQuery && (
+        {/* Search and Action Bar */}
+        <Card className={cn(
+          "border-border/60 shadow-sm bg-white dark:bg-zinc-900 shrink-0",
+          isMobileInline ? "p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800" : "p-3 rounded-2xl"
+        )}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={isMobileInline ? "Search components by name or SKU..." : "Search components by name, SKU, or category..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 sm:h-10 text-xs rounded-xl border-zinc-200 dark:border-zinc-800"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {!isMobileInline && (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCustomModalOpen(true)}
+                  className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-zinc-200 dark:border-zinc-800"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  + Custom Item
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsReturnModalOpen(true)}
+                  className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  + Return Item
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Category Pills & Stock Filters (Desktop Only - removed on mobile as requested) */}
+          {!isMobileInline && (
+            <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-3 overflow-x-auto pb-0.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                      selectedCategory === cat
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <Select
+                value={stockFilter}
+                onValueChange={(val: any) => setStockFilter(val)}
+              >
+                <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Stocks</SelectItem>
+                  <SelectItem value="Low">Low Stock (≤5)</SelectItem>
+                  <SelectItem value="Out">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </Card>
+
+        {/* Catalog Grid View */}
+        <Card className={cn(
+          "border-border/60 shadow-sm bg-white dark:bg-zinc-900 overflow-hidden flex flex-col",
+          isMobileInline
+            ? "rounded-xl border border-zinc-200 dark:border-zinc-800"
+            : "rounded-2xl flex-1 min-h-0"
+        )}>
+          <div className="px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[11px] font-bold text-foreground truncate">
+                Components Catalog ({currentProducts.length} items)
+              </span>
+              <span className="text-[10px] text-muted-foreground truncate hidden xs:inline">
+                • Tap item to add directly to Active Cart
+              </span>
+            </div>
+            {isMobileInline && currentProducts.length > 4 && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                onClick={() => setIsCatalogExpanded(!isCatalogExpanded)}
+                className="text-[11px] font-bold text-primary hover:text-primary/80 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 transition-colors shrink-0"
               >
-                <X className="h-4 w-4" />
+                {isCatalogExpanded ? "Collapse View ▲" : `Show All (${currentProducts.length}) ▼`}
               </button>
             )}
           </div>
 
-          {!isMobileInline && (
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCustomModalOpen(true)}
-                className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-zinc-200 dark:border-zinc-800"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                + Custom Item
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsReturnModalOpen(true)}
-                className="flex-1 sm:flex-none h-10 text-xs font-bold rounded-xl gap-1.5 border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                + Return Item
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Category Pills & Stock Filters */}
-        <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-3 overflow-x-auto pb-0.5">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
-                  selectedCategory === cat
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <Select
-            value={stockFilter}
-            onValueChange={(val: any) => setStockFilter(val)}
-          >
-            <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Stocks</SelectItem>
-              <SelectItem value="Low">Low Stock (≤5)</SelectItem>
-              <SelectItem value="Out">Out of Stock</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
-
-      {/* Catalog Grid View */}
-      <Card className={cn(
-        "border-border/60 shadow-sm bg-white dark:bg-zinc-900 overflow-hidden flex flex-col",
-        isMobileInline
-          ? "rounded-xl border border-zinc-200 dark:border-zinc-800"
-          : "rounded-2xl flex-1 min-h-0"
-      )}>
-        <div className="px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-foreground">
-            Components Catalog ({filteredProducts.length} items)
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            Tap item to add directly to Active Cart above
-          </span>
-        </div>
-
-        <ScrollArea className={cn("p-2.5", isMobileInline ? "max-h-[380px] sm:max-h-[440px]" : "flex-1")}>
-          {isProductsLoading ? (
-            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-xs gap-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-              Syncing catalog products and live stock levels...
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center p-4 space-y-2">
-              <PackageX className="h-9 w-9 text-muted-foreground/40" />
-              <p className="text-xs font-bold text-foreground">No matching products found</p>
-              <p className="text-[11px] text-muted-foreground max-w-xs">
-                Try searching another keyword or use "+ Custom Item" to bill an uncatalogued item.
-              </p>
+          {isMobileInline ? (
+            <div
+              className={cn(
+                "p-2.5 overflow-y-auto overscroll-contain transition-all",
+                isCatalogExpanded ? "max-h-none" : "h-[450px] max-h-[60vh]"
+              )}
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y'
+              }}
+            >
+              {catalogBody}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
-              {filteredProducts.map((p) => {
-                const isOutOfStock = p.stock <= 0;
-                const isLowStock = p.stock > 0 && p.stock <= (p.minStockLevel || 5);
-                const inCartItem = cart.find((i) => i.product.id === p.id && !i.isReturn);
-
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleProductClick(p)}
-                    className={`relative flex flex-col text-left p-2 rounded-xl border transition-all group ${
-                      inCartItem
-                        ? 'border-primary ring-2 ring-primary/20 bg-primary/[0.03]'
-                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-xs'
-                    }`}
-                  >
-                    {/* Top Badges */}
-                    <div className="flex justify-between items-start gap-1 mb-1 w-full">
-                      <span className="text-[9px] font-mono font-bold text-muted-foreground truncate uppercase">
-                        {p.sku}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={`text-[8.5px] px-1 py-0 h-3.5 font-bold border ${
-                          isOutOfStock
-                            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
-                            : isLowStock
-                            ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900'
-                            : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
-                        }`}
-                      >
-                        {p.stock} in stock
-                      </Badge>
-                    </div>
-
-                    {/* Image & Title */}
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      {p.image ? (
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="h-9 w-9 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800"
-                        />
-                      ) : (
-                        <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[9px]">
-                          IC
-                        </div>
-                      )}
-                      <h4 className="text-[11px] font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                        {p.name}
-                      </h4>
-                    </div>
-
-                    {/* Bottom Price & In-Cart Counter */}
-                    <div className="mt-auto flex justify-between items-center pt-1 border-t border-zinc-100 dark:border-zinc-800/80 w-full">
-                      <span className="text-xs font-black text-foreground">
-                        ₹{p.sellingPrice ?? p.price}
-                      </span>
-                      {inCartItem ? (
-                        <Badge className="bg-primary text-white text-[9px] h-4.5 px-1.5 font-bold">
-                          In Cart: {inCartItem.quantity}
-                        </Badge>
-                      ) : (
-                        <span className="text-[9px] text-muted-foreground group-hover:text-primary font-semibold">
-                          + Add
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <ScrollArea className="flex-1 p-2.5">
+              {catalogBody}
+            </ScrollArea>
           )}
-        </ScrollArea>
-      </Card>
-    </div>
-  );
+        </Card>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col lg:h-full space-y-2 bg-zinc-50/50 dark:bg-zinc-950/50 lg:overflow-hidden font-sans">
