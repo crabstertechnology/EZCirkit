@@ -447,21 +447,13 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
           </td>
         </tr>
 
-        <!-- Declaration & Signatures Row (Divided exactly at 64% column line) -->
+        <!-- Signatory Row -->
         <tr>
-          <td colspan="3" style="border-right: 1.5px solid #000000; padding: 12px 14px; vertical-align: bottom;">
-            <div style="font-size: 10px; color: #444444; margin-bottom: 35px;">
-              <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
-            </div>
-            <div style="border-top: 1px dashed #000000; width: 140px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
-              Customer's Signature
-            </div>
-          </td>
-          <td colspan="4" style="padding: 12px 14px; text-align: right; vertical-align: bottom;">
-            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 35px;">
+          <td colspan="7" style="padding: 16px 18px; text-align: right; vertical-align: bottom;">
+            <div style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 42px;">
               For ${escapeHtml(storeName)}
             </div>
-            <div style="display: inline-block; border-top: 1px dashed #000000; min-width: 150px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
+            <div style="display: inline-block; border-top: 1px dashed #000000; min-width: 160px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
               Authorized Signatory
             </div>
           </td>
