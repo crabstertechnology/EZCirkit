@@ -137,15 +137,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             </div>
           </DialogHeader>
 
-          {/* On-screen Thermal Receipt Preview */}
+          {/* On-screen Receipt Preview */}
           <div id="thermal-receipt" className="p-6 font-sans text-xs text-zinc-900 dark:text-zinc-100 max-h-[65vh] overflow-y-auto space-y-4">
             {/* Header */}
             <div className="text-center space-y-1 pb-3 border-b border-dashed border-zinc-300 dark:border-zinc-700">
               <h2 className="text-base font-black uppercase tracking-wider">{storeName}</h2>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{storeAddress}</p>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Ph. No: {storePhone}</p>
-              <p className="text-[11px] font-bold mt-1 text-primary">
-                {isRefund ? 'REFUND CREDIT NOTE' : 'RETAIL INVOICE'}
+              <p className="text-[11px] font-bold mt-1 text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
+                {isRefund ? 'REFUND CREDIT NOTE' : 'RETAIL TAX INVOICE'}
               </p>
             </div>
 
@@ -177,7 +177,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
             {/* Items Table */}
             <div className="space-y-2 pb-3 border-b border-dashed border-zinc-300 dark:border-zinc-700">
-              <div className="flex justify-between font-bold text-[10px] text-zinc-400 uppercase pb-1 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex justify-between font-bold text-[10px] text-zinc-500 dark:text-zinc-400 uppercase pb-1 border-b border-zinc-200 dark:border-zinc-800">
                 <span className="w-1/2">Item</span>
                 <span className="w-1/6 text-center">Qty</span>
                 <span className="w-1/6 text-right">Price</span>
@@ -188,21 +188,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 return (
                   <div key={idx} className="flex justify-between text-[11px] py-0.5">
                     <div className="w-1/2 pr-1">
-                      <span className={isRet ? 'text-rose-500 font-bold' : 'font-medium'}>
+                      <span className="font-medium">
                         {item.name}
                       </span>
                       {isRet && (
-                        <span className="ml-1 text-[8px] border border-rose-500 text-rose-500 px-1 py-0.2 rounded font-bold">
+                        <span className="ml-1 text-[8px] border border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100 px-1 py-0.2 rounded font-bold">
                           RETURN
                         </span>
                       )}
                       {item.discount > 0 && (
-                        <span className="block text-[9px] text-emerald-600">Disc: -₹{item.discount}</span>
+                        <span className="block text-[9px] text-zinc-500 dark:text-zinc-400">Disc: -₹{item.discount}</span>
                       )}
                     </div>
-                    <span className="w-1/6 text-center">{item.quantity}</span>
+                    <span className="w-1/6 text-center font-bold">{item.quantity}</span>
                     <span className="w-1/6 text-right">₹{item.unitPrice}</span>
-                    <span className={`w-1/6 text-right font-bold ${isRet ? 'text-rose-600' : ''}`}>
+                    <span className="w-1/6 text-right font-bold">
                       {item.total < 0 ? `-₹${Math.abs(item.total).toFixed(2)}` : `₹${item.total.toFixed(2)}`}
                     </span>
                   </div>
@@ -217,7 +217,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 <span>₹{sale.amount.toFixed(2)}</span>
               </div>
               {sale.discount > 0 && (
-                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                <div className="flex justify-between font-semibold">
                   <span>Total Discount:</span>
                   <span>-₹{sale.discount.toFixed(2)}</span>
                 </div>
@@ -230,7 +230,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               )}
               <div className="flex justify-between text-sm font-black pt-1 border-t border-zinc-200 dark:border-zinc-800">
                 <span>{isRefund ? 'NET REFUND PAID:' : 'GRAND TOTAL:'}</span>
-                <span className={isRefund ? 'text-rose-600' : 'text-primary'}>
+                <span className="font-black">
                   ₹{Math.abs(sale.grandTotal).toFixed(2)}
                 </span>
               </div>
@@ -245,7 +245,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                     <span>₹{sale.cashReceived.toFixed(2)}</span>
                   </div>
                   {sale.changeReturned !== undefined && sale.changeReturned > 0 && (
-                    <div className="flex justify-between text-[10px] font-bold text-emerald-600">
+                    <div className="flex justify-between text-[10px] font-bold">
                       <span>Change Returned:</span>
                       <span>₹{sale.changeReturned.toFixed(2)}</span>
                     </div>
@@ -260,7 +260,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 THANK YOU FOR VISITING!
               </p>
               <div className="py-1 border-y border-dashed border-zinc-200 dark:border-zinc-800">
-                <p className="text-[10px] font-black tracking-wider text-rose-600 dark:text-rose-400">
+                <p className="text-[10px] font-black tracking-wider">
                   *** NO RETURN • NO REFUND ***
                 </p>
               </div>
