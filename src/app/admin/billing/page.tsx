@@ -1407,7 +1407,7 @@ export default function AdminBillingPage() {
           setCompletedSale(null);
         }}
         storeName="Crabster Technology"
-        storeAddress="Making Electronics Easy, Affordable, and Understandable."
+        storeAddress="12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu"
         storePhone="7010396642"
         storeGstin=""
       />

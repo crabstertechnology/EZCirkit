@@ -1,4 +1,5 @@
 import { BillingSale } from '@/types/billing';
+import { CRABSTER_LOGO_BASE64 } from './logo-base64';
 
 export interface StoreInfo {
   storeName?: string;
@@ -135,7 +136,9 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
   if (typeof window === 'undefined' || !sale) return;
 
   const storeName = storeInfo.storeName || 'CRABSTER TECHNOLOGY';
-  const storeAddress = storeInfo.storeAddress || 'Making Electronics Easy, Affordable, and Understandable.';
+  const storeAddress =
+    storeInfo.storeAddress ||
+    '12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu';
   const storePhone = storeInfo.storePhone || '+91 7010396642';
   const storeEmail = storeInfo.storeEmail || 'crabstertechnology@gmail.com';
   const storeGstin = storeInfo.storeGstin || '';
@@ -171,7 +174,7 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
               ${isRet ? '<span style="font-size: 9px; border: 1px solid #000000; padding: 0 4px; font-weight: 800; margin-left: 4px;">[RETURN]</span>' : ''}
             </div>
           </td>
-          <td style="border-right: 1px solid #000000; padding: 7px 6px; text-align: center; font-family: monospace; font-size: 11px; vertical-align: top;">
+          <td style="border-right: 1.5px solid #000000; padding: 7px 6px; text-align: center; font-family: monospace; font-size: 11px; vertical-align: top;">
             ${item.sku && item.sku !== 'N/A' ? escapeHtml(item.sku) : '—'}
           </td>
           <td style="border-right: 1px solid #000000; padding: 7px 4px; text-align: center; font-weight: 800; vertical-align: top;">${item.quantity}</td>
@@ -184,20 +187,18 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
     .join('');
 
   // Dynamically pad empty rows with vertical borders to maintain a full-page structured tabular layout
-  const fillerHeight = Math.max(0, 240 - items.length * 34);
-  const fillerRow = fillerHeight > 0
-    ? `
-      <tr>
-        <td style="height: ${fillerHeight}px; border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
-        <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
-        <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
-        <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
-        <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
-        <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
-        <td style="border-bottom: 1.5px solid #000000;"></td>
-      </tr>
-    `
-    : '';
+  const fillerHeight = Math.max(40, 320 - items.length * 35);
+  const fillerRow = `
+    <tr>
+      <td style="height: ${fillerHeight}px; border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
+      <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
+      <td style="border-right: 1.5px solid #000000; border-bottom: 1.5px solid #000000;"></td>
+      <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
+      <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
+      <td style="border-right: 1px solid #000000; border-bottom: 1.5px solid #000000;"></td>
+      <td style="border-bottom: 1.5px solid #000000;"></td>
+    </tr>
+  `;
 
   const amountInWords = numberToWordsINR(sale.grandTotal);
 
@@ -205,11 +206,11 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Tax Invoice - ${escapeHtml(sale.billNumber)}</title>
+  <title></title>
   <style>
     @page {
       size: A4 portrait;
-      margin: 10mm 12mm;
+      margin: 0;
     }
     *, *::before, *::after {
       box-sizing: border-box;
@@ -222,6 +223,9 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
       background: #ffffff !important;
       font-size: 11.5px;
       line-height: 1.35;
+      margin: 0;
+      padding: 12mm 15mm;
+      box-sizing: border-box;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -229,64 +233,57 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
       width: 100%;
       border: 1.5px solid #000000;
       background: #ffffff;
+      box-sizing: border-box;
     }
-    .top-badge-bar {
-      background: #f4f4f4;
+    .header-section {
+      padding: 10px 14px;
       border-bottom: 1.5px solid #000000;
-      padding: 5px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .top-badge-title {
-      font-weight: 900;
-      font-size: 13px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
-    .header-section {
-      padding: 12px 14px;
-      border-bottom: 1.5px solid #000000;
+    .header-left {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
+      gap: 12px;
+      max-width: 72%;
+    }
+    .store-logo {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      flex-shrink: 0;
     }
     .brand-name {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     .brand-sub {
       font-size: 11px;
       color: #222222;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
+      line-height: 1.3;
     }
     .brand-contact {
-      font-size: 11px;
+      font-size: 10.5px;
       color: #333333;
     }
     .invoice-num-box {
-      text-align: right;
+      text-align: center;
       border: 1.5px solid #000000;
-      padding: 6px 12px;
+      padding: 6px 14px;
       background: #fafafa;
+      min-width: 135px;
     }
-    .meta-table {
+    .main-table {
       width: 100%;
       border-collapse: collapse;
-      border-bottom: 1.5px solid #000000;
+      table-layout: fixed;
     }
-    .meta-table td {
-      vertical-align: top;
-      padding: 8px 12px;
-    }
-    .items-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .items-table th {
+    .main-table th {
       background: #f2f2f2;
       border-right: 1px solid #000000;
       border-bottom: 1.5px solid #000000;
@@ -296,16 +293,8 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
       text-transform: uppercase;
       color: #000000;
     }
-    .items-table th:last-child {
+    .main-table th:last-child {
       border-right: none;
-    }
-    .summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      border-bottom: 1.5px solid #000000;
-    }
-    .summary-table td {
-      vertical-align: top;
     }
     .totals-inner-table {
       width: 100%;
@@ -326,167 +315,159 @@ export function printA4Invoice(sale: BillingSale, storeInfo: StoreInfo = {}) {
       font-size: 13px;
       font-weight: 900;
     }
-    .signatory-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .signatory-table td {
-      padding: 12px 14px;
-      vertical-align: bottom;
-    }
   </style>
 </head>
 <body>
   <div class="invoice-box">
-    <!-- Top Bar -->
-    <div class="top-badge-bar">
-      <span style="font-weight: 800; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;">ORIGINAL FOR RECIPIENT</span>
-      <span class="top-badge-title">${isRefund ? 'REFUND / CREDIT NOTE' : 'RETAIL TAX INVOICE'}</span>
-      <span style="font-size: 10px; font-weight: 700;">A4 FORMAT</span>
-    </div>
-
-    <!-- Store Header -->
+    <!-- Store Header with Left Corner Logo -->
     <div class="header-section">
-      <div style="max-width: 62%;">
-        <div class="brand-name">${escapeHtml(storeName)}</div>
-        <div class="brand-sub">${escapeHtml(storeAddress)}</div>
-        <div class="brand-contact">
-          <span>Ph: <strong>${escapeHtml(storePhone)}</strong></span>
-          ${storeEmail ? ` &bull; <span>Email: <strong>${escapeHtml(storeEmail)}</strong></span>` : ''}
-          ${storeGstin ? ` &bull; <span>GSTIN: <strong>${escapeHtml(storeGstin)}</strong></span>` : ''}
+      <div class="header-left">
+        <img src="${CRABSTER_LOGO_BASE64}" alt="Logo" class="store-logo" />
+        <div>
+          <div class="brand-name">${escapeHtml(storeName)}</div>
+          <div class="brand-sub">${escapeHtml(storeAddress)}</div>
+          <div class="brand-contact">
+            <span>Ph: <strong>${escapeHtml(storePhone)}</strong></span>
+            ${storeEmail ? ` &bull; <span>Email: <strong>${escapeHtml(storeEmail)}</strong></span>` : ''}
+            ${storeGstin ? ` &bull; <span>GSTIN: <strong>${escapeHtml(storeGstin)}</strong></span>` : ''}
+          </div>
         </div>
       </div>
       <div class="invoice-num-box">
-        <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #444;">Bill Number</div>
-        <div style="font-size: 16px; font-weight: 900; font-family: monospace;">${escapeHtml(sale.billNumber)}</div>
+        <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #000000; padding-bottom: 3px; margin-bottom: 3px;">${isRefund ? 'REFUND NOTE' : 'TAX INVOICE'}</div>
+        <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #444444; letter-spacing: 0.5px;">BILL NUMBER</div>
+        <div style="font-size: 15px; font-weight: 900; font-family: monospace;">${escapeHtml(sale.billNumber)}</div>
       </div>
     </div>
 
-    <!-- Buyer & Meta Details -->
-    <table class="meta-table">
-      <tr>
-        <td style="width: 55%; border-right: 1.5px solid #000000;">
-          <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; color: #444;">Billed To (Customer Details)</div>
-          <div style="font-size: 13px; font-weight: 800; margin-bottom: 2px;">${escapeHtml(sale.customerName)}</div>
-          ${sale.customerPhone && sale.customerPhone !== 'Walk-in' ? `<div style="font-size: 11.5px;">Phone: <strong>${escapeHtml(sale.customerPhone)}</strong></div>` : '<div style="font-size: 11.5px; color: #444;">Walk-in Store Customer</div>'}
-        </td>
-        <td style="width: 45%;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 11.5px;">
-            <tr>
-              <td style="padding: 2px 0; color: #444; width: 42%;">Date &amp; Time:</td>
-              <td style="padding: 2px 0; font-weight: 700;">${formattedDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 2px 0; color: #444;">Payment Mode:</td>
-              <td style="padding: 2px 0; font-weight: 800; text-transform: uppercase;">${escapeHtml(sale.paymentMethod)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 2px 0; color: #444;">Billed By:</td>
-              <td style="padding: 2px 0; font-weight: 700;">${escapeHtml(sale.cashierName)}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+    <!-- Unified Master Table (Collinear Vertical Dividers) -->
+    <table class="main-table">
+      <colgroup>
+        <col style="width: 6%;" />
+        <col style="width: 44%;" />
+        <col style="width: 14%;" />
+        <col style="width: 8%;" />
+        <col style="width: 9%;" />
+        <col style="width: 9%;" />
+        <col style="width: 10%;" />
+      </colgroup>
 
-    <!-- Items Tabular Grid -->
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th style="width: 6%; text-align: center;">S.No</th>
-          <th style="width: 46%; text-align: left; padding-left: 8px;">Item Description</th>
-          <th style="width: 12%; text-align: center;">SKU / Code</th>
-          <th style="width: 8%; text-align: center;">Qty</th>
-          <th style="width: 9%; text-align: right; padding-right: 6px;">Rate (₹)</th>
-          <th style="width: 9%; text-align: right; padding-right: 6px;">Disc (₹)</th>
-          <th style="width: 10%; text-align: right; padding-right: 8px;">Amount (₹)</th>
-        </tr>
-      </thead>
+      <!-- Customer & Metadata Details Row (Cols 1-3 = 64%, Cols 4-7 = 36%) -->
       <tbody>
+        <tr style="border-bottom: 1.5px solid #000000;">
+          <td colspan="3" style="border-right: 1.5px solid #000000; padding: 8px 12px; vertical-align: top;">
+            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 3px; color: #444444;">BILLED TO (CUSTOMER DETAILS)</div>
+            <div style="font-size: 13px; font-weight: 800; margin-bottom: 2px;">${escapeHtml(sale.customerName)}</div>
+            ${sale.customerPhone && sale.customerPhone !== 'Walk-in' ? `<div style="font-size: 11px;">Phone: <strong>${escapeHtml(sale.customerPhone)}</strong></div>` : '<div style="font-size: 11px; color: #444444;">Walk-in Store Customer</div>'}
+          </td>
+          <td colspan="4" style="padding: 6px 12px; vertical-align: top;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11.5px;">
+              <tr>
+                <td style="padding: 2px 0; color: #444444; width: 44%;">Date &amp; Time:</td>
+                <td style="padding: 2px 0; font-weight: 700;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 2px 0; color: #444444;">Payment Mode:</td>
+                <td style="padding: 2px 0; font-weight: 800; text-transform: uppercase;">${escapeHtml(sale.paymentMethod)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 2px 0; color: #444444;">Billed By:</td>
+                <td style="padding: 2px 0; font-weight: 700;">${escapeHtml(sale.cashierName)}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Table Columns Header -->
+        <tr>
+          <th style="text-align: center;">S.NO</th>
+          <th style="text-align: left; padding-left: 8px;">ITEM DESCRIPTION</th>
+          <th style="text-align: center; border-right: 1.5px solid #000000;">SKU / CODE</th>
+          <th style="text-align: center;">QTY</th>
+          <th style="text-align: right; padding-right: 6px;">RATE (₹)</th>
+          <th style="text-align: right; padding-right: 6px;">DISC (₹)</th>
+          <th style="text-align: right; padding-right: 8px;">AMOUNT (₹)</th>
+        </tr>
+
+        <!-- Items Rows -->
         ${itemsRows}
+
+        <!-- Filler Row for Clean Full-Page Layout -->
         ${fillerRow}
+
+        <!-- Summary & Totals Row (Divided exactly at 64% column line) -->
+        <tr style="border-bottom: 1.5px solid #000000;">
+          <td colspan="3" style="border-right: 1.5px solid #000000; padding: 10px 12px; vertical-align: top;">
+            <div style="font-size: 11px; margin-bottom: 8px;">
+              <span style="color: #444444; font-weight: 700;">Amount Chargeable (in words):</span><br />
+              <strong style="font-size: 12px;">${amountInWords}</strong>
+            </div>
+            <div style="border-top: 1px dashed #000000; padding-top: 8px; margin-top: 6px; font-size: 10.5px; line-height: 1.5;">
+              <div style="font-weight: 800; text-transform: uppercase; margin-bottom: 4px; font-size: 10.5px;">Terms &amp; Conditions:</div>
+              <div style="font-weight: 800; font-size: 11px; margin-bottom: 2px;">
+                1. No Return, No Exchange, No Warranty.
+              </div>
+              <div style="font-size: 10.5px; color: #333333;">
+                2. Thank you for choosing Crabster Technology!
+              </div>
+            </div>
+          </td>
+          <td colspan="4" style="padding: 0; vertical-align: top;">
+            <table class="totals-inner-table">
+              <tr>
+                <td style="color: #333333;">Gross Subtotal:</td>
+                <td style="text-align: right; font-weight: 700;">₹${sale.amount.toFixed(2)}</td>
+              </tr>
+              ${sale.discount > 0 ? `
+              <tr>
+                <td style="color: #333333;">Total Discount:</td>
+                <td style="text-align: right; font-weight: 700;">-₹${sale.discount.toFixed(2)}</td>
+              </tr>` : ''}
+              ${sale.tax > 0 ? `
+              <tr>
+                <td style="color: #333333;">Tax / GST:</td>
+                <td style="text-align: right; font-weight: 700;">₹${sale.tax.toFixed(2)}</td>
+              </tr>` : ''}
+              <tr class="grand-total-row">
+                <td style="text-transform: uppercase;">${isRefund ? 'NET REFUND PAID:' : 'GRAND TOTAL:'}</td>
+                <td style="text-align: right; font-size: 14px;">₹${Math.abs(sale.grandTotal).toFixed(2)}</td>
+              </tr>
+              ${sale.paymentMethod === 'cash' && typeof sale.cashReceived === 'number' && sale.cashReceived > 0 ? `
+              <tr>
+                <td style="color: #444444; font-size: 11px;">Cash Tendered:</td>
+                <td style="text-align: right; font-size: 11px; font-weight: 700;">₹${sale.cashReceived.toFixed(2)}</td>
+              </tr>
+              ${sale.changeReturned !== undefined && sale.changeReturned > 0 ? `
+              <tr>
+                <td style="font-size: 11px; font-weight: 700;">Change Returned:</td>
+                <td style="text-align: right; font-size: 11px; font-weight: 800;">₹${sale.changeReturned.toFixed(2)}</td>
+              </tr>` : ''}
+              ` : ''}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Declaration & Signatures Row (Divided exactly at 64% column line) -->
+        <tr>
+          <td colspan="3" style="border-right: 1.5px solid #000000; padding: 12px 14px; vertical-align: bottom;">
+            <div style="font-size: 10px; color: #444444; margin-bottom: 35px;">
+              <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
+            </div>
+            <div style="border-top: 1px dashed #000000; width: 140px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
+              Customer's Signature
+            </div>
+          </td>
+          <td colspan="4" style="padding: 12px 14px; text-align: right; vertical-align: bottom;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 35px;">
+              For ${escapeHtml(storeName)}
+            </div>
+            <div style="display: inline-block; border-top: 1px dashed #000000; min-width: 150px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
+              Authorized Signatory
+            </div>
+          </td>
+        </tr>
       </tbody>
     </table>
-
-    <!-- Summary & Totals -->
-    <table class="summary-table">
-      <tr>
-        <td style="width: 58%; border-right: 1.5px solid #000000; padding: 10px 12px;">
-          <div style="font-size: 11px; margin-bottom: 8px;">
-            <span style="color: #444; font-weight: 700;">Amount Chargeable (in words):</span><br />
-            <strong style="font-size: 12px;">${amountInWords}</strong>
-          </div>
-          <div style="border-top: 1px dashed #000000; padding-top: 8px; margin-top: 6px; font-size: 10.5px; line-height: 1.45;">
-            <div style="font-weight: 800; text-transform: uppercase; margin-bottom: 3px;">Terms &amp; Conditions:</div>
-            <ol style="margin-left: 16px; padding: 0;">
-              <li>Goods once sold can be exchanged within 7 days against original invoice.</li>
-              <li>Warranty claims are subject to manufacturer terms and inspection.</li>
-              <li>Thank you for choosing Crabster Technology!</li>
-            </ol>
-          </div>
-        </td>
-        <td style="width: 42%; padding: 0;">
-          <table class="totals-inner-table">
-            <tr>
-              <td style="color: #333;">Gross Subtotal:</td>
-              <td style="text-align: right; font-weight: 700;">₹${sale.amount.toFixed(2)}</td>
-            </tr>
-            ${sale.discount > 0 ? `
-            <tr>
-              <td style="color: #333;">Total Discount:</td>
-              <td style="text-align: right; font-weight: 700;">-₹${sale.discount.toFixed(2)}</td>
-            </tr>` : ''}
-            ${sale.tax > 0 ? `
-            <tr>
-              <td style="color: #333;">Tax / GST:</td>
-              <td style="text-align: right; font-weight: 700;">₹${sale.tax.toFixed(2)}</td>
-            </tr>` : ''}
-            <tr class="grand-total-row">
-              <td style="text-transform: uppercase;">${isRefund ? 'NET REFUND PAID:' : 'GRAND TOTAL:'}</td>
-              <td style="text-align: right; font-size: 14px;">₹${Math.abs(sale.grandTotal).toFixed(2)}</td>
-            </tr>
-            ${sale.paymentMethod === 'cash' && typeof sale.cashReceived === 'number' && sale.cashReceived > 0 ? `
-            <tr>
-              <td style="color: #444; font-size: 11px;">Cash Tendered:</td>
-              <td style="text-align: right; font-size: 11px; font-weight: 700;">₹${sale.cashReceived.toFixed(2)}</td>
-            </tr>
-            ${sale.changeReturned !== undefined && sale.changeReturned > 0 ? `
-            <tr>
-              <td style="font-size: 11px; font-weight: 700;">Change Returned:</td>
-              <td style="text-align: right; font-size: 11px; font-weight: 800;">₹${sale.changeReturned.toFixed(2)}</td>
-            </tr>` : ''}
-            ` : ''}
-          </table>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Declaration & Signatures -->
-    <table class="signatory-table">
-      <tr>
-        <td style="width: 50%; border-right: 1.5px solid #000000;">
-          <div style="font-size: 10px; color: #444; margin-bottom: 35px;">
-            <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
-          </div>
-          <div style="border-top: 1px dashed #000000; width: 140px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
-            Customer's Signature
-          </div>
-        </td>
-        <td style="width: 50%; text-align: right;">
-          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 35px;">
-            For ${escapeHtml(storeName)}
-          </div>
-          <div style="display: inline-block; border-top: 1px dashed #000000; min-width: 150px; text-align: center; font-size: 10px; font-weight: 700; padding-top: 4px;">
-            Authorized Signatory
-          </div>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Footer Bar -->
-    <div style="text-align: center; font-size: 10px; font-weight: 700; padding: 4px 0; border-top: 1px solid #000000; background: #fafafa;">
-      This is a Computer Generated Tax Invoice &bull; Thank you for your business!
-    </div>
   </div>
 </body>
 </html>`;
@@ -502,7 +483,9 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
   if (typeof window === 'undefined' || !sale) return;
 
   const storeName = storeInfo.storeName || 'CRABSTER TECHNOLOGY';
-  const storeAddress = storeInfo.storeAddress || 'Making Electronics Easy, Affordable, and Understandable.';
+  const storeAddress =
+    storeInfo.storeAddress ||
+    '12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu';
   const storePhone = storeInfo.storePhone || '7010396642';
 
   const isRefund = sale.grandTotal < 0 || sale.status === 'refunded';
@@ -541,7 +524,7 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Receipt - ${escapeHtml(sale.billNumber)}</title>
+  <title></title>
   <style>
     @page {
       size: 80mm auto;
@@ -721,8 +704,8 @@ export function printThermalReceipt(sale: BillingSale, storeInfo: StoreInfo = {}
   <div class="divider"></div>
 
   <div class="footer">
-    <div class="font-bold" style="margin-bottom: 2px;">THANK YOU FOR SHOPPING!</div>
-    <div style="font-size: 9.5px; color: #444; margin-top: 3px;">Electronics &bull; Arduino &bull; Robotics &bull; Kits</div>
+    <div class="font-bold" style="margin-bottom: 2px;">*** NO RETURN &bull; NO EXCHANGE &bull; NO WARRANTY ***</div>
+    <div style="font-size: 9.5px; color: #444; margin-top: 3px;">THANK YOU FOR SHOPPING!</div>
   </div>
 </body>
 </html>`;

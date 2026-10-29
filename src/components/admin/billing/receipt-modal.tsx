@@ -39,7 +39,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   onNewBill,
   onSaleDeleted,
   storeName = 'Crabster Technology',
-  storeAddress = 'Making Electronics Easy, Affordable, and Understandable.',
+  storeAddress = '12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu',
   storePhone = '7010396642',
   storeGstin = '',
 }) => {
@@ -261,11 +261,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               </p>
               <div className="py-1 border-y border-dashed border-zinc-200 dark:border-zinc-800">
                 <p className="text-[10px] font-black tracking-wider">
-                  *** NO RETURN • NO REFUND ***
+                  *** NO RETURN • NO EXCHANGE • NO WARRANTY ***
                 </p>
               </div>
               <p className="text-[9px] text-zinc-500 dark:text-zinc-400">
-                Goods once sold will not be returned or refunded.
+                No Return, No Exchange, No Warranty
               </p>
             </div>
           </div>
