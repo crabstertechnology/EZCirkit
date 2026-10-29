@@ -846,7 +846,7 @@ export default function AdminBillingPage() {
               )}
 
               {/* Scrollable Line Items */}
-              <ScrollArea className="flex-1 p-2 max-h-72 sm:max-h-84 lg:max-h-none">
+              <ScrollArea className="flex-1 p-2 max-h-72 sm:max-h-84 lg:max-h-none overflow-x-hidden">
                 {cart.length === 0 ? (
                   <div className="flex flex-col items-center justify-center min-h-[140px] text-center p-4 text-muted-foreground space-y-1">
                     <ShoppingCart className="h-7 w-7 text-muted-foreground/30 mb-0.5" />
@@ -863,25 +863,25 @@ export default function AdminBillingPage() {
 
                       return (
                         <React.Fragment key={item.id}>
-                          {/* Mobile View (< sm): Fully responsive card with ZERO horizontal scrolling */}
+                          {/* Mobile View (< sm): Fully responsive card with wrapping title and visible Disc section */}
                           <div
-                            className={`sm:hidden p-2 rounded-lg border text-xs space-y-1.5 transition-all ${
+                            className={`sm:hidden p-2.5 rounded-lg border text-xs space-y-2 transition-all w-full min-w-0 overflow-hidden ${
                               isRet
                                 ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
                                 : 'bg-zinc-50/60 dark:bg-zinc-800/30 border-zinc-200/80 dark:border-zinc-800'
                             }`}
                           >
                             {/* Row 1: Item Details + Line Total + Remove */}
-                            <div className="flex items-start justify-between gap-1.5">
+                            <div className="flex items-start justify-between gap-2 w-full min-w-0">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-start gap-1 min-w-0 w-full">
                                   {isRet && (
-                                    <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0">
+                                    <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0 mt-0.5">
                                       RETURN
                                     </Badge>
                                   )}
                                   <span
-                                    className="font-bold text-foreground text-xs truncate block cursor-pointer hover:text-primary"
+                                    className="font-bold text-foreground text-xs break-words whitespace-normal leading-snug block cursor-pointer hover:text-primary min-w-0"
                                     title={item.product.name}
                                     onClick={() => {
                                       setEditingCartItem(item);
@@ -902,14 +902,14 @@ export default function AdminBillingPage() {
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className={`font-black text-xs ${lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}`}>
+                              <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                                <span className={`font-black text-xs whitespace-nowrap ${lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}`}>
                                   {lineTotal < 0 ? `-₹${Math.abs(lineTotal).toFixed(2)}` : `₹${lineTotal.toFixed(2)}`}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCartItem(item.id)}
-                                  className="text-zinc-400 hover:text-rose-500 p-0.5"
+                                  className="text-zinc-400 hover:text-rose-500 p-1"
                                   title="Remove item"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -918,9 +918,9 @@ export default function AdminBillingPage() {
                             </div>
 
                             {/* Row 2: QTY, PRICE, and DISC Controls (fits 100% on phone screens) */}
-                            <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800/60 gap-1 flex-wrap">
+                            <div className="flex items-center justify-between pt-1.5 border-t border-zinc-100 dark:border-zinc-800/60 gap-1 w-full min-w-0">
                               {/* Quantity Stepper */}
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 shrink-0">
                                 <span className="text-[10px] text-muted-foreground font-semibold">Qty</span>
                                 <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 h-6">
                                   <button
@@ -950,7 +950,7 @@ export default function AdminBillingPage() {
                               </div>
 
                               {/* Price / Rate Input */}
-                              <div className="flex items-center gap-0.5">
+                              <div className="flex items-center gap-0.5 shrink-0">
                                 <span className="text-[10px] text-muted-foreground font-semibold">₹</span>
                                 <input
                                   type="number"
@@ -959,14 +959,14 @@ export default function AdminBillingPage() {
                                   onChange={(e) =>
                                     handleUpdateUnitPrice(item.id, parseFloat(e.target.value) || 0)
                                   }
-                                  className="w-14 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                  className="w-13 h-6 px-1 text-xs text-right font-bold rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
                                   title="Unit Price"
                                 />
                               </div>
 
                               {/* Disc Input */}
                               {!isRet ? (
-                                <div className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-0.5 shrink-0">
                                   <span className="text-[10px] text-emerald-600 font-semibold">Disc</span>
                                   <input
                                     type="number"
@@ -981,7 +981,7 @@ export default function AdminBillingPage() {
                                   />
                                 </div>
                               ) : (
-                                <span className="text-[9px] text-rose-600 font-semibold">Return</span>
+                                <span className="text-[9px] text-rose-600 font-semibold shrink-0">Return</span>
                               )}
                             </div>
                           </div>

@@ -485,20 +485,20 @@ const Header = () => {
         {/* Row 1: Brand & Navigation Links & Actions */}
         <div suppressHydrationWarning className="flex h-20 items-center justify-between gap-4 w-full">
           {/* Brand Logo & Navigation Links (Left) */}
-          <div className="flex items-center gap-6 xl:gap-8 flex-shrink-0">
+          <div className="flex items-center gap-5 xl:gap-8 flex-1 justify-start min-w-0">
             <Logo size="lg" />
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-3">
+            <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3">
               <NavLinks />
             </nav>
           </div>
           
-          {/* Center SearchBar */}
-          <div className="hidden md:flex flex-1 justify-center max-w-[260px] lg:max-w-[340px] xl:max-w-[420px] mx-2">
+          {/* Center SearchBar (Dead Center) */}
+          <div className="hidden md:flex justify-center flex-shrink-0 w-full max-w-[260px] lg:max-w-[320px] xl:max-w-[420px] mx-2">
             <SearchBar />
           </div>
 
-          {/* Action Buttons (Far Right) */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Action Buttons (Right) */}
+          <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
             {/* Wishlist Link Button */}
             <Button asChild variant="ghost" size="icon" className="relative h-10 w-10">
               <Link href="/wishlist">

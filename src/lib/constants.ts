@@ -6,7 +6,6 @@ export const SHIPPING_COST = 0;
 export const NAV_LINKS = [
   { href: '/products', label: 'Products' },
   { href: '/ide', label: 'Launch IDE' },
-  { href: '/#testimonials', label: 'Reviews' },
 ];
 
 export const ADMIN_NAV_LINKS = [
