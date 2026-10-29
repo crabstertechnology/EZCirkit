@@ -260,7 +260,7 @@ const Header = () => {
           <Link
             key={`${link.label}-${link.href}`}
             href={link.href}
-            className="group text-base lg:text-lg xl:text-xl font-bold transition-all duration-200 relative text-foreground/80 hover:text-primary flex items-center gap-1.5 xl:gap-2 hover:scale-105 px-2 py-1.5 whitespace-nowrap"
+            className="group text-sm lg:text-base xl:text-lg font-bold transition-all duration-200 relative text-foreground/80 hover:text-primary flex items-center gap-1.5 xl:gap-2 hover:scale-105 px-2 py-1.5 whitespace-nowrap"
             onClick={(e) => handleLinkClick(e, link.href)}
           >
             {getLinkIcon(link.label)}
@@ -484,25 +484,18 @@ const Header = () => {
       <div className="container mx-auto flex flex-col px-4 md:px-6">
         {/* Row 1: Brand & Navigation Links & Actions */}
         <div suppressHydrationWarning className="flex h-20 items-center justify-between gap-4 w-full">
-          {/* Logo (Far Left) */}
-          <div className="flex-shrink-0">
+          {/* Brand Logo & Navigation Links (Left) */}
+          <div className="flex items-center gap-6 xl:gap-8 flex-shrink-0">
             <Logo size="lg" />
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-3">
+              <NavLinks />
+            </nav>
           </div>
-
-          {/* Left Nav Links (Products) */}
-          <nav className="hidden lg:flex flex-1 justify-end items-center gap-2 xl:gap-4 pr-4">
-            <NavLinks items={NAV_LINKS.slice(0, 1)} />
-          </nav>
           
           {/* Center SearchBar */}
-          <div className="hidden md:flex justify-center w-full max-w-[250px] lg:max-w-[320px] xl:max-w-[420px]">
+          <div className="hidden md:flex flex-1 justify-center max-w-[260px] lg:max-w-[340px] xl:max-w-[420px] mx-2">
             <SearchBar />
           </div>
-
-          {/* Right Nav Links (Launch IDE, Reviews) */}
-          <nav className="hidden lg:flex flex-1 justify-start items-center gap-2 xl:gap-4 pl-4">
-            <NavLinks items={NAV_LINKS.slice(1)} />
-          </nav>
 
           {/* Action Buttons (Far Right) */}
           <div className="flex items-center gap-2 flex-shrink-0">
