@@ -21,7 +21,7 @@ import { QuantityModal } from '@/components/admin/billing/quantity-modal';
 import { CustomItemModal } from '@/components/admin/billing/custom-item-modal';
 import { ReturnModal } from '@/components/admin/billing/return-modal';
 import { ReceiptModal } from '@/components/admin/billing/receipt-modal';
-import { printThermalReceipt } from '@/lib/thermal-printer';
+import { printA4Invoice, printThermalReceipt } from '@/lib/thermal-printer';
 import { PastSalesTab } from '@/components/admin/billing/past-sales-tab';
 import { InventoryLedgerTab } from '@/components/admin/billing/inventory-ledger-tab';
 
@@ -348,10 +348,10 @@ export default function AdminBillingPage() {
       handleClearCart();
       setSalesCount((prev) => prev + 1);
 
-      // Instantly print thermal receipt if enabled
+      // Instantly print full-page A4 invoice / PDF if enabled
       if (autoPrintOnCheckout) {
         try {
-          printThermalReceipt(sale);
+          printA4Invoice(sale);
         } catch (printErr) {
           console.warn('Auto print error:', printErr);
         }
@@ -641,39 +641,46 @@ export default function AdminBillingPage() {
             )}
           </div>
 
-          {/* Category Pills & Stock Filters (Desktop Only - removed on mobile as requested) */}
+          {/* Category Dropdown & Stock Filters */}
           {!isMobileInline && (
-            <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-3 overflow-x-auto pb-0.5">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+            <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-3">
+              {/* Category Dropdown */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span className="text-[11px] font-bold text-muted-foreground shrink-0 hidden sm:inline">Category:</span>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={(val: string) => setSelectedCategory(val)}
+                >
+                  <SelectTrigger className="h-7 text-[11px] font-semibold flex-1 max-w-[200px] rounded-lg">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat === 'All' ? 'All Categories' : cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Select
-                value={stockFilter}
-                onValueChange={(val: any) => setStockFilter(val)}
-              >
-                <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Stocks</SelectItem>
-                  <SelectItem value="Low">Low Stock (≤5)</SelectItem>
-                  <SelectItem value="Out">Out of Stock</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Stock Filter Dropdown */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[11px] font-bold text-muted-foreground shrink-0 hidden sm:inline">Stock:</span>
+                <Select
+                  value={stockFilter}
+                  onValueChange={(val: any) => setStockFilter(val)}
+                >
+                  <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Stocks</SelectItem>
+                    <SelectItem value="Low">Low Stock (≤5)</SelectItem>
+                    <SelectItem value="Out">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </Card>
@@ -1258,7 +1265,7 @@ export default function AdminBillingPage() {
                       onChange={(e) => setAutoPrintOnCheckout(e.target.checked)}
                       className="rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
                     />
-                    <span>Auto-print thermal receipt</span>
+                    <span>Auto-print invoice (Full Page PDF / A4)</span>
                   </label>
                   <span className="text-[10px] text-muted-foreground font-mono">
                     Bill #{generateSequentialBillNumber(salesCount, 'INV', 1)}

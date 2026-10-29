@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { BillingSale } from '@/types/billing';
 import { formatWhatsAppInvoice, generateWhatsAppLink } from '@/lib/billing-engine';
-import { printThermalReceipt } from '@/lib/thermal-printer';
+import { printThermalReceipt, printA4Invoice } from '@/lib/thermal-printer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Printer, MessageSquare, CheckCircle, RefreshCcw, Trash2 } from 'lucide-react';
+import { Printer, MessageSquare, CheckCircle, RefreshCcw, Trash2, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -51,6 +51,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   const handlePrint = () => {
     printThermalReceipt(sale, {
+      storeName,
+      storeAddress,
+      storePhone,
+      storeGstin,
+    });
+  };
+
+  const handlePrintA4 = () => {
+    printA4Invoice(sale, {
       storeName,
       storeAddress,
       storePhone,
@@ -129,7 +138,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </DialogHeader>
 
           {/* On-screen Thermal Receipt Preview */}
-          <div id="thermal-receipt" className="p-6 font-mono text-xs text-zinc-900 dark:text-zinc-100 max-h-[65vh] overflow-y-auto space-y-4">
+          <div id="thermal-receipt" className="p-6 font-sans text-xs text-zinc-900 dark:text-zinc-100 max-h-[65vh] overflow-y-auto space-y-4">
             {/* Header */}
             <div className="text-center space-y-1 pb-3 border-b border-dashed border-zinc-300 dark:border-zinc-700">
               <h2 className="text-base font-black uppercase tracking-wider">{storeName}</h2>
@@ -265,12 +274,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <DialogFooter className="p-4 bg-zinc-50 dark:bg-zinc-900/60 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap gap-2">
             <Button
               type="button"
+              onClick={handlePrintA4}
+              className="flex-1 min-w-[150px] gap-1.5 font-bold rounded-xl bg-primary text-white shadow-sm hover:bg-primary/90"
+            >
+              <FileText className="h-4 w-4" />
+              Print A4 Invoice / PDF
+            </Button>
+
+            <Button
+              type="button"
               variant="outline"
               onClick={handlePrint}
               className="flex-1 min-w-[130px] gap-1.5 font-bold rounded-xl"
             >
               <Printer className="h-4 w-4" />
-              Print Bill (80mm)
+              Thermal (80mm)
             </Button>
 
             {sale.customerPhone && sale.customerPhone !== 'Walk-in' && (
