@@ -1,5 +1,5 @@
 import { placeholderImages } from './placeholder-images';
-import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity, Receipt } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity, Receipt, History, Layers } from 'lucide-react';
 
 export const SHIPPING_COST = 0;
 
@@ -12,6 +12,8 @@ export const ADMIN_NAV_LINKS = [
   { href: '/', label: 'Go to Home', icon: Home },
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/billing', label: 'Billing / POS', icon: Receipt },
+  { href: '/admin/sales-history', label: 'Sales History', icon: History },
+  { href: '/admin/audit-ledger', label: 'Audit Ledger', icon: Layers },
   { href: '/admin/telemetry', label: 'Telemetry Logs', icon: Activity },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/users', label: 'Users', icon: Users },

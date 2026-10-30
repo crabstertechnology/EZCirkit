@@ -22,8 +22,6 @@ import { CustomItemModal } from '@/components/admin/billing/custom-item-modal';
 import { ReturnModal } from '@/components/admin/billing/return-modal';
 import { ReceiptModal } from '@/components/admin/billing/receipt-modal';
 import { printA4Invoice, printThermalReceipt } from '@/lib/thermal-printer';
-import { PastSalesTab } from '@/components/admin/billing/past-sales-tab';
-import { InventoryLedgerTab } from '@/components/admin/billing/inventory-ledger-tab';
 import { PaymentProcessingModal } from '@/components/admin/billing/payment-processing-modal';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -31,7 +29,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -48,8 +45,6 @@ import {
   CreditCard,
   Banknote,
   QrCode,
-  Layers,
-  History,
   ShoppingCart,
   User,
   ArrowRight,
@@ -70,9 +65,6 @@ export default function AdminBillingPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-
-  // Active navigation tab: pos, history, ledger
-  const [activeTab, setActiveTab] = useState<'pos' | 'history' | 'ledger'>('pos');
 
   // Query catalog products from Firestore
   const productsQuery = useMemoFirebase(
@@ -728,46 +720,8 @@ export default function AdminBillingPage() {
 
   return (
     <div className="flex flex-col lg:h-full space-y-2 bg-zinc-50/50 dark:bg-zinc-950/50 lg:overflow-hidden font-sans">
-      {/* Top Header / Mode Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black shrink-0">
-            <Receipt className="h-4 w-4" />
-          </div>
-          <div>
-            <h1 className="text-base font-black tracking-tight text-foreground leading-none">
-              Billing Engine &amp; POS
-            </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">
-              Live e-commerce stock sync, returns, exchanges, inventory audit ledger &amp; thermal invoicing.
-            </p>
-          </div>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} className="w-full sm:w-auto">
-          <TabsList className="bg-zinc-200/60 dark:bg-zinc-900 rounded-xl h-9 sm:h-8 p-0.5 w-full sm:w-auto grid grid-cols-3 sm:flex">
-            <TabsTrigger value="pos" className="text-[11px] sm:text-xs font-bold rounded-lg gap-1 sm:gap-1.5 px-1.5 sm:px-3 h-8 sm:h-7 truncate">
-              <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Active POS</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="text-[11px] sm:text-xs font-bold rounded-lg gap-1 sm:gap-1.5 px-1.5 sm:px-3 h-8 sm:h-7 truncate">
-              <History className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Sales History</span>
-            </TabsTrigger>
-            <TabsTrigger value="ledger" className="text-[11px] sm:text-xs font-bold rounded-lg gap-1 sm:gap-1.5 px-1.5 sm:px-3 h-8 sm:h-7 truncate">
-              <Layers className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Audit Ledger</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* TAB 1: ACTIVE POS BILLING SCREEN */}
-      {/* ------------------------------------------------------------- */}
-      {activeTab === 'pos' && (
-        <div className="flex flex-col flex-1 min-h-0 lg:overflow-hidden relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 lg:overflow-hidden pb-20 lg:pb-0">
+      <div className="flex flex-col flex-1 min-h-0 lg:overflow-hidden relative">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 lg:overflow-hidden pb-20 lg:pb-0">
             {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (Desktop Only) */}
             <div className="hidden lg:flex lg:col-span-5 flex-col lg:h-full space-y-2 min-h-0">
               {renderCatalogContent(false)}
@@ -1173,34 +1127,6 @@ export default function AdminBillingPage() {
           </div>
         )}
       </div>
-    )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* TAB 2: SALES INVOICES HISTORY */}
-      {/* ------------------------------------------------------------- */}
-      {activeTab === 'history' && (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <PastSalesTab
-            adminUserName={user?.displayName || user?.email || 'Admin'}
-            onSelectSaleForReceipt={(sale) => {
-              setCompletedSale(sale);
-              setIsReceiptModalOpen(true);
-            }}
-            onSaleDeleted={() => {
-              refreshCustomersAndSales();
-            }}
-          />
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* TAB 3: INVENTORY AUDIT LEDGER */}
-      {/* ------------------------------------------------------------- */}
-      {activeTab === 'ledger' && (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <InventoryLedgerTab />
-        </div>
-      )}
 
       {/* ------------------------------------------------------------- */}
       {/* MODALS */}
