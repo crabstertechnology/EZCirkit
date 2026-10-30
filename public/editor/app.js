@@ -253,28 +253,45 @@ async function applyExperimentById(experimentId) {
   logToConsole(`Loaded experiment: ${exp.title}`, 'info');
 
   // Load precompiled HEX build
-  try {
-    const hexRes = await fetch(exp.hexUrl || `/builds/experiments/${experimentId}.hex`);
-    if (hexRes.ok) {
-      precompiledHexForCurrentExperiment = await hexRes.text();
-      compiledHex = precompiledHexForCurrentExperiment;
-      logToConsole(`⚡ Precompiled binary ready (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+  if (exp.compiledHex) {
+    precompiledHexForCurrentExperiment = exp.compiledHex;
+    compiledHex = precompiledHexForCurrentExperiment;
+    logToConsole(`⚡ Precompiled binary ready (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
 
-      const editorStatus = document.getElementById('editorStatus');
-      if (editorStatus) {
-        editorStatus.textContent = 'Precompiled (Ready)';
-        editorStatus.className = 'status-indicator success';
-      }
-
-      const uploadBtn = document.getElementById('uploadBtn');
-      if (uploadBtn) {
-        uploadBtn.disabled = false;
-      }
-    } else {
-      logToConsole(`Could not fetch HEX build: HTTP ${hexRes.status}`, 'warning');
+    const editorStatus = document.getElementById('editorStatus');
+    if (editorStatus) {
+      editorStatus.textContent = 'Precompiled (Ready)';
+      editorStatus.className = 'status-indicator success';
     }
-  } catch (err) {
-    logToConsole(`Error loading precompiled HEX: ${err.message}`, 'error');
+
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (uploadBtn) {
+      uploadBtn.disabled = false;
+    }
+  } else {
+    try {
+      const hexRes = await fetch(exp.hexUrl || `/builds/experiments/${experimentId}.hex`);
+      if (hexRes.ok) {
+        precompiledHexForCurrentExperiment = await hexRes.text();
+        compiledHex = precompiledHexForCurrentExperiment;
+        logToConsole(`⚡ Precompiled binary ready (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+
+        const editorStatus = document.getElementById('editorStatus');
+        if (editorStatus) {
+          editorStatus.textContent = 'Precompiled (Ready)';
+          editorStatus.className = 'status-indicator success';
+        }
+
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
+        }
+      } else {
+        logToConsole(`Could not fetch HEX build: HTTP ${hexRes.status}`, 'warning');
+      }
+    } catch (err) {
+      logToConsole(`Error loading precompiled HEX: ${err.message}`, 'error');
+    }
   }
 
   // Sync dropdown value
@@ -1587,25 +1604,41 @@ async function loadExperimentFromUrlParams() {
         }
       }
 
-      // Try loading precompiled HEX build
-      try {
-        const hexRes = await fetch(`/builds/experiments/${experimentId}.hex`);
-        if (hexRes.ok) {
-          precompiledHexForCurrentExperiment = await hexRes.text();
-          compiledHex = precompiledHexForCurrentExperiment;
-          logToConsole(`⚡ Precompiled build loaded (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
-          const editorStatus = document.getElementById('editorStatus');
-          if (editorStatus) {
-            editorStatus.textContent = 'Precompiled (Ready)';
-            editorStatus.className = 'status-indicator success';
-          }
-          const uploadBtn = document.getElementById('uploadBtn');
-          if (uploadBtn) {
-            uploadBtn.disabled = false;
-          }
+      // Load precompiled HEX build (check Firestore document first, fallback to static file)
+      const compiledHexFromFirestore = data.fields.compiledHex ? data.fields.compiledHex.stringValue : '';
+      if (compiledHexFromFirestore) {
+        precompiledHexForCurrentExperiment = compiledHexFromFirestore;
+        compiledHex = precompiledHexForCurrentExperiment;
+        logToConsole(`⚡ Precompiled binary loaded directly from database (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly in 0ms!`, 'success');
+        const editorStatus = document.getElementById('editorStatus');
+        if (editorStatus) {
+          editorStatus.textContent = 'Precompiled (Ready)';
+          editorStatus.className = 'status-indicator success';
         }
-      } catch (hexErr) {
-        console.log('No precompiled build available:', hexErr);
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
+        }
+      } else {
+        try {
+          const hexRes = await fetch(`/builds/experiments/${experimentId}.hex`);
+          if (hexRes.ok) {
+            precompiledHexForCurrentExperiment = await hexRes.text();
+            compiledHex = precompiledHexForCurrentExperiment;
+            logToConsole(`⚡ Precompiled build loaded (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+            const editorStatus = document.getElementById('editorStatus');
+            if (editorStatus) {
+              editorStatus.textContent = 'Precompiled (Ready)';
+              editorStatus.className = 'status-indicator success';
+            }
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (uploadBtn) {
+              uploadBtn.disabled = false;
+            }
+          }
+        } catch (hexErr) {
+          console.log('No precompiled build available:', hexErr);
+        }
       }
 
       // Load YouTube video

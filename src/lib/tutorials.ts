@@ -14,6 +14,7 @@ export interface Tutorial {
     videoId?: string;
     order: number;
     code?: string;
+    compiledHex?: string;
     transcript?: string;
     notes?: string;
     diagramUrl?: string;

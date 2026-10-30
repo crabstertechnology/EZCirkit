@@ -17,8 +17,11 @@ import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Upload, X, Image as ImageIcon, Search } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 const tutorialSchema = z.object({
   title: z.string().min(3, 'Title is required.'),
@@ -29,6 +32,7 @@ const tutorialSchema = z.object({
   videoId: z.string().optional(),
   order: z.coerce.number().int().min(0, 'Order must be positive.'),
   code: z.string().optional(),
+  compiledHex: z.string().optional(),
   transcript: z.string().optional(),
   notes: z.string().optional(),
   diagramUrl: z.string().optional(),
@@ -244,6 +248,10 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [autoCompileOnSave, setAutoCompileOnSave] = useState(true);
+  const [compileError, setCompileError] = useState<string | null>(null);
+  const [compileSuccessMsg, setCompileSuccessMsg] = useState<string | null>(null);
   
   // Pre-generate the tutorial ID so it is consistent across uploads and submissions
   const [tutorialId] = useState(() => tutorial?.id || doc(collection(firestore, '_')).id);
@@ -275,6 +283,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       videoId: '',
       order: 0,
       code: '',
+      compiledHex: '',
       transcript: '',
       notes: '',
       diagramUrl: '',
@@ -311,6 +320,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         ...tutorial,
         level: tutorial.level || 'Beginner',
         code: tutorial.code || '',
+        compiledHex: tutorial.compiledHex || '',
         transcript: tutorial.transcript || '',
         notes: tutorial.notes || '',
         diagramUrl: tutorial.diagramUrl || '',
@@ -326,6 +336,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         videoId: '',
         order: 0,
         code: '',
+        compiledHex: '',
         transcript: '',
         notes: '',
         diagramUrl: '',
@@ -353,36 +364,144 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     }
   }, [tutorial, form.reset, firestore, chapterId, form.setValue]);
 
+  const handleTestCompile = async () => {
+    const code = form.getValues('code')?.trim();
+    if (!code) {
+      toast({ variant: 'destructive', title: 'Empty Code', description: 'Please paste your Arduino code before compiling.' });
+      return;
+    }
+    setIsCompiling(true);
+    setCompileError(null);
+    setCompileSuccessMsg(null);
+    try {
+      const res = await fetch('/api/admin/compile-experiment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          tutorialId,
+          chapterId,
+          title: form.getValues('title'),
+          description: form.getValues('description'),
+          diagramUrl: form.getValues('diagramUrl'),
+          pinout: form.getValues('pinout'),
+          videoId: form.getValues('videoId'),
+          saveToDisk: true,
+          saveToFirestore: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.hex) {
+        form.setValue('compiledHex', data.hex);
+        setCompileSuccessMsg(`Compiled successfully via Render! Binary size: ${(data.hex.length / 1024).toFixed(1)} KB. Ready for instant offline student flashing.`);
+        toast({ title: 'Compilation Successful!', description: `Generated ${(data.hex.length / 1024).toFixed(1)} KB Intel HEX binary.` });
+      } else {
+        setCompileError(data.error || 'Compilation failed.');
+        toast({ variant: 'destructive', title: 'Compilation Error', description: data.error || 'Check compiler output.' });
+      }
+    } catch (err: any) {
+      setCompileError(err.message || 'Network error contacting compiler.');
+      toast({ variant: 'destructive', title: 'Compiler Request Error', description: err.message });
+    } finally {
+      setIsCompiling(false);
+    }
+  };
+
   const onSubmit: SubmitHandler<TutorialFormValues> = async (data) => {
     if (!firestore || !chapterId) {
-        toast({variant: 'destructive', title: 'Error', description: 'Chapter not specified.'});
-        return
-    };
+      toast({ variant: 'destructive', title: 'Error', description: 'Chapter not specified.' });
+      return;
+    }
     setIsSubmitting(true);
+    setCompileError(null);
 
     const isEditing = !!tutorial;
     const docRef = doc(firestore, `tutorialChapters/${chapterId}/tutorials`, tutorialId);
-    
+
+    let finalHex = data.compiledHex || tutorial?.compiledHex || '';
+    const currentCode = data.code?.trim() || '';
+
+    // Auto-compile via Render if enabled and code exists
+    if (currentCode && autoCompileOnSave) {
+      const codeChanged = tutorial?.code ? tutorial.code.trim() !== currentCode : true;
+      const missingHex = !finalHex;
+
+      if (codeChanged || missingHex) {
+        setIsCompiling(true);
+        try {
+          const res = await fetch('/api/admin/compile-experiment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: currentCode,
+              tutorialId,
+              chapterId,
+              title: data.title,
+              description: data.description,
+              diagramUrl: data.diagramUrl,
+              pinout: data.pinout,
+              videoId: data.videoId,
+              duration: data.duration,
+              saveToDisk: true,
+              saveToFirestore: false, // will be saved by setDoc below
+            }),
+          });
+          const compileResult = await res.json();
+          if (compileResult.success && compileResult.hex) {
+            finalHex = compileResult.hex;
+            form.setValue('compiledHex', finalHex);
+          } else {
+            const proceedAnyway = confirm(
+              `Compiler Warning:\n${compileResult.error || 'Compilation failed'}\n\nDo you want to save the experiment anyway without the precompiled binary?`
+            );
+            if (!proceedAnyway) {
+              setIsCompiling(false);
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        } catch (compileErr: any) {
+          console.error('Auto-compile error:', compileErr);
+          const proceedAnyway = confirm(
+            `Could not reach Render compiler (${compileErr.message}).\n\nSave experiment anyway without precompiled binary?`
+          );
+          if (!proceedAnyway) {
+            setIsCompiling(false);
+            setIsSubmitting(false);
+            return;
+          }
+        } finally {
+          setIsCompiling(false);
+        }
+      }
+    }
+
     const tutorialData = {
       ...data,
+      compiledHex: finalHex || undefined,
       imageId: data.imageId || 'tutorial-1',
       duration: data.duration || '5 mins',
       id: tutorialId,
       chapterId: chapterId,
     };
-    
+
     try {
       await setDoc(docRef, tutorialData, { merge: isEditing });
-      toast({ title: tutorial ? 'Tutorial updated!' : 'Tutorial created!' });
+      toast({
+        title: tutorial ? 'Experiment updated!' : 'Experiment created!',
+        description: finalHex
+          ? 'Code precompiled via Render & saved! Students can flash in 0ms without server latency.'
+          : 'Saved successfully.',
+      });
       onSave();
-    } catch(error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Firestore Error',
-            description: error.message || 'Could not save tutorial. Check console for details.',
-        });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Firestore Error',
+        description: error.message || 'Could not save tutorial. Check console for details.',
+      });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -498,17 +617,105 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         )}/>
 
          <FormField name="code" control={form.control} render={({ field }) => (
-            <FormItem>
-                <FormLabel>Code Snippet (Optional)</FormLabel>
+            <FormItem className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <FormLabel className="font-semibold text-zinc-900">Arduino Sketch Code (Optional)</FormLabel>
+                  {form.watch('compiledHex') && (
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 bg-emerald-50 text-[11px] font-semibold gap-1 py-0.5">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                      Precompiled Binary Ready ({(form.watch('compiledHex')!.length / 1024).toFixed(1)} KB)
+                    </Badge>
+                  )}
+                </div>
                 <FormControl>
-                    <Textarea placeholder="Paste your code here..." {...field} rows={8} />
+                    <Textarea
+                      placeholder="Paste your Arduino .ino / C++ sketch here..."
+                      {...field}
+                      rows={9}
+                      className="font-mono text-xs leading-relaxed"
+                    />
                 </FormControl>
+
+                {/* Render Cloud Compiler Integration Panel */}
+                <div className="p-3.5 bg-gradient-to-r from-orange-50/70 via-amber-50/50 to-orange-50/70 border border-orange-200/70 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="auto-compile-toggle"
+                        checked={autoCompileOnSave}
+                        onCheckedChange={setAutoCompileOnSave}
+                      />
+                      <Label htmlFor="auto-compile-toggle" className="text-xs font-semibold text-zinc-800 cursor-pointer flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-orange-600" />
+                        Auto-compile via Render on Save
+                      </Label>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestCompile}
+                      disabled={isCompiling || !field.value?.trim()}
+                      className="h-8 text-xs font-semibold border-orange-300 text-orange-700 hover:bg-orange-100 hover:text-orange-800 cursor-pointer gap-1.5"
+                    >
+                      {isCompiling ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-600" />
+                          <span>Compiling on Render...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cpu className="h-3.5 w-3.5 text-orange-600" />
+                          <span>Test Compile via Render</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-600 leading-normal">
+                    When enabled, the Arduino sketch is automatically sent to Render, compiled into an Intel HEX binary, and saved directly with the experiment. Students can flash in <strong>0ms without needing Render or any compiler server</strong>!
+                  </p>
+
+                  {compileSuccessMsg && (
+                    <div className="flex items-start gap-2 p-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{compileSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  {compileError && (
+                    <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs font-medium">
+                      <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-semibold">Compiler Output / Error:</p>
+                        <pre className="font-mono text-[10px] whitespace-pre-wrap max-h-32 overflow-y-auto bg-white/60 p-1.5 rounded border border-red-100">
+                          {compileError}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <FormMessage />
             </FormItem>
         )}/>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save Tutorial'}
+        <Button
+          type="submit"
+          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold h-11 rounded-xl shadow-sm transition-all cursor-pointer"
+          disabled={isSubmitting || isCompiling}
+        >
+          {isCompiling ? (
+            <span className="flex items-center gap-2 justify-center">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Compiling Sketch via Render...
+            </span>
+          ) : isSubmitting ? (
+            'Saving Experiment...'
+          ) : (
+            tutorial ? 'Update Experiment' : 'Add Experiment'
+          )}
         </Button>
       </form>
     </Form>
