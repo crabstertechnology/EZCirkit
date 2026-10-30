@@ -487,8 +487,8 @@ const ProductsPage = () => {
           )}
         </Card>
       ) : viewMode === 'grid' ? (
-        /* ================= GRID VIEW ================= */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        /* ================= HIGH-DENSITY COMPACT GRID VIEW ================= */
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5 sm:gap-3">
           {filteredProducts.map((product) => {
             const currentStock = Number(stockLevels[product.id] ?? product.stock);
             const isStockModified = currentStock !== product.stock;
@@ -498,22 +498,22 @@ const ProductsPage = () => {
             return (
               <Card
                 key={product.id}
-                className="group border border-zinc-200 dark:border-zinc-800 hover:border-orange-300 dark:hover:border-orange-500/40 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between bg-white dark:bg-zinc-900"
+                className="group border border-zinc-200 dark:border-zinc-800 hover:border-orange-400 dark:hover:border-orange-500/50 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-150 flex flex-col justify-between bg-white dark:bg-zinc-900"
               >
                 <div>
                   {/* Product Image Container */}
-                  <div className="relative aspect-square w-full bg-zinc-50 dark:bg-zinc-950/60 p-4 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="relative aspect-square w-full bg-zinc-50 dark:bg-zinc-950/60 p-2.5 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
                     <Image
                       src={product.image || '/images/placeholder.png'}
                       alt={product.name}
-                      width={220}
-                      height={220}
-                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200"
+                      width={160}
+                      height={160}
+                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-150"
                     />
 
                     {/* Category Tag */}
                     {product.category && (
-                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-white/90 dark:bg-zinc-900/90 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700 text-[10px] font-bold tracking-wide uppercase shadow-xs">
+                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-white/90 dark:bg-zinc-900/90 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700 text-[9px] font-bold tracking-tight uppercase shadow-2xs truncate max-w-[85px]">
                         {product.category}
                       </span>
                     )}
@@ -521,62 +521,62 @@ const ProductsPage = () => {
                     {/* Stock Status Badge */}
                     <Badge
                       variant="outline"
-                      className={`absolute top-2.5 right-2.5 text-[10px] font-bold py-0.5 px-2 border shadow-xs ${statusInfo.badgeClass}`}
+                      className={`absolute top-1.5 right-1.5 text-[9px] font-bold py-0.5 px-1.5 border shadow-2xs ${statusInfo.badgeClass}`}
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${statusInfo.dotClass}`} />
-                      {statusInfo.label}
+                      <span className={`h-1.5 w-1.5 rounded-full mr-1 ${statusInfo.dotClass}`} />
+                      {product.stock === 0 ? 'Out' : product.stock}
                     </Badge>
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-3.5 space-y-2">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-base font-extrabold text-orange-600">
+                  <div className="p-2.5 pb-1 space-y-1">
+                    <div className="flex items-baseline justify-between gap-1">
+                      <span className="text-sm font-extrabold text-orange-600">
                         ₹{product.price}
                       </span>
                       {product.originalPrice && product.originalPrice > product.price && (
-                        <span className="text-xs text-muted-foreground line-through">
+                        <span className="text-[10px] text-muted-foreground line-through">
                           ₹{product.originalPrice}
                         </span>
                       )}
                     </div>
 
                     <h4
-                      className="font-semibold text-sm text-foreground line-clamp-2 leading-snug min-h-[2.5rem]"
+                      className="font-semibold text-xs text-foreground line-clamp-2 leading-snug min-h-[1.9rem]"
                       title={product.name}
                     >
                       {product.name}
                     </h4>
 
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-                      <span>SKU: {product.sku || 'N/A'}</span>
-                      <span className="truncate max-w-[100px]" title={product.id}>
-                        ID: {product.id.slice(0, 8)}...
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                      <span className="truncate max-w-[70px]">SKU: {product.sku || 'N/A'}</span>
+                      <span className="truncate max-w-[65px]" title={product.id}>
+                        {product.id.slice(0, 6)}...
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Card Controls & Stock Stepper */}
-                <div className="p-3.5 pt-0 space-y-3">
+                <div className="p-2.5 pt-1 space-y-1.5">
                   {/* Plus / Minus Stock Stepper */}
-                  <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2 rounded-xl border border-zinc-200/70 dark:border-zinc-700 space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
-                      <span>Update Stock</span>
-                      <span>Current: {product.stock}</span>
+                  <div className="bg-zinc-50 dark:bg-zinc-800/60 p-1.5 rounded-lg border border-zinc-200/70 dark:border-zinc-700 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-600 dark:text-zinc-400">
+                      <span>Stock</span>
+                      <span>Now: {product.stock}</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       {/* Decrement Button */}
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         onClick={() => handleStockIncrement(product.id, -1)}
-                        className="h-8 w-8 rounded-lg shrink-0 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                        className="h-6 w-6 rounded-md shrink-0 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer p-0"
                         title="Decrease stock by 1"
                       >
-                        <Minus className="h-3.5 w-3.5" />
+                        <Minus className="h-3 w-3" />
                       </Button>
 
                       {/* Numeric Input */}
@@ -590,7 +590,7 @@ const ProductsPage = () => {
                             handleUpdateStock(product.id);
                           }
                         }}
-                        className="h-8 text-center font-bold text-sm rounded-lg p-0 border-zinc-300 dark:border-zinc-600 focus-visible:ring-orange-500"
+                        className="h-6 text-center font-bold text-xs rounded-md p-0 border-zinc-300 dark:border-zinc-600 focus-visible:ring-orange-500 w-full min-w-0"
                       />
 
                       {/* Increment Button */}
@@ -599,10 +599,10 @@ const ProductsPage = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => handleStockIncrement(product.id, 1)}
-                        className="h-8 w-8 rounded-lg shrink-0 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                        className="h-6 w-6 rounded-md shrink-0 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer p-0"
                         title="Increase stock by 1"
                       >
-                        <Plus className="h-3.5 w-3.5" />
+                        <Plus className="h-3 w-3" />
                       </Button>
 
                       {/* Commit Update Button */}
@@ -611,30 +611,31 @@ const ProductsPage = () => {
                         size="sm"
                         disabled={!isStockModified || isUpdating}
                         onClick={() => handleUpdateStock(product.id)}
-                        className={`h-8 px-2.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer ${
+                        className={`h-6 px-1.5 rounded-md text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
                           isStockModified
                             ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-xs'
                             : 'bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600'
                         }`}
+                        title="Save stock update"
                       >
                         {isUpdating ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-3 w-3 animate-spin" />
                         ) : (
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-3 w-3" />
                         )}
                       </Button>
                     </div>
                   </div>
 
                   {/* Actions: Edit & Delete */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1.5">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleOpenForm(product)}
-                      className="flex-1 h-8 text-xs font-semibold rounded-lg gap-1.5 cursor-pointer border-zinc-200 dark:border-zinc-700"
+                      className="flex-1 h-6 text-[10px] font-semibold rounded-md gap-1 cursor-pointer border-zinc-200 dark:border-zinc-700 px-1.5"
                     >
-                      <Edit className="h-3.5 w-3.5" />
+                      <Edit className="h-3 w-3" />
                       <span>Edit</span>
                     </Button>
 
@@ -643,9 +644,10 @@ const ProductsPage = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-zinc-200 dark:border-zinc-700 cursor-pointer"
+                          className="h-6 w-6 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-zinc-200 dark:border-zinc-700 cursor-pointer p-0"
+                          title="Delete Product"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
