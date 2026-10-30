@@ -384,10 +384,10 @@ export default function AdminBillingPage() {
       variant === 'top' ? "shrink-0 p-2.5 hidden lg:block" : "p-2.5 border-zinc-200 dark:border-zinc-800 space-y-1.5 lg:hidden mb-2"
     )}>
       <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-          <User className="h-3.5 w-3.5 text-primary" />
+        <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+          <User className="h-4 w-4 text-primary" />
           <span>{variant === 'checkout' ? 'Customer Details (Optional)' : 'Customer Information'}</span>
-          <span className="text-[10px] text-muted-foreground font-normal italic">
+          <span className="text-xs text-muted-foreground font-normal italic">
             (defaults to Walk-in Customer)
           </span>
         </div>
@@ -417,7 +417,7 @@ export default function AdminBillingPage() {
               setCustomerName(e.target.value);
               setShowCustomerSuggestions(true);
             }}
-            className="h-8 text-xs rounded-lg"
+            className="h-9 text-xs sm:text-[13px] rounded-lg"
           />
           {customerName && (
             <button
@@ -439,7 +439,7 @@ export default function AdminBillingPage() {
               setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
               setShowCustomerSuggestions(true);
             }}
-            className="h-8 text-xs rounded-lg font-mono"
+            className="h-9 text-xs sm:text-[13px] rounded-lg font-mono"
           />
           {customerPhone && (
             <button
@@ -514,21 +514,21 @@ export default function AdminBillingPage() {
                   key={p.id}
                   type="button"
                   onClick={() => handleProductClick(p)}
-                  className={`relative flex flex-col text-left p-2 rounded-xl border transition-all select-none touch-pan-y group ${
+                  className={`relative flex flex-col text-left p-2.5 rounded-xl border transition-all select-none touch-pan-y group ${
                     inCartItem
                       ? 'border-primary ring-2 ring-primary/20 bg-primary/[0.03]'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-xs active:scale-[0.98]'
+                      : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-700 hover:shadow-sm active:scale-[0.98]'
                   }`}
                   style={{ touchAction: 'pan-y' }}
                 >
                   {/* Top Badges */}
-                  <div className="flex justify-between items-start gap-1 mb-1 w-full pointer-events-none">
-                    <span className="text-[9px] font-mono font-bold text-muted-foreground truncate uppercase">
+                  <div className="flex justify-between items-start gap-1 mb-1.5 w-full pointer-events-none">
+                    <span className="text-[10px] font-mono font-bold text-muted-foreground truncate uppercase">
                       {p.sku}
                     </span>
                     <Badge
                       variant="outline"
-                      className={`text-[8.5px] px-1 py-0 h-3.5 font-bold border ${
+                      className={`text-[9.5px] px-1.5 py-0 h-4 font-bold border ${
                         isOutOfStock
                           ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
                           : isLowStock
@@ -541,34 +541,34 @@ export default function AdminBillingPage() {
                   </div>
 
                   {/* Image & Title */}
-                  <div className="flex items-center gap-1.5 mb-1.5 pointer-events-none">
+                  <div className="flex items-center gap-2 mb-2 pointer-events-none">
                     {p.image ? (
                       <img
                         src={p.image}
                         alt={p.name}
-                        className="h-9 w-9 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800 pointer-events-none"
+                        className="h-11 w-11 rounded-lg object-contain bg-zinc-50 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800 pointer-events-none"
                       />
                     ) : (
-                      <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[9px] pointer-events-none">
+                      <div className="h-11 w-11 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 text-zinc-400 font-bold text-[10px] pointer-events-none">
                         IC
                       </div>
                     )}
-                    <h4 className="text-[11px] font-bold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors pointer-events-none">
+                    <h4 className="text-xs font-bold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors pointer-events-none">
                       {p.name}
                     </h4>
                   </div>
 
                   {/* Bottom Price & In-Cart Counter */}
-                  <div className="mt-auto flex justify-between items-center pt-1 border-t border-zinc-100 dark:border-zinc-800/80 w-full pointer-events-none">
-                    <span className="text-xs font-black text-foreground">
+                  <div className="mt-auto flex justify-between items-center pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 w-full pointer-events-none">
+                    <span className="text-sm font-black text-foreground">
                       ₹{p.sellingPrice ?? p.price}
                     </span>
                     {inCartItem ? (
-                      <Badge className="bg-primary text-white text-[9px] h-4.5 px-1.5 font-bold">
+                      <Badge className="bg-primary text-white text-[10px] h-5 px-2 font-bold">
                         In Cart: {inCartItem.quantity}
                       </Badge>
                     ) : (
-                      <span className="text-[9px] text-muted-foreground group-hover:text-primary font-semibold">
+                      <span className="text-[10.5px] text-muted-foreground group-hover:text-primary font-bold">
                         + Add
                       </span>
                     )}
@@ -641,12 +641,12 @@ export default function AdminBillingPage() {
             <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2 sm:mt-3">
               {/* Category Dropdown */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <span className="text-[11px] font-bold text-muted-foreground shrink-0 hidden sm:inline">Category:</span>
+                <span className="text-xs font-bold text-muted-foreground shrink-0 hidden sm:inline">Category:</span>
                 <Select
                   value={selectedCategory}
                   onValueChange={(val: string) => setSelectedCategory(val)}
                 >
-                  <SelectTrigger className="h-7 text-[11px] font-semibold flex-1 max-w-[200px] rounded-lg">
+                  <SelectTrigger className="h-8 text-xs font-semibold flex-1 max-w-[210px] rounded-lg">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
@@ -661,12 +661,12 @@ export default function AdminBillingPage() {
 
               {/* Stock Filter Dropdown */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[11px] font-bold text-muted-foreground shrink-0 hidden sm:inline">Stock:</span>
+                <span className="text-xs font-bold text-muted-foreground shrink-0 hidden sm:inline">Stock:</span>
                 <Select
                   value={stockFilter}
                   onValueChange={(val: any) => setStockFilter(val)}
                 >
-                  <SelectTrigger className="h-7 text-[11px] font-semibold w-28 rounded-lg shrink-0">
+                  <SelectTrigger className="h-8 text-xs font-semibold w-30 rounded-lg shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -689,10 +689,10 @@ export default function AdminBillingPage() {
         )}>
           <div className="px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[11px] font-bold text-foreground truncate">
+              <span className="text-xs font-bold text-foreground truncate">
                 Components Catalog ({currentProducts.length} items)
               </span>
-              <span className="text-[10px] text-muted-foreground truncate hidden xs:inline">
+              <span className="text-[11px] text-muted-foreground truncate hidden xs:inline">
                 • Tap item to add directly to Active Cart
               </span>
             </div>
@@ -723,12 +723,12 @@ export default function AdminBillingPage() {
       <div className="flex flex-col flex-1 min-h-0 lg:overflow-hidden relative">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-1 min-h-0 lg:overflow-hidden pb-20 lg:pb-0">
             {/* LEFT PANEL: CATALOG SEARCH, FILTERS & PRODUCT GRID (Desktop Only) */}
-            <div className="hidden lg:flex lg:col-span-5 flex-col lg:h-full space-y-2 min-h-0">
+            <div className="hidden lg:flex lg:col-span-5 xl:col-span-6 flex-col lg:h-full space-y-2 min-h-0">
               {renderCatalogContent(false)}
             </div>
 
             {/* RIGHT PANEL: BILLING, CUSTOMER & SETTLEMENT ENGINE */}
-            <div id="cart-section" className="col-span-1 lg:col-span-7 flex flex-col lg:h-full space-y-2 min-h-0">
+            <div id="cart-section" className="col-span-1 lg:col-span-7 xl:col-span-6 flex flex-col lg:h-full space-y-2 min-h-0">
               {/* Mobile Top Quick Action Bar (< lg) */}
               <div className="lg:hidden flex items-center justify-between px-1 py-1 shrink-0">
                 <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
@@ -768,8 +768,8 @@ export default function AdminBillingPage() {
             <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl flex flex-col overflow-hidden lg:flex-1 lg:min-h-0">
               <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-bold text-foreground">
+                  <ShoppingCart className="h-4.5 w-4.5 text-primary" />
+                  <span className="text-sm font-bold text-foreground">
                     Active Cart ({cart.reduce((acc, i) => acc + i.quantity, 0)} items)
                   </span>
                 </div>
@@ -787,7 +787,7 @@ export default function AdminBillingPage() {
 
               {/* Header row for cart columns (desktop only, hidden on mobile to prevent overflow) */}
               {cart.length > 0 && (
-                <div className="hidden sm:flex px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-muted-foreground uppercase items-center justify-between gap-1.5 sm:gap-2 shrink-0">
+                <div className="hidden sm:flex px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[11px] font-bold text-muted-foreground uppercase items-center justify-between gap-1.5 sm:gap-2 shrink-0">
                   <span className="flex-1">Item Details</span>
                   <span className="w-20 sm:w-24 text-center">Qty</span>
                   <span className="w-14 sm:w-16 text-right">Price</span>
@@ -802,7 +802,7 @@ export default function AdminBillingPage() {
                 {cart.length === 0 ? (
                   <div className="flex flex-col items-center justify-center min-h-[140px] text-center p-4 text-muted-foreground space-y-1">
                     <ShoppingCart className="h-7 w-7 text-muted-foreground/30 mb-0.5" />
-                    <p className="text-xs font-bold text-foreground">Active cart is empty</p>
+                    <p className="text-sm font-bold text-foreground">Active cart is empty</p>
                     <p className="text-[11px] text-muted-foreground max-w-xs">
                       Tap any component in the catalog below to add it directly to this bill.
                     </p>
