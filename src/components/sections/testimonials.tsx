@@ -8,7 +8,7 @@ import { useFirestore, deleteDocumentNonBlocking, useUser, useCollection, useMem
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import ReviewForm from './review-form';
 import { Skeleton } from '../ui/skeleton';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Play, Sparkles } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from '../ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export interface Review {
@@ -71,7 +72,7 @@ const ReviewCard = ({ review }: { review: Review }) => {
       <CardContent className="p-6 flex-grow flex flex-col justify-between">
         <div>
           <StarRating rating={review.rating} className="mb-4" />
-          <p className="text-foreground/80 italic">"{review.comment}"</p>
+          <p className="text-foreground/80 italic">&quot;{review.comment}&quot;</p>
         </div>
         <div className="mt-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -178,60 +179,151 @@ const Testimonials: React.FC<TestimonialsProps> = ({ reviews, averageRating, isL
         )}
 
         {/* Video Testimonials Section */}
-        {(!isLoadingVideos && videos && videos.length > 0) && (
-          <div className="my-16 space-y-8">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold md:text-3xl">Student Success Stories</h3>
-              <p className="text-muted-foreground mt-2">See what our community is creating with EZCirkit.</p>
+        {!isLoadingVideos && videos && videos.length > 0 && (() => {
+          const landscapeVideos = videos.filter((v) => v.aspectRatio !== '9:16');
+          const portraitVideos = videos.filter((v) => v.aspectRatio === '9:16');
+
+          return (
+            <div className="my-16 space-y-8">
+              <div className="text-center max-w-2xl mx-auto">
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs font-bold py-1 px-3 mb-3">
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-orange-600 inline" /> Community in Action
+                </Badge>
+                <h3 className="text-2xl font-bold md:text-3xl text-foreground">Student Success Stories</h3>
+                <p className="text-muted-foreground mt-2 text-sm md:text-base">
+                  See how students, teachers, and young makers build real electronics projects with EZCirkit.
+                </p>
+              </div>
+
+              {/* Seamless balanced layout: Landscape video on Left (7 cols), Shorts on Right (5 cols) */}
+              {landscapeVideos.length === 1 && portraitVideos.length > 0 && portraitVideos.length <= 2 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start max-w-6xl mx-auto">
+                  {/* Left Column (7 cols): Featured 16:9 Landscape Video */}
+                  <div className="lg:col-span-7 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-orange-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <Play className="h-3.5 w-3.5 fill-orange-600" /> Featured Project Tutorial
+                      </span>
+                    </div>
+                    <div
+                      className="w-full rounded-2xl overflow-hidden shadow-xl border-2 border-border/80 group transition-all duration-300 hover:scale-[1.005] bg-black"
+                      style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}
+                    >
+                      <iframe
+                        src={getYoutubeEmbedUrl(landscapeVideos[0].videoUrl)}
+                        title={landscapeVideos[0].title}
+                        frameBorder="0"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                      />
+                    </div>
+                    <h4 className="font-bold text-base md:text-lg text-foreground leading-snug">
+                      {landscapeVideos[0].title}
+                    </h4>
+                  </div>
+
+                  {/* Right Column (5 cols): 9:16 Shorts Grid */}
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <Play className="h-3.5 w-3.5 fill-red-600" /> Quick Student Shorts
+                      </span>
+                    </div>
+                    <div className={`grid ${portraitVideos.length === 1 ? 'grid-cols-1 max-w-[280px] mx-auto' : 'grid-cols-2'} gap-3 sm:gap-4`}>
+                      {portraitVideos.map((video) => (
+                        <div key={video.id} className="space-y-2">
+                          <div
+                            className="w-full rounded-2xl overflow-hidden shadow-xl border-2 border-border/80 group transition-all duration-300 hover:scale-[1.01] bg-black"
+                            style={{ position: 'relative', paddingBottom: '177.77%', height: 0 }}
+                          >
+                            <iframe
+                              src={getYoutubeEmbedUrl(video.videoUrl)}
+                              title={video.title}
+                              frameBorder="0"
+                              loading="lazy"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                            />
+                          </div>
+                          <p className="font-semibold text-xs text-foreground line-clamp-2 leading-snug" title={video.title}>
+                            {video.title}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Generalized layout for other combinations */
+                <div className="space-y-8 max-w-6xl mx-auto">
+                  {/* Landscape videos */}
+                  {landscapeVideos.length > 0 && (
+                    <div className={`grid gap-6 ${landscapeVideos.length === 1 ? 'max-w-3xl mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
+                      {landscapeVideos.map((video) => (
+                        <div key={video.id} className="space-y-2">
+                          <div
+                            className="w-full rounded-2xl overflow-hidden shadow-xl border-2 border-border/80 group transition-all duration-300 hover:scale-[1.005] bg-black"
+                            style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}
+                          >
+                            <iframe
+                              src={getYoutubeEmbedUrl(video.videoUrl)}
+                              title={video.title}
+                              frameBorder="0"
+                              loading="lazy"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                            />
+                          </div>
+                          <h4 className="font-bold text-sm md:text-base text-foreground leading-snug">
+                            {video.title}
+                          </h4>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Portrait shorts */}
+                  {portraitVideos.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
+                          <Play className="h-3.5 w-3.5 fill-red-600" /> Student Shorts
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                        {portraitVideos.map((video) => (
+                          <div key={video.id} className="space-y-2">
+                            <div
+                              className="w-full rounded-2xl overflow-hidden shadow-xl border-2 border-border/80 group transition-all duration-300 hover:scale-[1.01] bg-black"
+                              style={{ position: 'relative', paddingBottom: '177.77%', height: 0 }}
+                            >
+                              <iframe
+                                src={getYoutubeEmbedUrl(video.videoUrl)}
+                                title={video.title}
+                                frameBorder="0"
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                              />
+                            </div>
+                            <p className="font-semibold text-xs text-foreground line-clamp-2 leading-snug" title={video.title}>
+                              {video.title}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* 16:9 landscape videos */}
-            {videos.filter(v => v.aspectRatio !== '9:16').length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {videos.filter(v => v.aspectRatio !== '9:16').map((video) => (
-                  <div
-                    key={video.id}
-                    className="w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border group transition-all duration-300 hover:scale-[1.01] bg-black"
-                    style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}
-                  >
-                    <iframe
-                      src={getYoutubeEmbedUrl(video.videoUrl)}
-                      title={video.title}
-                      frameBorder="0"
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                    ></iframe>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 9:16 portrait/shorts videos */}
-            {videos.filter(v => v.aspectRatio === '9:16').length > 0 && (
-              <div className="flex flex-wrap justify-center gap-6">
-                {videos.filter(v => v.aspectRatio === '9:16').map((video) => (
-                  <div
-                    key={video.id}
-                    className="rounded-2xl overflow-hidden shadow-2xl border-4 border-background ring-1 ring-border group transition-all duration-300 hover:scale-[1.01] bg-black flex-shrink-0"
-                    style={{ width: '300px', height: '533px', position: 'relative' }}
-                  >
-                    <iframe
-                      src={getYoutubeEmbedUrl(video.videoUrl)}
-                      title={video.title}
-                      frameBorder="0"
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                    ></iframe>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          );
+        })()}
         
         <ReviewForm productId={PRODUCT_DOC_ID} existingReviews={reviews || []} />
         
