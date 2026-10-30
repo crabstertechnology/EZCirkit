@@ -14,7 +14,7 @@ import Logo from '@/components/shared/logo';
 import { NAV_LINKS } from '@/lib/constants';
 import { FEATURES } from '@/lib/features';
 import { useCart } from '@/context/cart-context';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { handleLogout } from '@/lib/auth';
 import { useAuth } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { doc } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,6 +38,53 @@ const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
   const firestore = useFirestore();
+  const productsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'products') : null),
+    [firestore]
+  );
+  const { data: storeProducts } = useCollection<any>(productsQuery);
+
+  const realCategories = React.useMemo(() => {
+    const fallbackList = [
+      { name: 'Sensors', count: 12, href: '/products?category=Sensors' },
+      { name: 'Components & ICs', count: 11, href: '/products?category=Components' },
+      { name: 'Power Modules', count: 6, href: '/products?category=Power+Modules' },
+      { name: 'Development Boards', count: 3, href: '/products?category=Development+Boards' },
+      { name: 'Displays & OLEDs', count: 2, href: '/products?category=Displays' },
+      { name: 'EZCirkit Learning Kit', count: 1, href: '/products?category=EZCirkit', badge: 'BESTSELLER' },
+      { name: 'Wires & Connectors', count: 1, href: '/products?category=Wires+%26+Connectors' },
+    ];
+
+    if (!storeProducts || storeProducts.length === 0) {
+      return fallbackList;
+    }
+
+    const catCounts: Record<string, { count: number; rawCat: string }> = {};
+    storeProducts.forEach((p: any) => {
+      let raw = p.category?.trim() || 'Components';
+      if (raw === 'Electronic Components') raw = 'Components';
+      if (!catCounts[raw]) {
+        catCounts[raw] = { count: 0, rawCat: raw };
+      }
+      catCounts[raw].count += 1;
+    });
+
+    return Object.entries(catCounts)
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([name, info]) => {
+        let displayName = name;
+        if (name.toLowerCase() === 'components') displayName = 'Components & ICs';
+        if (name.toLowerCase() === 'displays') displayName = 'Displays & OLEDs';
+        if (name.toLowerCase() === 'ezcirkit') displayName = 'EZCirkit Learning Kit';
+        return {
+          name: displayName,
+          count: info.count,
+          href: `/products?category=${encodeURIComponent(info.rawCat)}`,
+          badge: name.toLowerCase() === 'ezcirkit' ? 'BESTSELLER' : undefined,
+        };
+      });
+  }, [storeProducts]);
+
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -462,12 +509,8 @@ const Header = () => {
 
   const MobileMenu = () => {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-      categories: true, // open categories by default so users see them right away!
-      brands: false,
-      b2b: false,
-      lab: false,
+      categories: true, // open categories by default
       projects: false,
-      knowledge: false,
     });
 
     const toggleSection = (section: string) => {
@@ -492,7 +535,7 @@ const Header = () => {
           {/* Scrollable Categories List */}
           <ScrollArea className="flex-1 overflow-y-auto">
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm font-semibold text-foreground">
-              {/* 1. Shop By Category */}
+              {/* 1. Shop By Category (Only What We Actually Have) */}
               <div>
                 <button
                   type="button"
@@ -515,212 +558,33 @@ const Header = () => {
                       className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
                     >
                       <span>All Products</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
+                      <span className="text-[10px] text-muted-foreground bg-zinc-200/60 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full font-bold">
+                        {storeProducts?.length || 36}
+                      </span>
                     </Link>
-                    <Link
-                      href="/products?category=Development+Boards"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Development Boards</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?category=Sensors"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Sensors</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?category=Components"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Components & ICs</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?category=Power+Modules"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Power Modules</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?category=Displays"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Displays & OLEDs</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?category=EZCirkit"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-700 dark:text-zinc-200 hover:text-orange-600 font-bold"
-                    >
-                      <span>EZCirkit Learning Kit</span>
-                      <Badge className="bg-orange-500 text-white text-[9px] px-1.5 py-0 h-4">BESTSELLER</Badge>
-                    </Link>
-                    <Link
-                      href="/products?category=Wires+%26+Connectors"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Wires & Connectors</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
+                    {realCategories.map((cat) => (
+                      <Link
+                        key={cat.name}
+                        href={cat.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {cat.badge && (
+                            <Badge className="bg-orange-500 text-white text-[9px] px-1 py-0 h-4">{cat.badge}</Badge>
+                          )}
+                          <span className="text-[10px] text-muted-foreground bg-zinc-200/60 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full font-semibold">
+                            {cat.count}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* 2. Shop By Brand */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => toggleSection('brands')}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-sm font-bold text-foreground">Shop By Brand</span>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
-                      expandedSections.brands && "rotate-90 text-orange-500"
-                    )}
-                  />
-                </button>
-                {expandedSections.brands && (
-                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
-                    <Link
-                      href="/products?search=EZCirkit"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
-                    >
-                      <span>Crabster Technology</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?search=Arduino"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Arduino Compatible</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?search=ESP32"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Espressif (ESP32)</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/products?search=STM"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>STM / Microchip</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. B2B Orders */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => toggleSection('b2b')}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-sm font-bold text-foreground">B2B Orders</span>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
-                      expandedSections.b2b && "rotate-90 text-orange-500"
-                    )}
-                  />
-                </button>
-                {expandedSections.b2b && (
-                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
-                    <Link
-                      href="/contact-us"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
-                    >
-                      <span>School & Institutional Bulk Pricing</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/contact-us"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Request Lab Quotation</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/shipping-and-delivery"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>GST Invoicing & Pan-India Dispatch</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* 4. Lab Setup */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => toggleSection('lab')}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-sm font-bold text-foreground">Lab Setup</span>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
-                      expandedSections.lab && "rotate-90 text-orange-500"
-                    )}
-                  />
-                </button>
-                {expandedSections.lab && (
-                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
-                    <Link
-                      href="/contact-us"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
-                    >
-                      <span>STEM Tinkering Labs</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/#flagship-product"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Classroom Starter Bundles</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/contact-us"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Custom Lab Gear Inquiries</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Projects */}
+              {/* 2. Projects & IDE */}
               <div>
                 <button
                   type="button"
@@ -765,7 +629,7 @@ const Header = () => {
                 )}
               </div>
 
-              {/* 6. Top Deals */}
+              {/* 3. Top Deals */}
               <div>
                 <Link
                   href="/products"
@@ -783,52 +647,7 @@ const Header = () => {
                 </Link>
               </div>
 
-              {/* 7. Knowledge Hub */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => toggleSection('knowledge')}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-sm font-bold text-foreground">Knowledge Hub</span>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
-                      expandedSections.knowledge && "rotate-90 text-orange-500"
-                    )}
-                  />
-                </button>
-                {expandedSections.knowledge && (
-                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
-                    <Link
-                      href="/tutorials"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
-                    >
-                      <span>Video Lessons & Guides</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/ide"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Pinout & Circuit Schematics</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/#flagship-product"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Kit Getting Started Manual</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* 8. Account Section */}
+              {/* 4. Account Section */}
               <div className="pt-2">
                 {user ? (
                   <div className="space-y-1">
@@ -874,7 +693,7 @@ const Header = () => {
                 )}
               </div>
 
-              {/* 9. My Wish List */}
+              {/* 5. My Wish List */}
               <div>
                 <Link
                   href="/wishlist"
@@ -893,7 +712,7 @@ const Header = () => {
                 </Link>
               </div>
 
-              {/* 10. My Cart */}
+              {/* 6. My Shopping Cart */}
               <div>
                 <button
                   type="button"

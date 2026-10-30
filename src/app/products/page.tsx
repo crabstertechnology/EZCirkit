@@ -141,19 +141,19 @@ function ShopPageContent() {
     };
   }, [reviews]);
 
-  const categories = [
-    'All Products',
-    'Sensors',
-    'Arduino Boards',
-    'Development Boards',
-    'Displays',
-    'Power Modules',
-    'Robotics',
-    'Wires & Connectors',
-    'Components',
-    'DIY Kits',
-    'EZCirkit'
-  ];
+  // Only show categories that we actually have products for
+  const categories = React.useMemo(() => {
+    const catCounts: Record<string, number> = {};
+    localProducts.forEach(p => {
+      let cat = p.category?.trim() || 'Components';
+      if (cat === 'Electronic Components') cat = 'Components';
+      catCounts[cat] = (catCounts[cat] || 0) + 1;
+    });
+    const sortedCats = Object.entries(catCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat]) => cat);
+    return ['All Products', ...sortedCats];
+  }, [localProducts]);
 
   // Combine query results and default fallback items
   const displayProducts = React.useMemo(() => {

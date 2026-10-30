@@ -63,10 +63,11 @@ export const PRODUCT_FEATURES = [
 export const FOOTER_LINKS = {
   categories: [
     { href: '/products?category=Sensors', label: 'Sensors' },
-    { href: '/products?category=Arduino+Boards', label: 'Arduino Boards' },
+    { href: '/products?category=Components', label: 'Components & ICs' },
+    { href: '/products?category=Power+Modules', label: 'Power Modules' },
     { href: '/products?category=Development+Boards', label: 'Development Boards' },
     { href: '/products?category=Displays', label: 'Displays' },
-    { href: '/products?category=Power+Modules', label: 'Power Modules' },
+    { href: '/products?category=EZCirkit', label: 'EZCirkit Kit' },
   ],
   quickLinks: [
     { href: '/', label: 'Home' },
