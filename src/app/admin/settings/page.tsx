@@ -44,6 +44,15 @@ const DEFAULT_SETTINGS: AnnouncementBarSettings = {
   ]
 };
 
+// Extract YouTube ID or fallback
+const getYoutubeThumbnail = (url?: string) => {
+  if (!url) return '/logo.png';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  const videoId = (match && match[2].length === 11) ? match[2] : null;
+  return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '/logo.png';
+};
+
 const SettingsPage = () => {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -576,14 +585,30 @@ const SettingsPage = () => {
                           }
                         }}
                         className={cn(
-                          "group cursor-pointer p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-4 hover:shadow-md",
+                          "group cursor-pointer p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-3 hover:shadow-md",
                           isSelected
-                            ? "bg-primary/5 border-primary shadow-sm"
+                            ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20"
                             : "bg-background border-border/80 hover:border-zinc-400"
                         )}
                       >
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start gap-2">
+                        <div className="space-y-3">
+                          {/* Image Thumbnail Container */}
+                          <div className="relative aspect-[16/10] w-full rounded-xl overflow-hidden bg-white dark:bg-zinc-900 border border-border/60 flex items-center justify-center">
+                            <img
+                              src={proj.diagramUrl || proj.imageUrl || getYoutubeThumbnail(proj.videoId)}
+                              alt={proj.title}
+                              className={cn(
+                                "w-full h-full p-1.5 transition-transform duration-300 group-hover:scale-105",
+                                proj.diagramUrl ? "object-contain" : "object-cover"
+                              )}
+                              onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                            />
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-primary/10 border-2 border-primary rounded-xl pointer-events-none" />
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center gap-2">
                             <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
                               <Clock className="h-3.5 w-3.5" />
                               {proj.duration || '5 mins'}
@@ -600,9 +625,14 @@ const SettingsPage = () => {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
-                          <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">
+
+                          <h4 className={cn(
+                            "font-bold text-sm leading-tight transition-colors line-clamp-2",
+                            isSelected ? "text-primary" : "group-hover:text-primary"
+                          )}>
                             {proj.title}
                           </h4>
+
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {proj.description}
                           </p>
