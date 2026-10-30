@@ -765,18 +765,8 @@ const Header = () => {
         {/* DESKTOP VIEW (>= md): 1-Row Centered Layout */}
         {/* ========================================================= */}
         <div suppressHydrationWarning className="hidden md:flex h-20 items-center justify-between gap-4 w-full">
-          {/* Desktop Left: Menu Drawer Toggle, Brand Logo & Products Link */}
-          <div className="flex items-center gap-3 lg:gap-4 xl:gap-6 shrink-0 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-              onClick={() => setMobileMenuOpen(true)}
-              title="Open Menu & Categories"
-            >
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Categories Menu</span>
-            </Button>
+          {/* Desktop Left: Brand Logo & Products Link */}
+          <div className="flex items-center gap-5 xl:gap-8 shrink-0 min-w-0">
             <Logo size="lg" />
             <nav className="flex items-center">
               <NavLinks items={[{ href: '/products', label: 'Products' }]} />

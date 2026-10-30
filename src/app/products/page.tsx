@@ -228,7 +228,7 @@ function ShopPageContent() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-foreground">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-32 md:pt-24 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-28 md:pt-24 pb-16">
 
         {/* Compact Page Header */}
         <div className="flex items-center justify-between py-4 border-b border-border/60 mb-6">
@@ -248,7 +248,7 @@ function ShopPageContent() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-background border border-border/80 text-xs font-bold rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="bg-background border border-border/80 text-xs font-bold rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             >
               <option>Featured</option>
               <option>Price: Low to High</option>
@@ -257,11 +257,11 @@ function ShopPageContent() {
           </div>
         </div>
 
-        {/* Main Grid */}
+        {/* Main Content Layout with Left Category Sidebar */}
         <div className="flex gap-6 items-start">
 
-          {/* ── Sidebar ── */}
-          <aside className="hidden lg:flex flex-col gap-5 w-44 flex-shrink-0 sticky top-24">
+          {/* ── Left Sidebar (Categories & Search) ── */}
+          <aside className="hidden lg:flex flex-col gap-5 w-48 flex-shrink-0 sticky top-24">
 
             {/* Search */}
             <div>
@@ -273,8 +273,17 @@ function ShopPageContent() {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -282,15 +291,83 @@ function ShopPageContent() {
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">Categories</p>
               <div className="flex flex-col gap-0.5">
+                {categories.map((cat) => {
+                  const count = cat === 'All Products'
+                    ? localProducts.length
+                    : localProducts.filter(p => {
+                        let c = p.category?.trim() || 'Components';
+                        if (c === 'Electronic Components') c = 'Components';
+                        return c.toLowerCase() === cat.toLowerCase();
+                      }).length;
+                  const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-left',
+                        isSelected
+                          ? 'bg-primary/10 text-primary font-bold'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      )}
+                    >
+                      <span className="truncate">{cat}</span>
+                      <span
+                        className={cn(
+                          'text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-1.5 shrink-0',
+                          isSelected
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-muted-foreground'
+                        )}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+
+          {/* ── Product Grid (Strictly 4 products per row on desktop/laptop) ── */}
+          <div className="flex-1 min-w-0">
+
+            {/* Mobile search + filter bar */}
+            <div className="flex lg:hidden flex-col gap-2.5 mb-4">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-7 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile categories row */}
+              <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
                 {categories.map((cat) => (
                   <button
                     key={cat}
+                    type="button"
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                      'flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer',
                       selectedCategory === cat
-                        ? 'bg-primary/10 text-primary font-bold'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
                     )}
                   >
                     {cat}
@@ -298,45 +375,9 @@ function ShopPageContent() {
                 ))}
               </div>
             </div>
-          </aside>
-
-          {/* ── Product Grid ── */}
-          <div className="flex-1 min-w-0">
-
-            {/* Mobile search + filter bar */}
-            <div className="flex lg:hidden gap-2 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </div>
-            </div>
-
-            {/* Mobile categories row */}
-            <div className="flex lg:hidden gap-1.5 overflow-x-auto pb-2 mb-4">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    'flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors',
-                    selectedCategory === cat
-                      ? 'bg-primary text-white border-primary'
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
 
             {isLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="rounded-xl border border-border/60 overflow-hidden animate-pulse">
                     <div className="aspect-square bg-zinc-100 dark:bg-zinc-800" />
@@ -349,7 +390,7 @@ function ShopPageContent() {
                 ))}
               </div>
             ) : displayProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5">
                 {displayProducts.map((p) => {
                   const discount = getDiscountPercent(p.price, p.originalPrice);
                   const isWishlisted = wishlist.includes(p.id);
@@ -358,7 +399,7 @@ function ShopPageContent() {
                     <div
                       key={p.id}
                       onClick={() => router.push(`/products/${p.id}`)}
-                      className="group cursor-pointer flex flex-col rounded-xl overflow-hidden border border-border/60 bg-white dark:bg-zinc-900 hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 transition-shadow duration-300"
+                      className="group cursor-pointer flex flex-col rounded-xl overflow-hidden border border-border/60 bg-white dark:bg-zinc-900 hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 transition-all duration-300 hover:-translate-y-0.5"
                     >
                       {/* Image */}
                       <div className="relative aspect-square w-full overflow-hidden bg-zinc-50 dark:bg-zinc-800">
@@ -366,7 +407,7 @@ function ShopPageContent() {
                           src={p.image === '/1.jpg' ? '/kit/new-kit-front.png' : (p.image || '/logo.png')}
                           alt={p.name}
                           loading="lazy"
-                          className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
+                          className="absolute inset-0 w-full h-full object-contain p-2.5 transition-transform duration-500 group-hover:scale-[1.04]"
                           onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                         />
                         {!!discount && discount > 0 && (
@@ -375,8 +416,9 @@ function ShopPageContent() {
                           </span>
                         )}
                         <button
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id, p.name); }}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 flex items-center justify-center shadow-sm hover:scale-110 transition-transform cursor-pointer"
                           aria-label="Wishlist"
                         >
                           <Heart className={cn('h-3 w-3 transition-colors', isWishlisted ? 'fill-red-500 text-red-500' : 'text-zinc-400')} />
@@ -400,27 +442,31 @@ function ShopPageContent() {
                             <span className="text-[10px] text-muted-foreground line-through">₹{p.originalPrice.toLocaleString('en-IN')}</span>
                           )}
                         </div>
-                        <button
-                          onClick={(e) => handleAddToCart(e, p)}
-                          disabled={p.stock <= 0}
-                          className={cn(
-                            'mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors',
-                            p.stock <= 0
-                              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed'
-                              : 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-white'
-                          )}
-                        >
-                          <ShoppingCart className="h-3 w-3" />
-                          {p.stock <= 0 ? 'Out of Stock' : 'Add'}
-                        </button>
-                        {p.stock > 0 && (
+                        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
                           <button
-                            onClick={(e) => handleBuyNow(e, p)}
-                            className="mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#ff6c00] hover:bg-[#e05f00] text-white transition-colors"
+                            type="button"
+                            onClick={(e) => handleAddToCart(e, p)}
+                            disabled={p.stock <= 0}
+                            className={cn(
+                              'w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer',
+                              p.stock <= 0
+                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed col-span-2'
+                                : 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-white'
+                            )}
                           >
-                            Buy Now
+                            <ShoppingCart className="h-3 w-3" />
+                            <span>{p.stock <= 0 ? 'Out of Stock' : 'Add'}</span>
                           </button>
-                        )}
+                          {p.stock > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleBuyNow(e, p)}
+                              className="w-full flex items-center justify-center py-1.5 rounded-lg text-[11px] font-bold bg-[#ff6c00] hover:bg-[#e05f00] text-white transition-colors cursor-pointer"
+                            >
+                              Buy Now
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -429,7 +475,11 @@ function ShopPageContent() {
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <p className="text-sm text-muted-foreground font-medium">No products found for "{searchQuery || selectedCategory}"</p>
-                <button onClick={() => { setSearchQuery(''); setSelectedCategory('All Products'); }} className="mt-3 text-xs text-primary font-bold hover:underline">
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setSelectedCategory('All Products'); }}
+                  className="mt-3 text-xs text-primary font-bold hover:underline cursor-pointer"
+                >
                   Clear filters
                 </button>
               </div>
