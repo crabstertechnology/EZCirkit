@@ -14,6 +14,9 @@ let currentReader = null;
 let isSerialMonitorOpen = false;
 let currentSerialLineEl = null;
 let currentExperimentInfo = null; // Stores diagramUrl and pinout for the active experiment
+let currentExperimentId = null;
+let precompiledHexForCurrentExperiment = null;
+let defaultExperimentCode = '';
 
 // Default Sketch Templates
 const SKETCHES = {
@@ -174,9 +177,112 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Initialize precompiled experiment direct flash dropdown
+  initExperimentDropdown();
+
   // Load experiment if parameters are present in URL
   loadExperimentFromUrlParams();
 });
+
+// -------------------------------------------------------------
+// Precompiled Experiments (Direct Flash without Render/Server)
+// -------------------------------------------------------------
+function initExperimentDropdown() {
+  const select = document.getElementById('experimentSelect');
+  if (!select) return;
+
+  const experiments = window.PRECOMPILED_EXPERIMENTS || {};
+  const expKeys = Object.keys(experiments);
+
+  if (expKeys.length === 0) return;
+
+  select.innerHTML = '<option value="">⚡ Direct Flash Experiments</option>';
+
+  const sortedExps = Object.values(experiments).sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  sortedExps.forEach((exp) => {
+    const opt = document.createElement('option');
+    opt.value = exp.id;
+    opt.textContent = `${exp.order ? exp.order + '. ' : ''}${exp.title}`;
+    select.appendChild(opt);
+  });
+
+  select.style.display = 'inline-block';
+
+  select.addEventListener('change', async (e) => {
+    const selectedId = e.target.value;
+    if (!selectedId) return;
+    await applyExperimentById(selectedId);
+  });
+}
+
+async function applyExperimentById(experimentId) {
+  const experiments = window.PRECOMPILED_EXPERIMENTS || {};
+  const exp = experiments[experimentId];
+  if (!exp) return;
+
+  currentExperimentId = experimentId;
+  defaultExperimentCode = exp.code || '';
+  currentExperimentInfo = {
+    description: exp.description || '',
+    diagramUrl: exp.diagramUrl || '',
+    pinout: exp.pinout || ''
+  };
+
+  const experimentInfoBtn = document.getElementById('experimentInfoBtn');
+  if (experimentInfoBtn) {
+    experimentInfoBtn.style.display = (exp.description || exp.diagramUrl || exp.pinout) ? 'flex' : 'none';
+  }
+
+  // Load code in Monaco Editor
+  if (exp.code) {
+    if (editor) {
+      editor.setValue(exp.code);
+    } else {
+      pendingCode = exp.code;
+    }
+  }
+
+  // Load YouTube Video if available
+  if (exp.videoId && typeof window.playVideo === 'function') {
+    const id = typeof window.getYoutubeId === 'function' ? window.getYoutubeId(exp.videoId) : null;
+    const rawId = id || exp.videoId.replace(/.*(?:v=|\/embed\/|\/)/, '');
+    window.playVideo(rawId, exp.title);
+  }
+
+  logToConsole(`Loaded experiment: ${exp.title}`, 'info');
+
+  // Load precompiled HEX build
+  try {
+    const hexRes = await fetch(exp.hexUrl || `/builds/experiments/${experimentId}.hex`);
+    if (hexRes.ok) {
+      precompiledHexForCurrentExperiment = await hexRes.text();
+      compiledHex = precompiledHexForCurrentExperiment;
+      logToConsole(`⚡ Precompiled binary ready (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+
+      const editorStatus = document.getElementById('editorStatus');
+      if (editorStatus) {
+        editorStatus.textContent = 'Precompiled (Ready)';
+        editorStatus.className = 'status-indicator success';
+      }
+
+      const uploadBtn = document.getElementById('uploadBtn');
+      if (uploadBtn) {
+        uploadBtn.disabled = false;
+      }
+    } else {
+      logToConsole(`Could not fetch HEX build: HTTP ${hexRes.status}`, 'warning');
+    }
+  } catch (err) {
+    logToConsole(`Error loading precompiled HEX: ${err.message}`, 'error');
+  }
+
+  // Sync dropdown value
+  const select = document.getElementById('experimentSelect');
+  if (select) {
+    select.value = experimentId;
+  }
+}
 
 // Monaco Editor Config
 function initMonacoEditor() {
@@ -656,6 +762,20 @@ async function handleCompile() {
     }, 1500);
   }
   
+  // Fast path: Check if code matches the official precompiled experiment code
+  const isDefaultCode = defaultExperimentCode && (code.trim() === defaultExperimentCode.trim());
+  if (isDefaultCode && precompiledHexForCurrentExperiment) {
+    compiledHex = precompiledHexForCurrentExperiment;
+    logToConsole('Official experiment code detected.', 'info');
+    logToConsole('⚡ Verification successful! Using verified precompiled binary (0ms, no server required).', 'success');
+    editorStatus.textContent = 'Verified (Offline Build)';
+    editorStatus.className = 'status-indicator success';
+    document.getElementById('uploadBtn').disabled = false;
+    endProgress(true);
+    verifyBtn.disabled = false;
+    return;
+  }
+
   logToConsole('Starting compilation for Arduino Uno...', 'info');
   const startTime = Date.now();
   
@@ -1005,8 +1125,13 @@ async function handleUpload() {
     return;
   }
   if (!compiledHex) {
-    alert("Please verify/compile your sketch successfully before uploading.");
-    return;
+    if (precompiledHexForCurrentExperiment) {
+      compiledHex = precompiledHexForCurrentExperiment;
+      logToConsole('Using verified precompiled binary build for upload...', 'info');
+    } else {
+      alert("Please verify/compile your sketch successfully before uploading.");
+      return;
+    }
   }
 
   const uploadBtn = document.getElementById('uploadBtn');
@@ -1415,9 +1540,16 @@ async function loadExperimentFromUrlParams() {
   const experimentId = urlParams.get('experiment');
   const chapterId = urlParams.get('chapter');
   
-  if (!experimentId || !chapterId) return;
+  if (!experimentId) return;
 
   logToConsole("Loading experiment details...", "info");
+
+  // Fast path: Check if experiment exists in precompiled bundle
+  const precompiled = window.PRECOMPILED_EXPERIMENTS || {};
+  if (precompiled[experimentId]) {
+    await applyExperimentById(experimentId);
+    return;
+  }
 
   try {
     const url = `https://firestore.googleapis.com/v1/projects/studio-2519724075-3b571/databases/(default)/documents/tutorialChapters/${chapterId}/tutorials/${experimentId}`;
@@ -1435,6 +1567,8 @@ async function loadExperimentFromUrlParams() {
       const pinout = data.fields.pinout ? data.fields.pinout.stringValue : '';
 
       currentExperimentInfo = { description, diagramUrl, pinout };
+      currentExperimentId = experimentId;
+      defaultExperimentCode = code;
 
       const experimentInfoBtn = document.getElementById('experimentInfoBtn');
       if (experimentInfoBtn) {
@@ -1451,6 +1585,27 @@ async function loadExperimentFromUrlParams() {
           // Monaco Editor is still loading; queue the code
           pendingCode = code;
         }
+      }
+
+      // Try loading precompiled HEX build
+      try {
+        const hexRes = await fetch(`/builds/experiments/${experimentId}.hex`);
+        if (hexRes.ok) {
+          precompiledHexForCurrentExperiment = await hexRes.text();
+          compiledHex = precompiledHexForCurrentExperiment;
+          logToConsole(`⚡ Precompiled build loaded (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+          const editorStatus = document.getElementById('editorStatus');
+          if (editorStatus) {
+            editorStatus.textContent = 'Precompiled (Ready)';
+            editorStatus.className = 'status-indicator success';
+          }
+          const uploadBtn = document.getElementById('uploadBtn');
+          if (uploadBtn) {
+            uploadBtn.disabled = false;
+          }
+        }
+      } catch (hexErr) {
+        console.log('No precompiled build available:', hexErr);
       }
 
       // Load YouTube video

@@ -124,9 +124,12 @@
       <!-- Left Panel: Code Editor -->
       <section class="panel editor-panel">
         <div class="panel-header" style="position: relative;">
-          <div class="panel-title">
+          <div class="panel-title" style="display: flex; align-items: center; gap: 8px;">
             <i data-lucide="code-2"></i>
             <span>sketch.ino</span>
+            <select id="experimentSelect" style="background: var(--bg-input, #1e1e1e); color: var(--text-main, #e0e0e0); border: 1px solid var(--border-color, #333); border-radius: 6px; font-size: 11px; font-weight: 600; padding: 3px 8px; outline: none; cursor: pointer; max-width: 260px; text-overflow: ellipsis;" title="Select an experiment to flash directly without compiling">
+              <option value="">⚡ Direct Flash Experiments</option>
+            </select>
           </div>
           <div class="editor-actions" style="display: flex; align-items: center; gap: 8px;">
             <span class="status-indicator success" id="editorStatus">Ready</span>
@@ -345,6 +348,9 @@
     </footer>
   </div>
 </div>
+
+  <!-- Precompiled Experiment Builds (Direct USB Flashing without Render/Server) -->
+  <script src="/builds/experiments/bundle.js"></script>
 
   <!-- Javascript File -->
   <script src="app.js"></script>
