@@ -455,7 +455,7 @@ const CheckoutPage = () => {
 
   if (cartCount === 0 && !isLoadingAddresses && !isUserLoading && !isCartLoading) {
     return (
-      <div className="container mx-auto px-4 md:px-6 pt-24 pb-16 md:pt-40 md:pb-24 text-center">
+      <div className="container mx-auto px-4 md:px-6 pt-32 pb-16 md:pt-40 md:pb-24 text-center">
         <h1 className="text-2xl font-semibold">Your cart is empty.</h1>
         <p className="text-muted-foreground mt-2">Add items to your cart to proceed to checkout.</p>
         <Button asChild className="mt-6"><Link href="/">Return to Shop</Link></Button>
@@ -464,7 +464,7 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 md:px-6 pt-24 pb-16 md:pt-36 md:pb-24">
+    <div className="container mx-auto px-4 md:px-6 pt-32 pb-16 md:pt-36 md:pb-24">
       <div className="max-w-6xl mx-auto">
         <Link href="/cart" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="w-4 h-4" /> Back to Cart

@@ -25,7 +25,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
   return (
     <section
       id="home"
-      className="relative overflow-hidden bg-background pt-24 pb-0 md:pt-28 bg-grid-pattern flex flex-col justify-between min-h-[calc(100vh-80px)]"
+      className="relative overflow-hidden bg-background pt-40 pb-0 md:pt-28 bg-grid-pattern flex flex-col justify-between min-h-[calc(100vh-80px)]"
     >
       <div className="container mx-auto px-4 md:px-6 relative z-10 flex-grow flex items-center py-8 md:py-12">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 w-full">

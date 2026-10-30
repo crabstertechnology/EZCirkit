@@ -403,7 +403,7 @@ export default function ProductDetailPage(props: any) {
         reviewsCount={reviewsCount}
       />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-32 md:pt-32 pb-12">
 
         {/* Breadcrumb – semantic nav for SEO */}
         <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground flex items-center gap-1.5 mb-6">

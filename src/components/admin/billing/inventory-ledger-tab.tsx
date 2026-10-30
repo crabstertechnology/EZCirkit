@@ -88,12 +88,12 @@ export const InventoryLedgerTab: React.FC = () => {
 
   return (
     <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-950 rounded-2xl">
-      <CardHeader className="pb-4">
+      <CardHeader className="p-3.5 sm:p-6 pb-3 sm:pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg font-black tracking-tight">
+              <CardTitle className="text-base sm:text-lg font-black tracking-tight">
                 Inventory Transaction Audit Ledger
               </CardTitle>
             </div>
@@ -102,45 +102,102 @@ export const InventoryLedgerTab: React.FC = () => {
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative w-full sm:w-64">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search product, SKU, user, bill..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 text-xs h-9 rounded-xl"
+                className="pl-8 text-xs h-9 rounded-xl w-full"
               />
             </div>
 
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-9 text-xs w-36 rounded-xl">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="sale">Sales Only</SelectItem>
-                <SelectItem value="return">Returns Only</SelectItem>
-                <SelectItem value="manual_adjustment">Manual Edits</SelectItem>
-                <SelectItem value="correction">Void Corrections</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 text-xs flex-1 sm:w-36 rounded-xl">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="sale">Sales Only</SelectItem>
+                  <SelectItem value="return">Returns Only</SelectItem>
+                  <SelectItem value="manual_adjustment">Manual Edits</SelectItem>
+                  <SelectItem value="correction">Void Corrections</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={fetchLedger}
-              className="h-9 w-9 rounded-xl shrink-0"
-              title="Refresh ledger"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={fetchLedger}
+                className="h-9 w-9 rounded-xl shrink-0"
+                title="Refresh ledger"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* Mobile Ledger Feed (visible on < md) */}
+        <div className="md:hidden p-3 space-y-2.5">
+          {isLoading ? (
+            <div className="text-center py-10 text-xs text-muted-foreground">
+              Loading inventory transaction ledger...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-xs text-muted-foreground">
+              No stock transaction records found matching your filters.
+            </div>
+          ) : (
+            filtered.map((tx) => (
+              <div
+                key={tx.id}
+                className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 pr-1">
+                    <div className="font-semibold text-xs text-foreground truncate">
+                      {tx.productName}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5 font-mono text-[10px] text-muted-foreground">
+                      <span className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">
+                        SKU: {tx.sku || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {getTypeBadge(tx.type, tx.quantity)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800/80 text-[11px] text-muted-foreground">
+                  <div className="font-mono text-[10px]">
+                    {new Date(tx.date).toLocaleString('en-IN', {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}
+                  </div>
+                  <div className="font-medium text-foreground text-right truncate">
+                    By: {tx.user}
+                  </div>
+                </div>
+
+                {tx.notes && (
+                  <div className="pt-1 border-t border-zinc-100 dark:border-zinc-800/60 text-[10px] text-muted-foreground font-mono bg-zinc-50 dark:bg-zinc-800/40 p-1.5 rounded-lg">
+                    {tx.notes}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View (visible on >= md) */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">

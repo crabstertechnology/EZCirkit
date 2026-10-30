@@ -167,13 +167,13 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
   return (
     <>
       <Card className="border-border/60 shadow-sm bg-white dark:bg-zinc-950 rounded-2xl">
-        <CardHeader className="pb-4">
+        <CardHeader className="p-3.5 sm:p-6 pb-3 sm:pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg font-black tracking-tight">
-                  Past Sales & Invoices
+                <CardTitle className="text-base sm:text-lg font-black tracking-tight">
+                  Past Sales &amp; Invoices
                 </CardTitle>
               </div>
               <CardDescription className="text-xs">
@@ -181,14 +181,14 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative w-full sm:w-72">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-72">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search bill number, customer, phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 text-xs h-9 rounded-xl"
+                  className="pl-8 text-xs h-9 rounded-xl w-full"
                 />
               </div>
 
@@ -206,7 +206,132 @@ export const PastSalesTab: React.FC<PastSalesTabProps> = ({
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card Feed (visible on < md) */}
+          <div className="md:hidden p-3 space-y-2.5">
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-muted-foreground">
+                Loading sales history...
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-10 text-xs text-muted-foreground">
+                No matching sales records found.
+              </div>
+            ) : (
+              filtered.map((sale) => {
+                const isCancelled = sale.status === 'cancelled';
+                const isRefund = sale.status === 'refunded' || sale.grandTotal < 0;
+
+                return (
+                  <div
+                    key={sale.id}
+                    className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-mono font-bold text-xs text-foreground flex items-center gap-1.5">
+                          <span>{sale.billNumber}</span>
+                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-muted-foreground">
+                            {sale.paymentMethod}
+                          </span>
+                        </div>
+                        <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                          {new Date(sale.date).toLocaleString('en-IN', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        {isCancelled ? (
+                          <Badge variant="outline" className="text-rose-500 border-rose-300 dark:border-rose-900 text-[10px] py-0 px-1.5">
+                            Cancelled
+                          </Badge>
+                        ) : isRefund ? (
+                          <Badge variant="outline" className="text-amber-600 border-amber-300 dark:border-amber-900 text-[10px] py-0 px-1.5">
+                            Refunded
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-emerald-600 border-emerald-300 dark:border-emerald-900 text-[10px] py-0 px-1.5">
+                            Paid
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                      <div className="min-w-0 pr-2">
+                        <div className="font-semibold text-foreground text-xs truncate">
+                          {sale.customerName}
+                        </div>
+                        {sale.customerPhone && sale.customerPhone !== 'Walk-in' && (
+                          <div className="text-[10px] text-muted-foreground font-mono">
+                            {sale.customerPhone}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={`text-sm font-black ${isRefund ? 'text-rose-600' : 'text-primary'}`}>
+                          {sale.grandTotal < 0 ? `-₹${Math.abs(sale.grandTotal).toFixed(2)}` : `₹${sale.grandTotal.toFixed(2)}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs font-bold gap-1 rounded-lg px-2 flex-1"
+                        onClick={() => onSelectSaleForReceipt(sale)}
+                      >
+                        <Printer className="h-3 w-3 text-zinc-600 dark:text-zinc-400" />
+                        <span>Receipt</span>
+                      </Button>
+
+                      {sale.customerPhone && sale.customerPhone !== 'Walk-in' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs font-bold gap-1 rounded-lg px-2 flex-1 text-emerald-600 hover:text-emerald-700"
+                          onClick={() => handleWhatsApp(sale)}
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          <span>WhatsApp</span>
+                        </Button>
+                      )}
+
+                      {!isCancelled && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs font-bold rounded-lg text-amber-500 hover:text-amber-600"
+                          title="Void Order &amp; Restock Inventory"
+                          onClick={() => setSaleToVoid(sale)}
+                        >
+                          <Ban className="h-3 w-3" />
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs font-bold rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        title="Delete Bill Permanently"
+                        onClick={() => {
+                          setSaleToDelete(sale);
+                          setRollbackStockOnDelete(sale.status !== 'cancelled');
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View (visible on >= md) */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">

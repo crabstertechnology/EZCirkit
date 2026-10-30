@@ -216,7 +216,7 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-foreground">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-24 pb-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-32 md:pt-24 pb-12">
 
         {/* Compact Page Header */}
         <div className="flex items-center justify-between py-4 border-b border-border/60 mb-6">

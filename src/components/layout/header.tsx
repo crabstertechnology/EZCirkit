@@ -355,12 +355,14 @@ const Header = () => {
 
     return (
       <div ref={containerRef} className="relative w-full">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3.5 h-5 w-5 text-muted-foreground pointer-events-none" />
+        <div className="relative flex items-center w-full">
+          {!isMobile && (
+            <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+          )}
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search products..."
+            placeholder={isMobile ? "Search For Components, Kits..." : "Search products..."}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -369,9 +371,28 @@ const Header = () => {
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-secondary/80 text-base pl-11 pr-12 py-2.5 rounded-full border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
+            className={cn(
+              "w-full text-sm text-foreground placeholder:text-muted-foreground border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all",
+              isMobile
+                ? "h-10 pl-3.5 pr-12 rounded-lg bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm"
+                : "h-10 pl-10 pr-12 rounded-full bg-secondary/80 border-border"
+            )}
           />
-          {!isMobile && (
+          {isMobile ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (searchQuery.trim()) {
+                  router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+                  setIsOpen(false);
+                }
+              }}
+              className="absolute right-0 top-0 bottom-0 w-11 bg-primary hover:bg-primary/90 text-white rounded-r-lg flex items-center justify-center transition-colors shadow-sm"
+              title="Search"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          ) : (
             <div className="absolute right-3.5 hidden lg:flex items-center gap-0.5 pointer-events-none select-none text-[10px] font-semibold text-muted-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">
               <span className="text-[11px]">⌘</span>K
             </div>
@@ -447,7 +468,7 @@ const Header = () => {
             <span className="sr-only">Open Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+        <SheetContent side="left" className="w-[300px] sm:w-[400px]">
            <SheetHeader>
             <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
            </SheetHeader>
@@ -478,76 +499,18 @@ const Header = () => {
       suppressHydrationWarning
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        scrolled ? 'shadow-header bg-background/90 backdrop-blur-sm' : 'bg-transparent'
+        scrolled
+          ? 'shadow-header bg-background/95 backdrop-blur-md border-b border-border/40'
+          : 'bg-background/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-border/40 md:border-b-0'
       )}
     >
-      <div className="container mx-auto flex flex-col px-4 md:px-6">
-        {/* Row 1: Brand & Navigation Links & Actions */}
-        <div suppressHydrationWarning className="flex h-20 items-center justify-between gap-4 w-full">
-          {/* Brand Logo & Navigation Links (Left) */}
-          <div className="flex items-center gap-5 xl:gap-8 flex-1 justify-start min-w-0">
-            <Logo size="lg" />
-            <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3">
-              <NavLinks />
-            </nav>
-          </div>
-          
-          {/* Center SearchBar (Dead Center) */}
-          <div className="hidden md:flex justify-center flex-shrink-0 w-full max-w-[260px] lg:max-w-[320px] xl:max-w-[420px] mx-2">
-            <SearchBar />
-          </div>
-
-          {/* Action Buttons (Right) */}
-          <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-            {/* Wishlist Link Button */}
-            <Button asChild variant="ghost" size="icon" className="relative h-10 w-10">
-              <Link href="/wishlist">
-                <Heart className="h-6 w-6 text-muted-foreground hover:text-red-500 transition-colors" />
-                {wishlistCount > 0 && (
-                  <Badge
-                    variant="default"
-                    className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full bg-red-500 p-0 text-xs text-white"
-                  >
-                    {wishlistCount}
-                  </Badge>
-                )}
-                <span className="sr-only">Open Wishlist</span>
-              </Link>
-            </Button>
-
-            {/* Shopping Cart Sidebar Button */}
-            <Button variant="ghost" size="icon" className="relative h-10 w-10" onClick={() => setIsCartOpen(true)}>
-              <ShoppingCart className="h-6 w-6" />
-              {cartCount > 0 && (
-                <Badge
-                  variant="default"
-                  className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full bg-primary p-0 text-xs text-white"
-                >
-                  {cartCount}
-                </Badge>
-              )}
-              <span className="sr-only">Open Cart</span>
-            </Button>
-
-            <AuthNav />
-            
-            <div className="md:hidden">
-              <MobileMenu />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Cart Sidebar */}
-      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
-      {/* Announcement Bar — client-only to avoid SSR/hydration mismatch from Firebase data */}
+      {/* Announcement Bar — at the very top (matching reference) */}
       {mounted && pathname === '/' && announcementSettings && announcementSettings.enabled && announcementSettings.items.length > 0 && (
         <div 
           className="w-full overflow-hidden relative" 
           style={{ 
             background: announcementSettings.backgroundGradient, 
-            borderTop: '1px solid rgba(255,255,255,0.1)' 
+            borderBottom: '1px solid rgba(255,255,255,0.1)' 
           }}
         >
           <style dangerouslySetInnerHTML={{__html: `
@@ -606,6 +569,133 @@ const Header = () => {
           </div>
         </div>
       )}
+
+      <div className="container mx-auto flex flex-col px-3 sm:px-4 md:px-6">
+        {/* ========================================================= */}
+        {/* MOBILE VIEW (< md): 2-Row Layout matching robocraze */}
+        {/* ========================================================= */}
+        <div className="md:hidden flex flex-col w-full">
+          {/* Row 1: Left [Menu ☰] | Center [Crabster Logo] | Right [Cart] [Wishlist] [Profile] */}
+          <div className="flex h-14 items-center justify-between w-full">
+            {/* Left: Mobile Sidebar Toggle */}
+            <div className="w-[104px] flex items-center justify-start shrink-0">
+              <MobileMenu />
+            </div>
+
+            {/* Center: Brand Logo (Visually & Mathematically Dead-Centered) */}
+            <div className="flex-1 flex items-center justify-center min-w-0">
+              <Logo size="sm" />
+            </div>
+
+            {/* Right: Cart, Wishlist, User Avatar */}
+            <div className="w-[104px] flex items-center gap-1 justify-end shrink-0">
+              {/* Shopping Cart Sidebar Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 p-0"
+                onClick={() => setIsCartOpen(true)}
+              >
+                <ShoppingCart className="h-4.5 w-4.5" />
+                {cartCount > 0 && (
+                  <Badge
+                    variant="default"
+                    className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full bg-red-500 p-0 text-[10px] font-bold text-white"
+                  >
+                    {cartCount}
+                  </Badge>
+                )}
+                <span className="sr-only">Open Cart</span>
+              </Button>
+
+              {/* Wishlist Link Button */}
+              <Button asChild variant="ghost" size="icon" className="relative h-8 w-8 p-0">
+                <Link href="/wishlist">
+                  <Heart className="h-4.5 w-4.5 text-muted-foreground hover:text-red-500 transition-colors" />
+                  {wishlistCount > 0 && (
+                    <Badge
+                      variant="default"
+                      className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full bg-red-500 p-0 text-[10px] font-bold text-white"
+                    >
+                      {wishlistCount}
+                    </Badge>
+                  )}
+                  <span className="sr-only">Open Wishlist</span>
+                </Link>
+              </Button>
+
+              {/* Profile Avatar / Login */}
+              <AuthNav />
+            </div>
+          </div>
+
+          {/* Row 2: Mobile Search Bar Row (Full width with attached search button) */}
+          <div className="w-full pb-2 px-0.5">
+            <SearchBar isMobile={true} />
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* DESKTOP VIEW (>= md): 1-Row Centered Layout */}
+        {/* ========================================================= */}
+        <div suppressHydrationWarning className="hidden md:flex h-20 items-center justify-between gap-4 w-full">
+          {/* Desktop Left: Brand Logo & Products Link */}
+          <div className="flex items-center gap-5 xl:gap-8 shrink-0 min-w-0">
+            <Logo size="lg" />
+            <nav className="flex items-center">
+              <NavLinks items={[{ href: '/products', label: 'Products' }]} />
+            </nav>
+          </div>
+          
+          {/* Desktop Center: SearchBar (Dead Center) */}
+          <div className="flex justify-center flex-1 max-w-[320px] lg:max-w-[440px] xl:max-w-[540px] mx-auto">
+            <SearchBar />
+          </div>
+
+          {/* Desktop Right: Launch IDE, Cart, Wishlist & Actions */}
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0 justify-end min-w-0">
+            {/* Launch IDE moved to right */}
+            <nav className="flex items-center">
+              <NavLinks items={[{ href: '/ide', label: 'Launch IDE' }]} />
+            </nav>
+
+            {/* Shopping Cart Button */}
+            <Button variant="ghost" size="icon" className="relative h-10 w-10" onClick={() => setIsCartOpen(true)}>
+              <ShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <Badge
+                  variant="default"
+                  className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full bg-red-500 p-0 text-xs text-white"
+                >
+                  {cartCount}
+                </Badge>
+              )}
+              <span className="sr-only">Open Cart</span>
+            </Button>
+
+            {/* Wishlist Link Button */}
+            <Button asChild variant="ghost" size="icon" className="relative h-10 w-10">
+              <Link href="/wishlist">
+                <Heart className="h-6 w-6 text-muted-foreground hover:text-red-500 transition-colors" />
+                {wishlistCount > 0 && (
+                  <Badge
+                    variant="default"
+                    className="absolute -top-1 -right-1 h-5 w-5 justify-center rounded-full bg-red-500 p-0 text-xs text-white"
+                  >
+                    {wishlistCount}
+                  </Badge>
+                )}
+                <span className="sr-only">Open Wishlist</span>
+              </Link>
+            </Button>
+
+            <AuthNav />
+          </div>
+        </div>
+      </div>
+
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   );
 };

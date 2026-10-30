@@ -31,7 +31,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950 text-foreground pt-28 md:pt-40 pb-16">
+    <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950 text-foreground pt-32 md:pt-40 pb-16">
       <div className="container mx-auto px-4 md:px-6 space-y-12">
         
         {/* Header Hero Section */}
