@@ -8,12 +8,32 @@ export const NAV_LINKS = [
   { href: '/ide', label: 'Launch IDE' },
 ];
 
-export const ADMIN_NAV_LINKS = [
+export interface AdminSubItem {
+  href: string;
+  label: string;
+  icon?: any;
+}
+
+export interface AdminNavLink {
+  href: string;
+  label: string;
+  icon: any;
+  subItems?: AdminSubItem[];
+}
+
+export const ADMIN_NAV_LINKS: AdminNavLink[] = [
   { href: '/', label: 'Go to Home', icon: Home },
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/billing', label: 'Billing / POS', icon: Receipt },
-  { href: '/admin/sales-history', label: 'Sales History', icon: History },
-  { href: '/admin/audit-ledger', label: 'Audit Ledger', icon: Layers },
+  {
+    href: '/admin/billing',
+    label: 'Billing',
+    icon: Receipt,
+    subItems: [
+      { href: '/admin/billing', label: 'Active POS', icon: Receipt },
+      { href: '/admin/sales-history', label: 'Sales History', icon: History },
+      { href: '/admin/audit-ledger', label: 'Audit Ledger', icon: Layers },
+    ],
+  },
   { href: '/admin/telemetry', label: 'Telemetry Logs', icon: Activity },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/users', label: 'Users', icon: Users },
@@ -22,7 +42,7 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/testimonials', label: 'Testimonials', icon: Video },
   { href: '/admin/offline-kits', label: 'Offline Kit Manager', icon: ScanLine },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
-]
+];
 
 export const STATS = [
   { value: '50+', label: 'Experiments' },
