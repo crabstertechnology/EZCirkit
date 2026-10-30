@@ -504,72 +504,6 @@ const Header = () => {
           : 'bg-background/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-border/40 md:border-b-0'
       )}
     >
-      {/* Announcement Bar — at the very top (matching reference) */}
-      {mounted && pathname === '/' && announcementSettings && announcementSettings.enabled && announcementSettings.items.length > 0 && (
-        <div 
-          className="w-full overflow-hidden relative" 
-          style={{ 
-            background: announcementSettings.backgroundGradient, 
-            borderBottom: '1px solid rgba(255,255,255,0.1)' 
-          }}
-        >
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes marquee {
-              0% { transform: translate3d(0, 0, 0); }
-              100% { transform: translate3d(-50%, 0, 0); }
-            }
-            .animate-marquee {
-              display: inline-flex;
-              white-space: nowrap;
-              animation: marquee ${announcementSettings.speed}s linear infinite;
-            }
-            .marquee-dot {
-              color: ${announcementSettings.accentColor};
-              font-size: 14px;
-              line-height: 1;
-            }
-            .marquee-item {
-              color: ${announcementSettings.textColor};
-              font-size: 9px;
-              font-weight: 800;
-              letter-spacing: 0.12em;
-              text-transform: uppercase;
-            }
-            .marquee-accent {
-              color: ${announcementSettings.accentColor};
-              font-weight: 900;
-            }
-          `}} />
-          <div className="flex animate-marquee items-center py-1.5" style={{ gap: '2.5rem' }}>
-            {[0, 1].map((copy) => (
-              <div key={copy} className="flex items-center shrink-0" style={{ gap: '2.5rem' }}>
-                {announcementSettings.items.map((item: any, idx: number) => {
-                  const parts = item.text.split(new RegExp(`(${item.accentText})`, 'gi'));
-                  return (
-                    <React.Fragment key={idx}>
-                      <span className="marquee-item">
-                        {item.prefixIcon && <span className="mr-1.5">{item.prefixIcon}</span>}
-                        <span>
-                          {parts.map((part: string, i: number) => {
-                            const isAccent = item.accentText && part.toLowerCase() === item.accentText.toLowerCase();
-                            return (
-                              <span key={i} className={isAccent ? 'marquee-accent' : undefined}>
-                                {part}
-                              </span>
-                            );
-                          })}
-                        </span>
-                      </span>
-                      <span className="marquee-dot">◆</span>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="container mx-auto flex flex-col px-3 sm:px-4 md:px-6">
         {/* ========================================================= */}
         {/* MOBILE VIEW (< md): 2-Row Layout matching robocraze */}
@@ -693,6 +627,73 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Announcement Bar — positioned below the header */}
+      {mounted && pathname === '/' && announcementSettings && announcementSettings.enabled && announcementSettings.items.length > 0 && (
+        <div 
+          className="w-full overflow-hidden relative" 
+          style={{ 
+            background: announcementSettings.backgroundGradient, 
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)' 
+          }}
+        >
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes marquee {
+              0% { transform: translate3d(0, 0, 0); }
+              100% { transform: translate3d(-50%, 0, 0); }
+            }
+            .animate-marquee {
+              display: inline-flex;
+              white-space: nowrap;
+              animation: marquee ${announcementSettings.speed}s linear infinite;
+            }
+            .marquee-dot {
+              color: ${announcementSettings.accentColor};
+              font-size: 14px;
+              line-height: 1;
+            }
+            .marquee-item {
+              color: ${announcementSettings.textColor};
+              font-size: 9px;
+              font-weight: 800;
+              letter-spacing: 0.12em;
+              text-transform: uppercase;
+            }
+            .marquee-accent {
+              color: ${announcementSettings.accentColor};
+              font-weight: 900;
+            }
+          `}} />
+          <div className="flex animate-marquee items-center py-1.5" style={{ gap: '2.5rem' }}>
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex items-center shrink-0" style={{ gap: '2.5rem' }}>
+                {announcementSettings.items.map((item: any, idx: number) => {
+                  const parts = item.text.split(new RegExp(`(${item.accentText})`, 'gi'));
+                  return (
+                    <React.Fragment key={idx}>
+                      <span className="marquee-item">
+                        {item.prefixIcon && <span className="mr-1.5">{item.prefixIcon}</span>}
+                        <span>
+                          {parts.map((part: string, i: number) => {
+                            const isAccent = item.accentText && part.toLowerCase() === item.accentText.toLowerCase();
+                            return (
+                              <span key={i} className={isAccent ? 'marquee-accent' : undefined}>
+                                {part}
+                              </span>
+                            );
+                          })}
+                        </span>
+                      </span>
+                      <span className="marquee-dot">◆</span>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Cart Sidebar */}
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
