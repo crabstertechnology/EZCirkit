@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, ShoppingCart, User, LogOut, LogIn, UserPlus, Shield, Search, Home, Zap, ShoppingBag, Package, Code, Star, Heart } from 'lucide-react';
+import { Menu, ShoppingCart, User, LogOut, LogIn, UserPlus, Shield, Search, Home, Zap, ShoppingBag, Package, Code, Star, Heart, ChevronRight, ChevronDown, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useScroll } from '@/hooks/use-scroll';
 import CartSidebar from '@/components/layout/cart-sidebar';
@@ -460,39 +461,465 @@ const Header = () => {
   };
 
   const MobileMenu = () => {
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+      categories: true, // open categories by default so users see them right away!
+      brands: false,
+      b2b: false,
+      lab: false,
+      projects: false,
+      knowledge: false,
+    });
+
+    const toggleSection = (section: string) => {
+      setExpandedSections((prev) => ({
+        ...prev,
+        [section]: !prev[section],
+      }));
+    };
+
     return (
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Open Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-           <SheetHeader>
-            <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
-           </SheetHeader>
-          <div className="p-4 space-y-6">
-            <div className="mb-2">
-              <Logo size="lg" />
-            </div>
-            
+        <SheetContent side="left" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-white dark:bg-zinc-950 border-r border-border shadow-2xl">
+          <SheetHeader className="px-5 py-4 border-b border-border/80 text-left bg-zinc-50/70 dark:bg-zinc-900/50 flex-shrink-0">
+            <SheetTitle className="font-headline font-black text-xl tracking-tight text-foreground">Menu</SheetTitle>
+          </SheetHeader>
+
+          {/* Quick Search inside menu */}
+          <div className="p-3 border-b border-zinc-100 dark:border-zinc-800 flex-shrink-0">
             <SearchBar isMobile={true} />
-            
-            <nav className="flex flex-col items-start gap-4 pt-4 border-t">
-              <NavLinks />
-               {!user && (
-                  <>
-                    <Link href="/login" className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground pl-3.5 py-1.5" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-                    <Link href="/signup" className="text-sm font-medium text-foreground/80 transition-colors hover:text-foreground pl-3.5 py-1.5" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
-                  </>
-                )}
-            </nav>
           </div>
+
+          {/* Scrollable Categories List */}
+          <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm font-semibold text-foreground">
+              {/* 1. Shop By Category */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('categories')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-sm font-bold text-foreground">Shop By Category</span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
+                      expandedSections.categories && "rotate-90 text-orange-500"
+                    )}
+                  />
+                </button>
+                {expandedSections.categories && (
+                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                    <Link
+                      href="/products"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
+                    >
+                      <span>All Products</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?category=Development+Boards"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Development Boards</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?category=Sensors"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Sensors</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?category=Components"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Components & ICs</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?category=Power+Modules"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Power Modules</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?category=Displays"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Displays & OLEDs</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?category=EZCirkit"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-700 dark:text-zinc-200 hover:text-orange-600 font-bold"
+                    >
+                      <span>EZCirkit Learning Kit</span>
+                      <Badge className="bg-orange-500 text-white text-[9px] px-1.5 py-0 h-4">BESTSELLER</Badge>
+                    </Link>
+                    <Link
+                      href="/products?category=Wires+%26+Connectors"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Wires & Connectors</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Shop By Brand */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('brands')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-sm font-bold text-foreground">Shop By Brand</span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
+                      expandedSections.brands && "rotate-90 text-orange-500"
+                    )}
+                  />
+                </button>
+                {expandedSections.brands && (
+                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                    <Link
+                      href="/products?search=EZCirkit"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
+                    >
+                      <span>Crabster Technology</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?search=Arduino"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Arduino Compatible</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?search=ESP32"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Espressif (ESP32)</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/products?search=STM"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>STM / Microchip</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. B2B Orders */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('b2b')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-sm font-bold text-foreground">B2B Orders</span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
+                      expandedSections.b2b && "rotate-90 text-orange-500"
+                    )}
+                  />
+                </button>
+                {expandedSections.b2b && (
+                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                    <Link
+                      href="/contact-us"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
+                    >
+                      <span>School & Institutional Bulk Pricing</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/contact-us"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Request Lab Quotation</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/shipping-and-delivery"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>GST Invoicing & Pan-India Dispatch</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Lab Setup */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('lab')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-sm font-bold text-foreground">Lab Setup</span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
+                      expandedSections.lab && "rotate-90 text-orange-500"
+                    )}
+                  />
+                </button>
+                {expandedSections.lab && (
+                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                    <Link
+                      href="/contact-us"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
+                    >
+                      <span>STEM Tinkering Labs</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/#flagship-product"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Classroom Starter Bundles</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/contact-us"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Custom Lab Gear Inquiries</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Projects */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('projects')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-sm font-bold text-foreground">Projects</span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
+                      expandedSections.projects && "rotate-90 text-orange-500"
+                    )}
+                  />
+                </button>
+                {expandedSections.projects && (
+                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                    <Link
+                      href="/ide"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold text-orange-600"
+                    >
+                      <span>Launch Web IDE</span>
+                      <Badge className="bg-orange-500 text-white text-[9px] px-1 py-0 h-4">HOT</Badge>
+                    </Link>
+                    <Link
+                      href="/tutorials"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Step-by-Step Tutorials</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/#flagship-product"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>36+ Starter Kit Projects</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Top Deals */}
+              <div>
+                <Link
+                  href="/products"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-orange-50/60 dark:hover:bg-orange-950/20 transition-colors"
+                >
+                  <span className="text-sm font-black text-orange-600 flex items-center gap-2">
+                    <span>🔥</span>
+                    <span>Top Deals</span>
+                    <span>🔥</span>
+                  </span>
+                  <Badge className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0 h-4 uppercase">
+                    SALE
+                  </Badge>
+                </Link>
+              </div>
+
+              {/* 7. Knowledge Hub */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('knowledge')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-sm font-bold text-foreground">Knowledge Hub</span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
+                      expandedSections.knowledge && "rotate-90 text-orange-500"
+                    )}
+                  />
+                </button>
+                {expandedSections.knowledge && (
+                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                    <Link
+                      href="/tutorials"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold"
+                    >
+                      <span>Video Lessons & Guides</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/ide"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Pinout & Circuit Schematics</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                    <Link
+                      href="/#flagship-product"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
+                    >
+                      <span>Kit Getting Started Manual</span>
+                      <ChevronRight className="h-3 w-3 opacity-40" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 8. Account Section */}
+              <div className="pt-2">
+                {user ? (
+                  <div className="space-y-1">
+                    <div className="px-5 py-2.5 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900">
+                      <div className="flex items-center gap-2.5">
+                        <User className="h-4 w-4 text-zinc-500" />
+                        <span className="text-xs font-bold text-foreground truncate max-w-[150px]">
+                          {user.displayName || user.email?.split('@')[0]}
+                        </span>
+                      </div>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="text-[11px] font-bold text-orange-600 hover:underline"
+                        >
+                          Admin Panel
+                        </Link>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleLogout(auth);
+                      }}
+                      className="w-full flex items-center px-5 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-semibold cursor-pointer"
+                    >
+                      <LogOut className="h-4 w-4 mr-3" />
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full flex items-center px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+                  >
+                    <User className="h-4 w-4 mr-3 text-zinc-500" />
+                    <span className="text-sm font-bold text-foreground">Log out / My Account</span>
+                  </Link>
+                )}
+              </div>
+
+              {/* 9. My Wish List */}
+              <div>
+                <Link
+                  href="/wishlist"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <Heart className="h-4 w-4 mr-3 text-zinc-500 hover:text-red-500" />
+                    <span className="text-sm font-bold text-foreground">My Wish List</span>
+                  </div>
+                  {wishlistCount > 0 && (
+                    <Badge className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0 h-4 rounded-full">
+                      {wishlistCount}
+                    </Badge>
+                  )}
+                </Link>
+              </div>
+
+              {/* 10. My Cart */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setIsCartOpen(true);
+                  }}
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
+                >
+                  <div className="flex items-center">
+                    <ShoppingCart className="h-4 w-4 mr-3 text-zinc-500" />
+                    <span className="text-sm font-bold text-foreground">My Shopping Cart</span>
+                  </div>
+                  {cartCount > 0 && (
+                    <Badge className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0 h-4 rounded-full">
+                      {cartCount}
+                    </Badge>
+                  )}
+                </button>
+              </div>
+            </div>
+          </ScrollArea>
         </SheetContent>
       </Sheet>
-    )
-  }
+    );
+  };
 
   return (
     <header
@@ -513,7 +940,16 @@ const Header = () => {
           <div className="flex h-14 items-center justify-between w-full">
             {/* Left: Mobile Sidebar Toggle */}
             <div className="w-[104px] flex items-center justify-start shrink-0">
-              <MobileMenu />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-foreground cursor-pointer"
+                onClick={() => setMobileMenuOpen(true)}
+                title="Open Menu & Categories"
+              >
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className="sr-only">Open Menu</span>
+              </Button>
             </div>
 
             {/* Center: Brand Logo (Visually & Mathematically Dead-Centered) */}
@@ -573,8 +1009,18 @@ const Header = () => {
         {/* DESKTOP VIEW (>= md): 1-Row Centered Layout */}
         {/* ========================================================= */}
         <div suppressHydrationWarning className="hidden md:flex h-20 items-center justify-between gap-4 w-full">
-          {/* Desktop Left: Brand Logo & Products Link */}
-          <div className="flex items-center gap-5 xl:gap-8 shrink-0 min-w-0">
+          {/* Desktop Left: Menu Drawer Toggle, Brand Logo & Products Link */}
+          <div className="flex items-center gap-3 lg:gap-4 xl:gap-6 shrink-0 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              onClick={() => setMobileMenuOpen(true)}
+              title="Open Menu & Categories"
+            >
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Toggle Categories Menu</span>
+            </Button>
             <Logo size="lg" />
             <nav className="flex items-center">
               <NavLinks items={[{ href: '/products', label: 'Products' }]} />
@@ -696,6 +1142,7 @@ const Header = () => {
       )}
 
       {/* Cart Sidebar */}
+      <MobileMenu />
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   );

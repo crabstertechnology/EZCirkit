@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Star, Heart, ShoppingCart, SlidersHorizontal, Sparkles, X, ChevronRight, Check } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
@@ -26,11 +26,23 @@ export interface Product {
   category?: string; // Optional category field
 }
 
-export default function ShopPage() {
+function ShopPageContent() {
   const firestore = useFirestore();
   const { addToCart } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   // State controls
   const [searchQuery, setSearchQuery] = useState('');
@@ -502,5 +514,14 @@ export default function ShopPage() {
         )}
       </Dialog>
     </div>
+  );
+}
+
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto p-12 text-center text-muted-foreground">Loading products...</div>}>
+      <ShopPageContent />
+    </Suspense>
   );
 }
