@@ -510,7 +510,6 @@ const Header = () => {
   const MobileMenu = () => {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
       categories: true, // open categories by default
-      projects: false,
     });
 
     const toggleSection = (section: string) => {
@@ -584,70 +583,8 @@ const Header = () => {
                 )}
               </div>
 
-              {/* 2. Projects & IDE */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => toggleSection('projects')}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-sm font-bold text-foreground">Projects</span>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 text-zinc-400 transition-transform duration-200",
-                      expandedSections.projects && "rotate-90 text-orange-500"
-                    )}
-                  />
-                </button>
-                {expandedSections.projects && (
-                  <div className="bg-zinc-50/80 dark:bg-zinc-900/40 px-5 py-1.5 space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 text-xs">
-                    <Link
-                      href="/ide"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600 font-semibold text-orange-600"
-                    >
-                      <span>Launch Web IDE</span>
-                      <Badge className="bg-orange-500 text-white text-[9px] px-1 py-0 h-4">HOT</Badge>
-                    </Link>
-                    <Link
-                      href="/tutorials"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>Step-by-Step Tutorials</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                    <Link
-                      href="/#flagship-product"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-between py-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-600"
-                    >
-                      <span>36+ Starter Kit Projects</span>
-                      <ChevronRight className="h-3 w-3 opacity-40" />
-                    </Link>
-                  </div>
-                )}
-              </div>
+              {/* 2. Account Section */}
 
-              {/* 3. Top Deals */}
-              <div>
-                <Link
-                  href="/products"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-orange-50/60 dark:hover:bg-orange-950/20 transition-colors"
-                >
-                  <span className="text-sm font-black text-orange-600 flex items-center gap-2">
-                    <span>🔥</span>
-                    <span>Top Deals</span>
-                    <span>🔥</span>
-                  </span>
-                  <Badge className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0 h-4 uppercase">
-                    SALE
-                  </Badge>
-                </Link>
-              </div>
-
-              {/* 4. Account Section */}
               <div className="pt-2">
                 {user ? (
                   <div className="space-y-1">
@@ -693,7 +630,7 @@ const Header = () => {
                 )}
               </div>
 
-              {/* 5. My Wish List */}
+              {/* 3. My Wish List */}
               <div>
                 <Link
                   href="/wishlist"
@@ -712,7 +649,7 @@ const Header = () => {
                 </Link>
               </div>
 
-              {/* 6. My Shopping Cart */}
+              {/* 4. My Shopping Cart */}
               <div>
                 <button
                   type="button"
