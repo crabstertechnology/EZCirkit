@@ -1061,34 +1061,193 @@ export default function AdminBillingPage() {
                 )}
               </ScrollArea>
 
-              {/* Active Cart Subtotal & Desktop Checkout Bar */}
+              {/* Active Cart Subtotal Bar (Mobile Only - Desktop has inline settlement card below) */}
               {cart.length > 0 && (
-                <div className="px-3 py-2 bg-zinc-50/90 dark:bg-zinc-800/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 shrink-0">
-                  <div className="flex items-center justify-between w-full lg:w-auto lg:flex-col lg:items-start">
-                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      {isRefundMode ? 'Net Refund' : 'Subtotal'} ({cart.reduce((acc, i) => acc + i.quantity, 0)} items)
+                <div className="lg:hidden px-3 py-2 bg-zinc-50/90 dark:bg-zinc-800/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 shrink-0">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {isRefundMode ? 'Net Refund' : 'Subtotal'} ({cart.reduce((acc, i) => acc + i.quantity, 0)} items)
+                  </span>
+                  <span
+                    className={`text-sm font-black leading-tight ${
+                      isRefundMode ? 'text-rose-600' : 'text-primary'
+                    }`}
+                  >
+                    ₹{Math.abs(grandTotal).toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </Card>
+
+            {/* Desktop Only: Inline Settlement & Payment Card (Single Page Lapview) */}
+            {cart.length > 0 && (
+              <Card className="hidden lg:flex flex-col border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl p-3 space-y-2 shrink-0">
+                {/* Financial Breakdown & Grand Total */}
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span className="flex items-center gap-2 text-xs">
+                      <span className="font-semibold text-foreground">
+                        Subtotal: ₹{grossSubtotal.toFixed(2)}
+                      </span>
+                      {totalTax > 0 && <span>• Tax: ₹{totalTax.toFixed(2)}</span>}
+                      <span className="text-[11px] text-muted-foreground">
+                        ({cart.reduce((acc, i) => acc + i.quantity, 0)} items)
+                      </span>
+                    </span>
+
+                    {/* Order Discount */}
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                      <span>Order Disc:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="₹0"
+                        value={orderDiscount || ''}
+                        onChange={(e) => setOrderDiscount(parseFloat(e.target.value) || 0)}
+                        className="w-16 h-5 px-1.5 text-xs text-right font-bold rounded-md border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                      {totalDiscount > 0 && <span>(-₹{totalDiscount.toFixed(2)})</span>}
+                    </span>
+                  </div>
+
+                  {/* Grand Total Bar */}
+                  <div className="flex justify-between items-center pt-1.5 border-t border-zinc-100 dark:border-zinc-800">
+                    <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                      {isRefundMode ? 'Net Refund to Customer' : 'Grand Total Payable'}
                     </span>
                     <span
-                      className={`text-sm lg:text-lg font-black leading-tight ${
+                      className={`text-xl font-black ${
                         isRefundMode ? 'text-rose-600' : 'text-primary'
                       }`}
                     >
                       ₹{Math.abs(grandTotal).toFixed(2)}
                     </span>
                   </div>
-
-                  {/* Desktop Only: On mobile the sticky bottom bar is the single checkout button */}
-                  <Button
-                    type="button"
-                    onClick={() => setIsPaymentProcessingModalOpen(true)}
-                    className="hidden lg:flex h-9 px-5 text-xs font-black rounded-xl bg-primary hover:bg-primary/95 text-white shadow-md gap-1.5 shrink-0"
-                  >
-                    <span>Checkout &amp; Pay</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
                 </div>
-              )}
-            </Card>
+
+                {/* Payment Method Selector */}
+                {!isRefundMode && (
+                  <div className="pt-1.5 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'cash', label: 'Cash', icon: Banknote },
+                        { id: 'upi', label: 'UPI / QR', icon: QrCode },
+                        { id: 'card', label: 'Card', icon: CreditCard },
+                      ].map((mode) => (
+                        <Button
+                          key={mode.id}
+                          type="button"
+                          variant={paymentMethod === mode.id ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setPaymentMethod(mode.id as any)}
+                          className={cn(
+                            "h-7 text-xs font-bold rounded-lg gap-1.5",
+                            paymentMethod === mode.id && "bg-primary text-white hover:bg-primary/95"
+                          )}
+                        >
+                          <mode.icon className="h-3.5 w-3.5" />
+                          {mode.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Cash Tender & Change Calculations */}
+                    {paymentMethod === 'cash' && (
+                      <div className="p-2 rounded-lg bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-xs font-bold text-foreground whitespace-nowrap">
+                            Cash Received (₹):
+                          </Label>
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={cashReceived || ''}
+                              onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
+                              className="h-6 w-20 sm:w-24 text-right font-black text-xs rounded-md bg-white dark:bg-zinc-900"
+                            />
+                            {/* Quick Presets */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCashReceived(grandTotal)}
+                              className="h-6 px-1.5 text-[10px] font-bold rounded-md"
+                            >
+                              Exact
+                            </Button>
+                            {[100, 500, 2000].map((preset) => (
+                              <Button
+                                key={preset}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCashReceived(preset)}
+                                className="h-6 px-1.5 text-[10px] font-bold rounded-md"
+                              >
+                                ₹{preset}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Cash Balance Status Display */}
+                        <div
+                          className={`text-[11px] font-bold flex items-center justify-between px-2 py-1 rounded-md ${
+                            cashBalanceResult.status === 'CHANGE_TO_RETURN'
+                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                              : cashBalanceResult.status === 'CUSTOMER_OWES'
+                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                              : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                          }`}
+                        >
+                          <span>Cash Status:</span>
+                          <span>{cashBalanceResult.label}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Auto-print toggle & Bill number preview */}
+                <div className="flex items-center justify-between text-xs px-0.5">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-foreground select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoPrintOnCheckout}
+                      onChange={(e) => setAutoPrintOnCheckout(e.target.checked)}
+                      className="rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                    />
+                    <span>Auto-print invoice (Full Page PDF / A4)</span>
+                  </label>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    Bill #{generateSequentialBillNumber(salesCount, 'INV', 1)}
+                  </span>
+                </div>
+
+                {/* Primary Action Button: Collect Payment & Print */}
+                <Button
+                  type="button"
+                  onClick={handleCheckout}
+                  disabled={isSubmitting || cart.length === 0}
+                  className={`w-full h-9 sm:h-10 text-xs sm:text-sm font-black rounded-xl shadow-lg transition-all ${
+                    isRefundMode
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20'
+                      : 'bg-primary hover:bg-primary/95 text-white shadow-primary/20'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Committing Transaction...
+                    </span>
+                  ) : isRefundMode ? (
+                    `ISSUE REFUND & RESTOCK (₹${Math.abs(grandTotal).toFixed(2)})`
+                  ) : (
+                    `COLLECT PAYMENT & PRINT (₹${grandTotal.toFixed(2)})`
+                  )}
+                </Button>
+              </Card>
+            )}
 
             {/* Mobile Inline Components Catalog (< lg): Rendered DIRECTLY below Active Cart! */}
             <div className="lg:hidden">
@@ -1183,35 +1342,37 @@ export default function AdminBillingPage() {
         storeGstin=""
       />
 
-      {/* Payment Processing Modal (Mobile & Desktop quick checkout) */}
-      <PaymentProcessingModal
-        isOpen={isPaymentProcessingModalOpen}
-        onClose={() => setIsPaymentProcessingModalOpen(false)}
-        cart={cart}
-        grandTotal={grandTotal}
-        grossSubtotal={grossSubtotal}
-        totalDiscount={totalDiscount}
-        totalTax={totalTax}
-        orderDiscount={orderDiscount}
-        setOrderDiscount={setOrderDiscount}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
-        cashReceived={cashReceived}
-        setCashReceived={setCashReceived}
-        cashBalanceResult={cashBalanceResult}
-        customerName={customerName}
-        setCustomerName={setCustomerName}
-        customerPhone={customerPhone}
-        setCustomerPhone={setCustomerPhone}
-        customerAddress={customerAddress}
-        setCustomerAddress={setCustomerAddress}
-        autoPrintOnCheckout={autoPrintOnCheckout}
-        setAutoPrintOnCheckout={setAutoPrintOnCheckout}
-        isSubmitting={isSubmitting}
-        isRefundMode={isRefundMode}
-        billNumber={generateSequentialBillNumber(salesCount, 'INV', 1)}
-        onConfirmCheckout={handleCheckout}
-      />
+      {/* Payment Processing Modal (Mobile Only - Lapview uses inline single page settlement) */}
+      <div className="lg:hidden">
+        <PaymentProcessingModal
+          isOpen={isPaymentProcessingModalOpen}
+          onClose={() => setIsPaymentProcessingModalOpen(false)}
+          cart={cart}
+          grandTotal={grandTotal}
+          grossSubtotal={grossSubtotal}
+          totalDiscount={totalDiscount}
+          totalTax={totalTax}
+          orderDiscount={orderDiscount}
+          setOrderDiscount={setOrderDiscount}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          cashReceived={cashReceived}
+          setCashReceived={setCashReceived}
+          cashBalanceResult={cashBalanceResult}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          customerPhone={customerPhone}
+          setCustomerPhone={setCustomerPhone}
+          customerAddress={customerAddress}
+          setCustomerAddress={setCustomerAddress}
+          autoPrintOnCheckout={autoPrintOnCheckout}
+          setAutoPrintOnCheckout={setAutoPrintOnCheckout}
+          isSubmitting={isSubmitting}
+          isRefundMode={isRefundMode}
+          billNumber={generateSequentialBillNumber(salesCount, 'INV', 1)}
+          onConfirmCheckout={handleCheckout}
+        />
+      </div>
     </div>
   );
 }
