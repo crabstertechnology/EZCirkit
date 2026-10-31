@@ -149,3 +149,63 @@ img,
 .rounded-r-2xl {
   border-radius: 0px !important;
 }
+
+
+/* Left-to-Right Hero Slider Animations */
+@keyframes heroSlideInFromLeft {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroSlideOutToRight {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+.animate-hero-slide-in-left {
+  animation: heroSlideInFromLeft 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+.animate-hero-slide-out-right {
+  animation: heroSlideOutToRight 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+
+/* Right-to-Left Hero Slider Animations */
+@keyframes heroSlideInFromRight {
+  0% {
+    transform: translate3d(100%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroSlideOutToLeft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+.animate-hero-slide-in-right {
+  animation: heroSlideInFromRight 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+.animate-hero-slide-out-to-left {
+  animation: heroSlideOutToLeft 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}

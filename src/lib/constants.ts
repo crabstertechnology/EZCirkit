@@ -45,16 +45,16 @@ export const ADMIN_NAV_LINKS: AdminNavLink[] = [
 ];
 
 export const STATS = [
-  { value: '50+', label: 'Experiments' },
-  { value: '20+', label: 'Components' },
-  { value: '36+', label: 'Projects' },
+  { value: '11', label: 'Tutorials' },
+  { value: '20', label: 'Components' },
+  { value: '11+', label: 'Projects' },
   { value: '4.8★', label: 'Rating' },
 ];
 
 export const PRODUCT_FEATURES = [
-  '20+ Electronic Components',
+  '20 Electronic Components',
   'Arduino Compatible Board',
-  '36+ Step-by-Step Projects',
+  '11+ Step-by-Step Projects',
   'High-Quality Breadboard',
   'Durable Storage Box',
   'Online Video Tutorials',

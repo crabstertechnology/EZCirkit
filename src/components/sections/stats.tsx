@@ -6,9 +6,9 @@ import React from 'react';
 const StatsSection = ({ averageRating, isLoading }: { averageRating: number; isLoading: boolean }) => {
   
   const STATS = [
-    { value: '50+', label: 'Tutorials' },
-    { value: '20+', label: 'Components' },
-    { value: '36+', label: 'Projects' },
+    { value: '11', label: 'Tutorials' },
+    { value: '20', label: 'Components' },
+    { value: '11+', label: 'Projects' },
     { value: isLoading ? '...' : `${averageRating.toFixed(1)}★`, label: 'Rating' },
   ];
 
