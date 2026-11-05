@@ -64,7 +64,7 @@ import {
   MapPin,
   Calendar,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, normalizePhone10, formatPhoneWithCountryCode } from '@/lib/utils';
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -131,7 +131,7 @@ export default function CustomersPage() {
   const handleOpenEditModal = (customer: BillingCustomer) => {
     setEditingCustomer(customer);
     setFormName(customer.name || '');
-    setFormPhone(customer.phone || '');
+    setFormPhone(customer.phone ? normalizePhone10(customer.phone) : '');
     setFormEmail(customer.email || '');
     setFormAddress(customer.address || '');
     setFormNotes(customer.notes || '');
@@ -146,12 +146,22 @@ export default function CustomersPage() {
       return;
     }
 
+    const cleanPhone = normalizePhone10(formPhone);
+    if (formPhone.trim() && cleanPhone.length !== 10) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Mobile Number',
+        description: 'Please enter exactly 10 digits for the mobile number without country code.',
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const method = editingCustomer ? 'PUT' : 'POST';
       const payload: any = {
         name: formName.trim(),
-        phone: formPhone.replace(/\D/g, '').slice(0, 10),
+        phone: cleanPhone,
         email: formEmail.trim().toLowerCase(),
         address: formAddress.trim(),
         notes: formNotes.trim(),
@@ -232,10 +242,9 @@ export default function CustomersPage() {
 
   // WhatsApp Link Helper
   const getWhatsAppLink = (phone: string, name: string) => {
-    const clean = phone.replace(/\D/g, '');
-    const intl = clean.startsWith('91') && clean.length === 12 ? clean : `91${clean.slice(-10)}`;
+    const clean10 = normalizePhone10(phone);
     const text = encodeURIComponent(`Hello ${name || 'Customer'}, thank you for shopping with Crabster Technology!`);
-    return `https://wa.me/${intl}?text=${text}`;
+    return `https://wa.me/91${clean10}?text=${text}`;
   };
 
   // Computed Metrics
@@ -487,7 +496,7 @@ export default function CustomersPage() {
                         {cust.phone ? (
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs font-semibold text-foreground">
-                              {cust.phone}
+                              +91 {normalizePhone10(cust.phone)}
                             </span>
                             <a
                               href={getWhatsAppLink(cust.phone, cust.name)}
@@ -499,7 +508,7 @@ export default function CustomersPage() {
                               <MessageSquare className="h-3.5 w-3.5" />
                             </a>
                             <a
-                              href={`tel:${cust.phone}`}
+                              href={`tel:+91${normalizePhone10(cust.phone)}`}
                               title="Call"
                               className="text-blue-600 hover:text-blue-700 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950/40"
                             >
@@ -619,7 +628,7 @@ export default function CustomersPage() {
                     {cust.phone && (
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 font-mono">
-                          <Phone className="h-3 w-3 text-muted-foreground" /> {cust.phone}
+                          <Phone className="h-3 w-3 text-muted-foreground" /> +91 {normalizePhone10(cust.phone)}
                         </span>
                         <div className="flex items-center gap-2">
                           <a
@@ -711,14 +720,37 @@ export default function CustomersPage() {
             </div>
 
             <div>
-              <Label className="text-xs font-bold text-foreground">Mobile Number (10 digits)</Label>
-              <Input
-                placeholder="e.g. 9876543210"
-                value={formPhone}
-                onChange={(e) => setFormPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                className="mt-1 h-9 text-xs font-mono rounded-xl"
-              />
-              <p className="text-[10px] text-muted-foreground mt-0.5">Used for POS search and WhatsApp receipt sharing</p>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">Mobile Number</Label>
+                <span className="text-[10px] font-mono font-semibold text-muted-foreground">
+                  {formPhone.length}/10 digits
+                </span>
+              </div>
+              <div className="relative flex items-center mt-1">
+                <span className="inline-flex items-center px-3 h-9 rounded-l-xl border border-r-0 border-border bg-muted/60 text-xs font-bold text-foreground select-none shrink-0">
+                  🇮🇳 +91
+                </span>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="9876543210"
+                  value={formPhone}
+                  onChange={(e) => {
+                    let digits = e.target.value.replace(/\D/g, '');
+                    if (digits.length === 12 && digits.startsWith('91')) {
+                      digits = digits.slice(2);
+                    } else if (digits.length === 11 && digits.startsWith('0')) {
+                      digits = digits.slice(1);
+                    }
+                    setFormPhone(digits.slice(0, 10));
+                  }}
+                  className="rounded-l-none rounded-r-xl h-9 text-xs font-mono tracking-wider"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Enter only 10 digits without country code (+91 is pre-built).
+              </p>
             </div>
 
             <div>

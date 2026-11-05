@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, normalizePhone10 } from '@/lib/utils';
 
 import {
   Search,
@@ -125,7 +125,7 @@ export default function AdminBillingPage() {
       const urlAddress = searchParams.get('customerAddress');
 
       if (urlName) setCustomerName(urlName);
-      if (urlPhone) setCustomerPhone(urlPhone.replace(/\D/g, '').slice(0, 10));
+      if (urlPhone) setCustomerPhone(normalizePhone10(urlPhone));
       if (urlEmail) setCustomerEmail(urlEmail);
       if (urlId) setCustomerId(urlId);
       if (urlAddress) setCustomerAddress(urlAddress);
@@ -464,17 +464,29 @@ export default function AdminBillingPage() {
           )}
         </div>
 
-        {/* Mobile Number */}
-        <div className="relative">
+        {/* Mobile Number with Pre-built +91 */}
+        <div className="relative flex items-center">
+          <span className="inline-flex items-center px-2.5 h-8 rounded-l-lg border border-r-0 border-border bg-muted/60 text-xs font-bold text-foreground select-none shrink-0">
+            🇮🇳 +91
+          </span>
           <Input
-            placeholder="Mobile Number (10 digits)"
+            type="tel"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="10-digit Mobile"
             value={customerPhone}
             onFocus={() => setShowCustomerSuggestions(true)}
             onChange={(e) => {
-              setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
+              let digits = e.target.value.replace(/\D/g, '');
+              if (digits.length === 12 && digits.startsWith('91')) {
+                digits = digits.slice(2);
+              } else if (digits.length === 11 && digits.startsWith('0')) {
+                digits = digits.slice(1);
+              }
+              setCustomerPhone(digits.slice(0, 10));
               setShowCustomerSuggestions(true);
             }}
-            className="h-8 text-xs rounded-lg font-mono"
+            className="h-8 text-xs rounded-l-none rounded-r-lg font-mono pr-7"
           />
           {customerPhone && (
             <button
@@ -532,7 +544,7 @@ export default function AdminBillingPage() {
                 type="button"
                 onClick={() => {
                   setCustomerName(c.name);
-                  setCustomerPhone(c.phone || '');
+                  setCustomerPhone(c.phone ? normalizePhone10(c.phone) : '');
                   setCustomerEmail(c.email || '');
                   setCustomerAddress(c.address || '');
                   setCustomerId(c.id);
@@ -1454,7 +1466,7 @@ export default function AdminBillingPage() {
           existingCustomers={existingCustomers}
           onSelectCustomer={(c) => {
             setCustomerName(c.name);
-            setCustomerPhone(c.phone || '');
+            setCustomerPhone(c.phone ? normalizePhone10(c.phone) : '');
             setCustomerEmail(c.email || '');
             setCustomerAddress(c.address || '');
             setCustomerId(c.id);

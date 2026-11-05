@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { BillingCustomer } from '@/types/billing';
 
+function cleanPhone10(p?: string | null): string {
+  if (!p) return '';
+  const d = String(p).replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('91')) return d.slice(2);
+  if (d.length === 11 && d.startsWith('0')) return d.slice(1);
+  return d.slice(-10);
+}
+
 // -------------------------------------------------------------
 // GET: Fetch all customers with sales aggregations (orders & spend)
 // -------------------------------------------------------------
@@ -39,7 +47,7 @@ export async function GET(req: NextRequest) {
       return {
         id: doc.id,
         name: data.name || '',
-        phone: data.phone || '',
+        phone: cleanPhone10(data.phone),
         email: data.email || '',
         address: data.address || '',
         createdDate: data.createdDate || '',
@@ -70,7 +78,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Customer name is required' }, { status: 400 });
     }
 
-    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+    const cleanPhone = cleanPhone10(phone);
     const cleanEmail = email ? email.trim().toLowerCase() : '';
     const now = new Date().toISOString();
 
@@ -114,7 +122,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Customer ID is required' }, { status: 400 });
     }
 
-    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+    const cleanPhone = cleanPhone10(phone);
     const cleanEmail = email ? email.trim().toLowerCase() : '';
     const now = new Date().toISOString();
 

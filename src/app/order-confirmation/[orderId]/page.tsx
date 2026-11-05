@@ -8,10 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle, Home, Truck, Loader2, RefreshCw, Package } from 'lucide-react';
+import { CheckCircle, Home, Truck, Loader2, RefreshCw, Package, FileText, Download, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { A4InvoiceDialog } from '@/components/invoice/a4-invoice-dialog';
+import { OnlineInvoiceData, downloadInvoicePdf } from '@/lib/invoice-pdf';
+import { useToast } from '@/hooks/use-toast';
 
 interface OrderItem {
     id: string;
@@ -33,7 +36,13 @@ interface ShiprocketData {
 
 interface Order {
     id: string;
+    billNumber?: string;
     total: number;
+    subtotal?: number;
+    discount?: number;
+    tax?: number;
+    paymentMethod?: string;
+    items?: OrderItem[];
     createdAt: { toDate: () => Date };
     status: string;
     paymentId: string;
@@ -53,9 +62,12 @@ const OrderConfirmationPage = () => {
   const { orderId } = useParams();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const [trackingData, setTrackingData] = useState<any | null>(null);
   const [isFetchingTracking, setIsFetchingTracking] = useState(false);
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
   const orderDocRef = useMemoFirebase(
     () => (user && orderId ? doc(firestore, 'users', user.uid, 'orders', orderId as string) : null),
@@ -72,6 +84,68 @@ const OrderConfirmationPage = () => {
   const isLoading = isUserLoading || isLoadingOrder || isLoadingItems;
   
   const subtotal = order ? order.total : 0;
+
+  const invoiceData: OnlineInvoiceData | null = React.useMemo(() => {
+    if (!order) return null;
+    const billNumber = order.billNumber || `INV-OL-${order.id.substring(0, 8).toUpperCase()}`;
+    const items = orderItems && orderItems.length > 0 ? orderItems : (order.items || []);
+    const cleanSubtotal = order.subtotal !== undefined
+      ? Number(order.subtotal)
+      : Math.max(0, Number(order.total) - Number(order.shippingCharge || 0));
+
+    return {
+      billNumber,
+      orderId: order.id,
+      date: order.createdAt?.toDate ? order.createdAt.toDate().toISOString() : new Date().toISOString(),
+      status: order.status || 'paid',
+      paymentMethod: order.paymentMethod || (order.paymentId ? 'Online (Razorpay)' : 'Prepaid Online'),
+      paymentId: order.paymentId || '',
+      customerName: order.shippingAddress?.name || user?.displayName || 'Valued Customer',
+      customerEmail: user?.email || '',
+      customerPhone: '',
+      shippingAddress: order.shippingAddress || null,
+      items: items.map((i) => ({
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+        total: i.price * i.quantity,
+        sku: (i as any).sku || i.id || 'N/A',
+      })),
+      subtotal: cleanSubtotal,
+      shippingCharge: Number(order.shippingCharge) || 0,
+      discount: Number(order.discount) || 0,
+      tax: Number(order.tax) || 0,
+      grandTotal: Number(order.total) || 0,
+      storeInfo: {
+        name: 'Crabster Technology',
+        address: '12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu, India',
+        phone: '+91 7010396642',
+        email: 'crabstertechnology@gmail.com',
+        gstin: '',
+      },
+    };
+  }, [order, orderItems, user]);
+
+  const handleDownloadInvoice = async () => {
+    if (!invoiceData) return;
+    setIsDownloadingInvoice(true);
+    try {
+      await downloadInvoicePdf(invoiceData);
+      toast({
+        title: 'Invoice Downloaded',
+        description: `Invoice ${invoiceData.billNumber} saved as PDF.`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Download Failed',
+        description: 'Could not generate PDF. Please try printing instead.',
+      });
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  };
 
   // Auto-fetch tracking if AWB exists
   useEffect(() => {
@@ -195,6 +269,54 @@ const OrderConfirmationPage = () => {
                 </div>
             </div>
 
+            {/* Tax Invoice & Bill Generation Box */}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <h4 className="font-bold text-sm sm:text-base text-foreground">
+                    Tax Invoice Generated
+                  </h4>
+                  <Badge variant="outline" className="font-mono text-xs bg-background border-primary/30 text-primary font-bold">
+                    {order.billNumber || `INV-OL-${order.id.substring(0, 8).toUpperCase()}`}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Official computer-generated tax invoice with Crabster Technology registration and itemized breakdown.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsInvoiceDialogOpen(true)}
+                  className="h-9 text-xs font-bold gap-1.5 bg-background shadow-sm"
+                >
+                  <Eye className="h-4 w-4" />
+                  View Bill
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleDownloadInvoice}
+                  disabled={isDownloadingInvoice}
+                  className="h-9 text-xs font-bold gap-1.5 bg-primary text-white hover:bg-primary/95 shadow-sm"
+                >
+                  {isDownloadingInvoice ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
             {/* Shipment Details */}
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -284,6 +406,13 @@ const OrderConfirmationPage = () => {
             </CardFooter>
         </CardContent>
       </Card>
+
+      {/* A4 Standard Tax Invoice Preview & Download Modal */}
+      <A4InvoiceDialog
+        isOpen={isInvoiceDialogOpen}
+        onClose={() => setIsInvoiceDialogOpen(false)}
+        invoice={invoiceData}
+      />
     </div>
   );
 };

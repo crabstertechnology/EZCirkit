@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BillingCartItem, BillingCustomer } from '@/types/billing';
+import { normalizePhone10 } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -211,16 +212,28 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                     className="h-8 text-xs rounded-lg"
                   />
                 </div>
-                <div className="relative">
+                <div className="relative flex items-center">
+                  <span className="inline-flex items-center px-2 h-8 rounded-l-lg border border-r-0 border-border bg-muted/60 text-xs font-bold text-foreground select-none shrink-0">
+                    🇮🇳 +91
+                  </span>
                   <Input
-                    placeholder="Mobile Number (10 digits)"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="10-digit Mobile"
                     value={customerPhone}
                     onFocus={() => setShowModalSuggestions(true)}
                     onChange={(e) => {
-                      setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
+                      let digits = e.target.value.replace(/\D/g, '');
+                      if (digits.length === 12 && digits.startsWith('91')) {
+                        digits = digits.slice(2);
+                      } else if (digits.length === 11 && digits.startsWith('0')) {
+                        digits = digits.slice(1);
+                      }
+                      setCustomerPhone(digits.slice(0, 10));
                       setShowModalSuggestions(true);
                     }}
-                    className="h-8 text-xs rounded-lg font-mono"
+                    className="h-8 text-xs rounded-l-none rounded-r-lg font-mono"
                   />
                 </div>
               </div>
@@ -261,7 +274,7 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                       type="button"
                       onClick={() => {
                         setCustomerName(cust.name);
-                        setCustomerPhone(cust.phone || '');
+                        setCustomerPhone(cust.phone ? normalizePhone10(cust.phone) : '');
                         setCustomerEmail(cust.email || '');
                         if (cust.address) setCustomerAddress(cust.address);
                         if (onSelectCustomer) onSelectCustomer(cust);

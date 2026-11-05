@@ -381,6 +381,17 @@ const CheckoutPage = () => {
     const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
     const batch = writeBatch(firestore);
 
+    const billNumber = `INV-OL-${Date.now().toString().slice(-6)}-${orderId.slice(-4).toUpperCase()}`;
+    const itemsSnapshot = cartItems.map((item) => ({
+      id: item.id,
+      productId: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image || '',
+      total: item.price * item.quantity,
+    }));
+
     const shippingDetails = {
       name: selectedAddress.name,
       phone: selectedAddress.phone,
@@ -394,11 +405,22 @@ const CheckoutPage = () => {
 
     batch.set(orderRef, {
       id: orderId,
+      billNumber,
       userId: user.uid,
+      customerName: user.displayName || selectedAddress.name,
+      customerEmail: user.email,
+      customerPhone: selectedAddress.phone,
       createdAt: serverTimestamp(),
+      billedDate: new Date().toISOString(),
+      subtotal: cartSubtotal,
+      discount: 0,
+      tax: Number(taxAmount.toFixed(2)),
       total: finalTotal,
+      grandTotal: finalTotal,
       status: 'paid',
+      paymentMethod: 'online',
       paymentId: paymentId,
+      items: itemsSnapshot,
       shippingAddress: shippingDetails,
       shippingOption: selectedCourier ? `${selectedCourier.type} (${selectedCourier.name})` : shippingOption,
       shippingCharge: shippingCharge,

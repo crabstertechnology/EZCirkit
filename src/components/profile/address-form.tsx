@@ -12,10 +12,11 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Address } from './address-card';
+import { normalizePhone10 } from '@/lib/utils';
 
 const addressSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
-  phone: z.string().min(10, 'Please enter a valid phone number.'),
+  phone: z.string().min(10, 'Please enter a valid 10-digit mobile number.'),
   addressLine1: z.string().min(5, 'Address is required.'),
   addressLine2: z.string().optional(),
   city: z.string().min(2, 'City is required.'),
@@ -53,7 +54,10 @@ const AddressForm: React.FC<AddressFormProps> = ({ address, onSave }) => {
   
   useEffect(() => {
     if (address) {
-      form.reset(address);
+      form.reset({
+        ...address,
+        phone: normalizePhone10(address.phone),
+      });
     } else {
         form.reset({
             name: '',
@@ -114,18 +118,44 @@ const AddressForm: React.FC<AddressFormProps> = ({ address, onSave }) => {
                 </FormItem>
             )}
             />
-             <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Phone Number</FormLabel>
-                <FormControl>
-                    <Input placeholder="+91 98765 43210" {...field} />
-                </FormControl>
-                <FormMessage />
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Mobile Number</FormLabel>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {(field.value || '').length}/10 digits
+                    </span>
+                  </div>
+                  <FormControl>
+                    <div className="flex items-center">
+                      <span className="inline-flex items-center px-3 h-10 rounded-l-md border border-r-0 border-input bg-muted/60 text-xs font-bold text-foreground select-none shrink-0">
+                        🇮🇳 +91
+                      </span>
+                      <Input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="9876543210"
+                        className="rounded-l-none font-mono text-sm tracking-wider"
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          let digits = e.target.value.replace(/\D/g, '');
+                          if (digits.length === 12 && digits.startsWith('91')) {
+                            digits = digits.slice(2);
+                          } else if (digits.length === 11 && digits.startsWith('0')) {
+                            digits = digits.slice(1);
+                          }
+                          field.onChange(digits.slice(0, 10));
+                        }}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
         </div>
         <FormField

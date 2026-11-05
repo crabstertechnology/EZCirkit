@@ -46,6 +46,8 @@ import { collection, query } from 'firebase/firestore';
 import type { User } from '@/app/admin/users/page';
 import type { BillingSale } from '@/types/billing';
 import { ReceiptModal } from '@/components/admin/billing/receipt-modal';
+import { A4InvoiceDialog } from '@/components/invoice/a4-invoice-dialog';
+import type { OnlineInvoiceData } from '@/lib/invoice-pdf';
 import {
   DollarSign,
   ShoppingBag,
@@ -150,6 +152,10 @@ const AdminDashboardPage = () => {
   // Receipt Modal for POS sales
   const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<BillingSale | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // A4 Tax Invoice Modal for Online Orders
+  const [selectedOnlineInvoice, setSelectedOnlineInvoice] = useState<OnlineInvoiceData | null>(null);
+  const [isOnlineInvoiceOpen, setIsOnlineInvoiceOpen] = useState(false);
 
   // Safe date parser
   const parseDate = (val: any): Date => {
@@ -377,6 +383,46 @@ const AdminDashboardPage = () => {
       setSelectedSaleForReceipt(order.rawSale);
       setIsReceiptModalOpen(true);
     }
+  };
+
+  // Open A4 Tax Invoice for online orders
+  const handleOpenOnlineInvoice = (order: UnifiedOrder) => {
+    const billNumber = order.refNumber.startsWith('INV-')
+      ? order.refNumber
+      : `INV-OL-${order.id.substring(0, 8).toUpperCase()}`;
+    const invoice: OnlineInvoiceData = {
+      billNumber,
+      orderId: order.id,
+      date: order.date ? order.date.toISOString() : new Date().toISOString(),
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      paymentId: order.paymentId,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      customerPhone: order.customerPhone,
+      shippingAddress: order.shippingAddress,
+      items: order.items.map((it: any) => ({
+        name: it.name || it.productName || 'Component',
+        price: Number(it.price || it.unitPrice || 0),
+        quantity: Number(it.quantity || 1),
+        total: Number(it.total || (Number(it.price || 0) * Number(it.quantity || 1))),
+        sku: it.sku || it.productId || 'N/A',
+      })),
+      subtotal: order.subtotal,
+      shippingCharge: order.shippingCharge || 0,
+      discount: order.discount,
+      tax: order.tax,
+      grandTotal: order.total,
+      storeInfo: {
+        name: 'Crabster Technology',
+        address: '12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu',
+        phone: '+91 7010396642',
+        email: 'crabstertechnology@gmail.com',
+        gstin: '',
+      },
+    };
+    setSelectedOnlineInvoice(invoice);
+    setIsOnlineInvoiceOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -1040,19 +1086,31 @@ const AdminDashboardPage = () => {
                   )}
 
                   {selectedOrder.type === 'online' && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsDetailModalOpen(false);
-                        router.push(`/admin/orders/${selectedOrder.id}?userId=${selectedOrder.userId || ''}`);
-                      }}
-                      className="rounded-xl border-border h-9 text-xs font-bold"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1.5" />
-                      Open Full Order Manager & Shipping
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenOnlineInvoice(selectedOrder)}
+                        className="rounded-xl border-primary/30 text-primary hover:bg-primary/5 h-9 text-xs font-bold gap-1.5"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Tax Invoice (A4 PDF)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsDetailModalOpen(false);
+                          router.push(`/admin/orders/${selectedOrder.id}?userId=${selectedOrder.userId || ''}`);
+                        }}
+                        className="rounded-xl border-border h-9 text-xs font-bold"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1.5" />
+                        Order Hub
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -1086,6 +1144,13 @@ const AdminDashboardPage = () => {
         storeAddress="12/1 Brindhavan Garden, No.4 Veerapandi, Coimbatore - 641019, Tamil Nadu"
         storePhone="7010396642"
         storeGstin=""
+      />
+
+      {/* A4 Standard Tax Invoice Preview & Download Modal for Online Orders */}
+      <A4InvoiceDialog
+        isOpen={isOnlineInvoiceOpen}
+        onClose={() => setIsOnlineInvoiceOpen(false)}
+        invoice={selectedOnlineInvoice}
       />
     </div>
   );

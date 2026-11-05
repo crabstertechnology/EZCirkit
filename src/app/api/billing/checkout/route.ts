@@ -9,6 +9,14 @@ import {
   calculateGrandTotal,
 } from '@/lib/billing-engine';
 
+function cleanPhone10(p?: string | null): string {
+  if (!p) return '';
+  const d = String(p).replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('91')) return d.slice(2);
+  if (d.length === 11 && d.startsWith('0')) return d.slice(1);
+  return d.slice(-10);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -136,7 +144,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Customer Auto-Registration / Update (Name, Mobile, Mail ID)
-    const cleanPhone = customer?.phone ? customer.phone.replace(/\D/g, '') : '';
+    const cleanPhone = customer?.phone ? cleanPhone10(customer.phone) : '';
     const cleanEmail = customer?.email ? customer.email.trim().toLowerCase() : '';
     const cleanName = customer?.name?.trim() || '';
     let customerId = customer?.id || null;
