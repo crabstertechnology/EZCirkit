@@ -1,5 +1,5 @@
 import { placeholderImages } from './placeholder-images';
-import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity, Receipt, History, Layers } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Settings, Home, Package, Mail, BookOpen, Star, Video, ScanLine, Activity, Receipt, History, Layers, UserCheck } from 'lucide-react';
 
 export const SHIPPING_COST = 0;
 
@@ -31,9 +31,11 @@ export const ADMIN_NAV_LINKS: AdminNavLink[] = [
     subItems: [
       { href: '/admin/billing', label: 'Active POS', icon: Receipt },
       { href: '/admin/sales-history', label: 'Sales History', icon: History },
+      { href: '/admin/customers', label: 'Customers Directory', icon: UserCheck },
       { href: '/admin/audit-ledger', label: 'Audit Ledger', icon: Layers },
     ],
   },
+  { href: '/admin/customers', label: 'Customers', icon: UserCheck },
   { href: '/admin/telemetry', label: 'Telemetry Logs', icon: Activity },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/users', label: 'Users', icon: Users },

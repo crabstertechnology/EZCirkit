@@ -6,10 +6,12 @@ import { BillingCartItem, BillingProduct, BillingSale } from '@/types/billing';
  * Return: -(P_i * Q_i)
  */
 export function calculateLineTotal(item: BillingCartItem): number {
+  const unitPrice = Number(item.customUnitPrice ?? (item as any).price ?? item.product?.price ?? 0);
+  const qty = Number(item.quantity ?? 1);
   if (item.isReturn) {
-    return -(item.customUnitPrice * item.quantity);
+    return -(unitPrice * qty);
   }
-  return Math.max(0, (item.customUnitPrice * item.quantity) - (item.discountAmount || 0));
+  return Math.max(0, (unitPrice * qty) - (item.discountAmount || 0));
 }
 
 /**
@@ -18,7 +20,9 @@ export function calculateLineTotal(item: BillingCartItem): number {
  */
 export function calculateGrossSubtotal(items: BillingCartItem[]): number {
   return items.reduce((acc, item) => {
-    const rawTotal = item.customUnitPrice * item.quantity;
+    const unitPrice = Number(item.customUnitPrice ?? (item as any).price ?? item.product?.price ?? 0);
+    const qty = Number(item.quantity ?? 1);
+    const rawTotal = unitPrice * qty;
     return item.isReturn ? acc - rawTotal : acc + rawTotal;
   }, 0);
 }
@@ -31,7 +35,7 @@ export function calculateTotalDiscount(items: BillingCartItem[], orderDiscount: 
   const lineDiscounts = items
     .filter(item => !item.isReturn)
     .reduce((acc, item) => acc + (item.discountAmount || 0), 0);
-  return lineDiscounts + Math.max(0, orderDiscount || 0);
+  return lineDiscounts + Math.max(0, Number(orderDiscount) || 0);
 }
 
 /**
@@ -42,8 +46,10 @@ export function calculateTotalTax(items: BillingCartItem[]): number {
   return items
     .filter(item => !item.isReturn)
     .reduce((acc, item) => {
-      const taxRate = Number(item.product.tax || 0);
-      const lineBase = item.customUnitPrice * item.quantity;
+      const taxRate = Number(item.product?.tax || 0);
+      const unitPrice = Number(item.customUnitPrice ?? (item as any).price ?? item.product?.price ?? 0);
+      const qty = Number(item.quantity ?? 1);
+      const lineBase = unitPrice * qty;
       return acc + (lineBase * (taxRate / 100));
     }, 0);
 }
@@ -56,7 +62,8 @@ export function calculateGrandTotal(items: BillingCartItem[], orderDiscount: num
   const subtotal = calculateGrossSubtotal(items);
   const discount = calculateTotalDiscount(items, orderDiscount);
   const tax = calculateTotalTax(items);
-  return Number(((subtotal - discount) + tax).toFixed(2));
+  const total = (subtotal - discount) + tax;
+  return Number((Number.isFinite(total) ? total : 0).toFixed(2));
 }
 
 /**

@@ -51,10 +51,12 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
 
     // Financial calculations
+    const cleanOrderDiscount = Number(orderDiscount) || 0;
     const amount = calculateGrossSubtotal(items);
-    const discount = calculateTotalDiscount(items, orderDiscount);
+    const discount = calculateTotalDiscount(items, cleanOrderDiscount);
     const tax = calculateTotalTax(items);
-    const grandTotal = calculateGrandTotal(items, orderDiscount);
+    const rawGrandTotal = calculateGrandTotal(items, cleanOrderDiscount);
+    const grandTotal = Number.isFinite(rawGrandTotal) ? rawGrandTotal : 0;
     const isRefundMode = grandTotal < 0;
 
     // Create Sale Ref
@@ -65,25 +67,28 @@ export async function POST(req: NextRequest) {
 
     for (const item of items) {
       const saleItemRef = db.collection('sales').doc(saleId).collection('items').doc();
-      const isCustom = item.product.id.startsWith('custom-');
-      const signedQty = item.isReturn ? -item.quantity : item.quantity;
+      const isCustom = item.product?.id ? item.product.id.startsWith('custom-') : false;
+      const unitPrice = Number(item.customUnitPrice ?? (item as any).price ?? item.product?.price ?? 0);
+      const qty = Number(item.quantity ?? 1);
+      const discountAmt = Number(item.discountAmount || 0);
+      const signedQty = item.isReturn ? -qty : qty;
       const lineTotal = item.isReturn
-        ? -(item.customUnitPrice * item.quantity)
-        : (item.customUnitPrice * item.quantity) - (item.discountAmount || 0);
+        ? -(unitPrice * qty)
+        : (unitPrice * qty) - discountAmt;
 
       const saleItem: BillingSaleItem = {
         id: saleItemRef.id,
         saleId,
-        productId: item.product.id,
-        sku: item.product.sku || (isCustom ? `CUSTOM-${item.id}` : 'N/A'),
-        name: item.isReturn ? `[RETURN] ${item.product.name}` : item.product.name,
-        unit: item.product.unit || 'Piece',
+        productId: item.product?.id || 'item',
+        sku: item.product?.sku || (isCustom ? `CUSTOM-${item.id}` : 'N/A'),
+        name: item.isReturn ? `[RETURN] ${item.product?.name || 'Item'}` : (item.product?.name || 'Item'),
+        unit: item.product?.unit || 'Piece',
         quantity: signedQty,
-        unitPrice: item.customUnitPrice,
-        discount: item.isReturn ? 0 : (item.discountAmount || 0),
-        taxRate: Number(item.product.tax || 0),
-        taxAmount: item.isReturn ? 0 : (item.customUnitPrice * item.quantity * ((item.product.tax || 0) / 100)),
-        total: Number(lineTotal.toFixed(2)),
+        unitPrice,
+        discount: item.isReturn ? 0 : discountAmt,
+        taxRate: Number(item.product?.tax || 0),
+        taxAmount: item.isReturn ? 0 : (unitPrice * qty * ((item.product?.tax || 0) / 100)),
+        total: Number((Number.isFinite(lineTotal) ? lineTotal : 0).toFixed(2)),
         isReturn: Boolean(item.isReturn),
         returnReason: item.returnReason || '',
       };
@@ -102,9 +107,13 @@ export async function POST(req: NextRequest) {
         const productRef = db.collection('products').doc(item.product.id);
         const stockDelta = item.isReturn ? item.quantity : -item.quantity;
         
-        batch.update(productRef, {
-          stock: FieldValue.increment(stockDelta),
-        });
+        batch.set(
+          productRef,
+          {
+            stock: FieldValue.increment(stockDelta),
+          },
+          { merge: true }
+        );
 
         // Write Signed Inventory Audit Ledger Record
         const invTxRef = db.collection('inventory_transactions').doc();
@@ -126,23 +135,56 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Customer Auto-Registration (Section 7)
+    // Customer Auto-Registration / Update (Name, Mobile, Mail ID)
     const cleanPhone = customer?.phone ? customer.phone.replace(/\D/g, '') : '';
+    const cleanEmail = customer?.email ? customer.email.trim().toLowerCase() : '';
+    const cleanName = customer?.name?.trim() || '';
     let customerId = customer?.id || null;
 
-    if (cleanPhone && customer?.name && customer.name.toLowerCase() !== 'walk-in customer') {
+    const isNamedCustomer = cleanName && cleanName.toLowerCase() !== 'walk-in customer';
+
+    if (isNamedCustomer || cleanPhone || cleanEmail) {
       if (!customerId) {
-        customerId = `cust-${cleanPhone}`;
-        const customerRef = db.collection('customers').doc(customerId);
+        if (cleanPhone) {
+          customerId = `cust-${cleanPhone}`;
+        } else if (cleanEmail) {
+          customerId = `cust-${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
+        } else {
+          customerId = `cust-${Date.now()}`;
+        }
+      }
+
+      const customerRef = db.collection('customers').doc(customerId);
+      const customerDoc = await customerRef.get();
+
+      if (!customerDoc.exists) {
+        // New Customer
         const newCustomer: BillingCustomer = {
           id: customerId,
-          name: customer.name.trim(),
+          name: cleanName || 'Customer',
           phone: cleanPhone,
-          email: customer.email?.trim() || '',
-          address: customer.address?.trim() || '',
+          email: cleanEmail,
+          address: customer?.address?.trim() || '',
           createdDate: now,
+          updatedDate: now,
+          totalOrders: 1,
+          totalSpent: Number(grandTotal.toFixed(2)),
+          lastPurchaseDate: now,
         };
-        batch.set(customerRef, newCustomer, { merge: true });
+        batch.set(customerRef, newCustomer);
+      } else {
+        // Existing Customer: Update details & increment spend/orders
+        const existingData = customerDoc.data() || {};
+        batch.update(customerRef, {
+          name: cleanName || existingData.name || 'Customer',
+          phone: cleanPhone || existingData.phone || '',
+          email: cleanEmail || existingData.email || '',
+          address: customer?.address?.trim() || existingData.address || '',
+          updatedDate: now,
+          lastPurchaseDate: now,
+          totalOrders: FieldValue.increment(1),
+          totalSpent: FieldValue.increment(Number(grandTotal.toFixed(2))),
+        });
       }
     }
 
@@ -151,8 +193,9 @@ export async function POST(req: NextRequest) {
       id: saleId,
       billNumber,
       customerId,
-      customerName: customer?.name?.trim() || 'Walk-in Customer',
+      customerName: cleanName || 'Walk-in Customer',
       customerPhone: cleanPhone || 'Walk-in',
+      customerEmail: cleanEmail,
       amount: Number(amount.toFixed(2)),
       discount: Number(discount.toFixed(2)),
       orderDiscount: Number(orderDiscount.toFixed(2)),

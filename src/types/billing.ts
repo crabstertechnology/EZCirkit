@@ -38,6 +38,11 @@ export interface BillingCustomer {
   email?: string;
   address?: string;
   createdDate?: string;
+  updatedDate?: string;
+  totalOrders?: number;
+  totalSpent?: number;
+  lastPurchaseDate?: string;
+  notes?: string;
 }
 
 export interface BillingSaleItem {
@@ -63,6 +68,7 @@ export interface BillingSale {
   customerId?: string | null;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   amount: number; // Gross subtotal
   discount: number; // Cumulative discounts (line + order)
   orderDiscount?: number;

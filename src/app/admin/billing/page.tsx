@@ -115,6 +115,21 @@ export default function AdminBillingPage() {
 
   useEffect(() => {
     refreshCustomersAndSales();
+
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlName = searchParams.get('customerName');
+      const urlPhone = searchParams.get('customerPhone');
+      const urlEmail = searchParams.get('customerEmail');
+      const urlId = searchParams.get('customerId');
+      const urlAddress = searchParams.get('customerAddress');
+
+      if (urlName) setCustomerName(urlName);
+      if (urlPhone) setCustomerPhone(urlPhone.replace(/\D/g, '').slice(0, 10));
+      if (urlEmail) setCustomerEmail(urlEmail);
+      if (urlId) setCustomerId(urlId);
+      if (urlAddress) setCustomerAddress(urlAddress);
+    }
   }, []);
 
   // -------------------------------------------------------------
@@ -128,6 +143,7 @@ export default function AdminBillingPage() {
   // Customer state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
@@ -180,12 +196,13 @@ export default function AdminBillingPage() {
     return products.filter((p) => matchProductSearch(p, searchQuery));
   }, [products, searchQuery]);
 
-  // Customer Autocomplete Suggestions
+  // Customer Autocomplete Suggestions & Recommendations
   const customerSuggestions = useMemo(() => {
     const cleanPhone = customerPhone.replace(/\D/g, '');
     const cleanName = customerName.toLowerCase().trim();
+    const cleanEmail = customerEmail.toLowerCase().trim();
 
-    if (!existingCustomers || (!cleanPhone && (!cleanName || cleanName === 'walk-in customer'))) {
+    if (!existingCustomers || (!cleanPhone && (!cleanName || cleanName === 'walk-in customer') && !cleanEmail)) {
       return [];
     }
 
@@ -193,9 +210,10 @@ export default function AdminBillingPage() {
       if (c.id === 'cust-walkin') return false;
       const matchP = cleanPhone && c.phone?.includes(cleanPhone);
       const matchN = cleanName && cleanName !== 'walk-in customer' && c.name?.toLowerCase().includes(cleanName);
-      return matchP || matchN;
-    });
-  }, [existingCustomers, customerPhone, customerName]);
+      const matchE = cleanEmail && c.email?.toLowerCase().includes(cleanEmail);
+      return matchP || matchN || matchE;
+    }).slice(0, 6);
+  }, [existingCustomers, customerPhone, customerName, customerEmail]);
 
   // -------------------------------------------------------------
   // Cart Actions
@@ -261,6 +279,7 @@ export default function AdminBillingPage() {
     setCashReceived(0);
     setCustomerName('');
     setCustomerPhone('');
+    setCustomerEmail('');
     setCustomerAddress('');
     setCustomerId(null);
   };
@@ -318,6 +337,7 @@ export default function AdminBillingPage() {
             id: customerId,
             name: customerName.trim() || 'Walk-in Customer',
             phone: customerPhone,
+            email: customerEmail.trim(),
             address: customerAddress,
           },
           billNumber: generatedBillNumber,
@@ -374,50 +394,64 @@ export default function AdminBillingPage() {
   };
 
   // -------------------------------------------------------------
-  // Reusable Customer Association Component
+  // Reusable Customer Association Component (Name, Mobile, Mail ID)
   // variant 'top': visible only on desktop top-right
   // variant 'checkout': visible only on mobile inside settlement card
   // -------------------------------------------------------------
   const renderCustomerInfo = (variant: 'top' | 'checkout') => (
     <Card className={cn(
       "border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl relative",
-      variant === 'top' ? "shrink-0 p-2.5 hidden lg:block" : "p-2.5 border-zinc-200 dark:border-zinc-800 space-y-1.5 lg:hidden mb-2"
+      variant === 'top' ? "shrink-0 p-3 hidden lg:block" : "p-3 border-zinc-200 dark:border-zinc-800 space-y-2 lg:hidden mb-2"
     )}>
-      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+      <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
           <User className="h-4 w-4 text-primary" />
-          <span>{variant === 'checkout' ? 'Customer Details (Optional)' : 'Customer Information'}</span>
-          <span className="text-xs text-muted-foreground font-normal italic">
-            (defaults to Walk-in Customer)
-          </span>
+          <span>Customer Details</span>
+          {customerId ? (
+            <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0 h-4 font-semibold ml-1">
+              Existing Customer
+            </Badge>
+          ) : (customerName || customerPhone || customerEmail) ? (
+            <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/40 text-[10px] px-1.5 py-0 h-4 font-semibold ml-1">
+              New Customer (Saves on Payment)
+            </Badge>
+          ) : (
+            <span className="text-[11px] text-muted-foreground font-normal italic ml-1">
+              (Walk-in Customer)
+            </span>
+          )}
         </div>
-        {(customerName || customerPhone) && (
+        {(customerName || customerPhone || customerEmail) && (
           <button
             type="button"
             onClick={() => {
               setCustomerName('');
               setCustomerPhone('');
+              setCustomerEmail('');
+              setCustomerAddress('');
               setCustomerId(null);
             }}
-            className="text-[10px] text-rose-500 hover:underline font-semibold flex items-center gap-1"
+            className="text-[11px] text-rose-500 hover:underline font-semibold flex items-center gap-1"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
             Clear
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-1.5">
+      {/* 3 Input Fields: Name, Mobile Number, Mail ID */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {/* Name */}
         <div className="relative">
           <Input
-            placeholder="Customer Name (Optional)"
+            placeholder="Customer Name"
             value={customerName}
             onFocus={() => setShowCustomerSuggestions(true)}
             onChange={(e) => {
               setCustomerName(e.target.value);
               setShowCustomerSuggestions(true);
             }}
-            className="h-9 text-xs sm:text-[13px] rounded-lg"
+            className="h-8 text-xs rounded-lg"
           />
           {customerName && (
             <button
@@ -425,21 +459,22 @@ export default function AdminBillingPage() {
               onClick={() => setCustomerName('')}
               className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
 
+        {/* Mobile Number */}
         <div className="relative">
           <Input
-            placeholder="Phone (10 digits - Optional)"
+            placeholder="Mobile Number (10 digits)"
             value={customerPhone}
             onFocus={() => setShowCustomerSuggestions(true)}
             onChange={(e) => {
               setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
               setShowCustomerSuggestions(true);
             }}
-            className="h-9 text-xs sm:text-[13px] rounded-lg font-mono"
+            className="h-8 text-xs rounded-lg font-mono"
           />
           {customerPhone && (
             <button
@@ -447,35 +482,84 @@ export default function AdminBillingPage() {
               onClick={() => setCustomerPhone('')}
               className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Mail ID */}
+        <div className="relative">
+          <Input
+            type="email"
+            placeholder="Mail ID / Email Address (Optional)"
+            value={customerEmail}
+            onFocus={() => setShowCustomerSuggestions(true)}
+            onChange={(e) => {
+              setCustomerEmail(e.target.value);
+              setShowCustomerSuggestions(true);
+            }}
+            className="h-8 text-xs rounded-lg"
+          />
+          {customerEmail && (
+            <button
+              type="button"
+              onClick={() => setCustomerEmail('')}
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Autocomplete Dropdown */}
+      {/* Autocomplete Recommendation Dropdown */}
       {showCustomerSuggestions && customerSuggestions.length > 0 && (
-        <div className="absolute top-full left-2 right-2 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-          <div className="p-1.5 text-[10px] font-bold text-muted-foreground uppercase bg-zinc-50 dark:bg-zinc-800/50">
-            Existing Customers
-          </div>
-          {customerSuggestions.map((c) => (
+        <div className="absolute top-full left-2 right-2 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto">
+          <div className="p-2 text-[10px] font-bold text-muted-foreground uppercase bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
+            <span>Recommended Existing Customers (Click to auto-fill)</span>
             <button
-              key={c.id}
               type="button"
-              onClick={() => {
-                setCustomerName(c.name);
-                setCustomerPhone(c.phone);
-                setCustomerAddress(c.address || '');
-                setCustomerId(c.id);
-                setShowCustomerSuggestions(false);
-              }}
-              className="w-full text-left p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex justify-between items-center text-xs border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+              onClick={() => setShowCustomerSuggestions(false)}
+              className="text-zinc-400 hover:text-foreground"
             >
-              <span className="font-semibold text-foreground">{c.name}</span>
-              <span className="font-mono text-muted-foreground">{c.phone}</span>
+              <X className="h-3 w-3" />
             </button>
-          ))}
+          </div>
+          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {customerSuggestions.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  setCustomerName(c.name);
+                  setCustomerPhone(c.phone || '');
+                  setCustomerEmail(c.email || '');
+                  setCustomerAddress(c.address || '');
+                  setCustomerId(c.id);
+                  setShowCustomerSuggestions(false);
+                }}
+                className="w-full text-left p-2.5 hover:bg-orange-50 dark:hover:bg-orange-950/20 flex justify-between items-center text-xs transition-colors"
+              >
+                <div>
+                  <div className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>{c.name}</span>
+                    {c.totalOrders ? (
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        ({c.totalOrders} past {c.totalOrders === 1 ? 'order' : 'orders'})
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-2 mt-0.5">
+                    {c.phone && <span>📞 {c.phone}</span>}
+                    {c.email && <span>✉️ {c.email}</span>}
+                  </div>
+                </div>
+                <Badge variant="secondary" className="text-[10px] px-2 py-0.5 font-bold shrink-0">
+                  Select
+                </Badge>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </Card>
@@ -1363,8 +1447,18 @@ export default function AdminBillingPage() {
           setCustomerName={setCustomerName}
           customerPhone={customerPhone}
           setCustomerPhone={setCustomerPhone}
+          customerEmail={customerEmail}
+          setCustomerEmail={setCustomerEmail}
           customerAddress={customerAddress}
           setCustomerAddress={setCustomerAddress}
+          existingCustomers={existingCustomers}
+          onSelectCustomer={(c) => {
+            setCustomerName(c.name);
+            setCustomerPhone(c.phone || '');
+            setCustomerEmail(c.email || '');
+            setCustomerAddress(c.address || '');
+            setCustomerId(c.id);
+          }}
           autoPrintOnCheckout={autoPrintOnCheckout}
           setAutoPrintOnCheckout={setAutoPrintOnCheckout}
           isSubmitting={isSubmitting}

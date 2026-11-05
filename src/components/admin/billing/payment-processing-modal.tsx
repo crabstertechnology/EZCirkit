@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BillingCartItem } from '@/types/billing';
+import { BillingCartItem, BillingCustomer } from '@/types/billing';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,11 @@ import {
   Receipt,
   User,
   Printer,
+  Mail,
+  Phone,
+  Check,
+  X,
+  Search,
 } from 'lucide-react';
 
 interface PaymentProcessingModalProps {
@@ -42,8 +47,12 @@ interface PaymentProcessingModalProps {
   setCustomerName: (name: string) => void;
   customerPhone: string;
   setCustomerPhone: (phone: string) => void;
+  customerEmail: string;
+  setCustomerEmail: (email: string) => void;
   customerAddress: string;
   setCustomerAddress: (address: string) => void;
+  existingCustomers?: BillingCustomer[];
+  onSelectCustomer?: (customer: BillingCustomer) => void;
   autoPrintOnCheckout: boolean;
   setAutoPrintOnCheckout: (val: boolean) => void;
   isSubmitting: boolean;
@@ -71,8 +80,12 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
   setCustomerName,
   customerPhone,
   setCustomerPhone,
+  customerEmail,
+  setCustomerEmail,
   customerAddress,
   setCustomerAddress,
+  existingCustomers = [],
+  onSelectCustomer,
   autoPrintOnCheckout,
   setAutoPrintOnCheckout,
   isSubmitting,
@@ -80,6 +93,26 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
   billNumber,
   onConfirmCheckout,
 }) => {
+  const [showModalSuggestions, setShowModalSuggestions] = React.useState(false);
+
+  // Recommendations matching
+  const matchingCustomers = React.useMemo(() => {
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    const cleanName = customerName.toLowerCase().trim();
+    const cleanEmail = customerEmail.toLowerCase().trim();
+
+    if (!cleanPhone && (!cleanName || cleanName === 'walk-in customer') && !cleanEmail) {
+      return [];
+    }
+
+    return existingCustomers.filter((c) => {
+      const matchP = cleanPhone && c.phone?.includes(cleanPhone);
+      const matchN = cleanName && c.name?.toLowerCase().includes(cleanName);
+      const matchE = cleanEmail && c.email?.toLowerCase().includes(cleanEmail);
+      return matchP || matchN || matchE;
+    }).slice(0, 5);
+  }, [existingCustomers, customerPhone, customerName, customerEmail]);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md w-[95vw] sm:w-full p-4 sm:p-5 rounded-2xl max-h-[92vh] overflow-y-auto">
@@ -140,29 +173,117 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
             </div>
           </div>
 
-          {/* Customer Details (Optional) */}
-          <div className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-              <User className="h-3.5 w-3.5 text-primary" />
-              <span>Customer Details (Optional)</span>
-              <span className="text-[10px] text-muted-foreground font-normal italic">
-                (defaults to Walk-in Customer)
-              </span>
+          {/* Customer Details Section (Name, Mobile Number, Mail ID) */}
+          <div className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 space-y-2.5 relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                <User className="h-3.5 w-3.5 text-primary" />
+                <span>Customer Details</span>
+              </div>
+              {(customerName || customerPhone || customerEmail) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerName('');
+                    setCustomerPhone('');
+                    setCustomerEmail('');
+                    setCustomerAddress('');
+                  }}
+                  className="text-[10px] text-rose-500 hover:underline font-semibold flex items-center gap-0.5"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                placeholder="Customer Name (Optional)"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="h-8 text-xs rounded-lg"
-              />
-              <Input
-                placeholder="Phone (10 digits - Opt)"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                className="h-8 text-xs rounded-lg"
-              />
+
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="relative">
+                  <Input
+                    placeholder="Customer Name"
+                    value={customerName}
+                    onFocus={() => setShowModalSuggestions(true)}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setShowModalSuggestions(true);
+                    }}
+                    className="h-8 text-xs rounded-lg"
+                  />
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="Mobile Number (10 digits)"
+                    value={customerPhone}
+                    onFocus={() => setShowModalSuggestions(true)}
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
+                      setShowModalSuggestions(true);
+                    }}
+                    className="h-8 text-xs rounded-lg font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Mail ID (Email) Option */}
+              <div className="relative">
+                <Input
+                  type="email"
+                  placeholder="Mail ID / Email Address (Optional)"
+                  value={customerEmail}
+                  onFocus={() => setShowModalSuggestions(true)}
+                  onChange={(e) => {
+                    setCustomerEmail(e.target.value);
+                    setShowModalSuggestions(true);
+                  }}
+                  className="h-8 text-xs rounded-lg"
+                />
+              </div>
             </div>
+
+            {/* Recommendations dropdown inside modal */}
+            {showModalSuggestions && matchingCustomers.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto">
+                <div className="p-1.5 text-[10px] font-bold text-muted-foreground uppercase bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
+                  <span>Recommended Existing Customers</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowModalSuggestions(false)}
+                    className="text-zinc-400 hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                  {matchingCustomers.map((cust) => (
+                    <button
+                      key={cust.id}
+                      type="button"
+                      onClick={() => {
+                        setCustomerName(cust.name);
+                        setCustomerPhone(cust.phone || '');
+                        setCustomerEmail(cust.email || '');
+                        if (cust.address) setCustomerAddress(cust.address);
+                        if (onSelectCustomer) onSelectCustomer(cust);
+                        setShowModalSuggestions(false);
+                      }}
+                      className="w-full text-left p-2 hover:bg-orange-50 dark:hover:bg-orange-950/20 flex items-center justify-between transition-colors"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-foreground">{cust.name}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-2">
+                          {cust.phone && <span>📞 {cust.phone}</span>}
+                          {cust.email && <span>✉️ {cust.email}</span>}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                        Select
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payment Methods Bar */}
