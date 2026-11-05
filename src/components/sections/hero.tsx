@@ -159,6 +159,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
                       height={500}
                       priority
                       className="rounded-2xl shadow-2xl w-full h-auto"
+                      style={{ height: 'auto' }}
                     />
                     <div className="absolute -top-4 left-6 animate-float-delay-1 z-20">
                       <Badge className="bg-orange-50 text-orange-600 border-orange-200 py-1 px-3 text-sm font-semibold shadow-sm">
@@ -176,16 +177,29 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
             </div>
           </div>
 
-          {/* SLIDE 2: Whole Detach Section (3 seconds) - Image covers whole section, no background showing */}
-          <div className={cn(getSlideClasses(1), "flex items-center justify-center relative overflow-hidden bg-[#fdfbf3]")}>
-            <Link href="/products" className="relative w-full h-full block">
-              <div className="relative w-full aspect-[1672/941] min-h-[460px] sm:min-h-[540px] md:min-h-[600px] lg:min-h-[650px] max-h-[calc(100vh-140px)]">
+          {/* SLIDE 2: Whole Detach Section (3 seconds) - Dedicated vertical poster for mobile, landscape for desktop */}
+          <div className={cn(getSlideClasses(1), "flex flex-col items-center justify-center relative overflow-hidden bg-[#fdfbf3]")}>
+            <Link href="/products" className="relative w-full h-full flex flex-col items-center justify-center">
+              {/* Mobile View: Vertical / Portrait Poster (Activated when mobile sidebar/header is active < md) */}
+              <div className="relative w-full aspect-[4705/8360] block md:hidden">
+                <Image
+                  src="/images/detach-mobile.png"
+                  alt="Detach – Digital Wellbeing for a Brighter You by Crabster Technology"
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 500px"
+                  className="object-contain w-full h-full object-center"
+                />
+              </div>
+
+              {/* Desktop View: Horizontal / Landscape Poster (>= md) */}
+              <div className="relative w-full aspect-[1672/941] md:min-h-[560px] lg:min-h-[650px] max-h-[calc(100vh-140px)] hidden md:block">
                 <Image
                   src="/images/detach-reconnect.png"
                   alt="Detach – Reconnect With What Matters by Crabster Technology"
                   fill
                   priority
-                  sizes="100vw"
+                  sizes="(min-width: 768px) 100vw, 1200px"
                   className="object-cover w-full h-full object-center"
                 />
               </div>
