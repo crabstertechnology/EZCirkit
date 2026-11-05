@@ -408,33 +408,6 @@ const AdminDashboardPage = () => {
             Complete order operations & sales overview across Online Store and In-Store POS Billing.
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchAllOrders(true)}
-            disabled={isRefreshing}
-            className="rounded-xl border-border h-9"
-          >
-            <RefreshCw className={cn('h-4 w-4 mr-1.5', isRefreshing && 'animate-spin')} />
-            Refresh
-          </Button>
-
-          <Button asChild size="sm" className="rounded-xl bg-primary text-white hover:bg-primary/95 h-9 font-bold shadow-sm">
-            <Link href="/admin/billing">
-              <Store className="h-4 w-4 mr-1.5" />
-              New POS Bill
-            </Link>
-          </Button>
-
-          <Button asChild variant="secondary" size="sm" className="rounded-xl h-9 font-bold">
-            <Link href="/admin/orders">
-              <ShoppingBag className="h-4 w-4 mr-1.5" />
-              Orders Manager
-            </Link>
-          </Button>
-        </div>
       </div>
 
       {/* ── Stats Metric Cards (Online + Billing Combined) ── */}
