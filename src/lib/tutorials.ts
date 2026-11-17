@@ -3,6 +3,11 @@ import type { WithId } from '@/firebase';
 
 export type TutorialLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 
+export interface ExperimentComponent {
+    name: string;
+    quantity: string;
+}
+
 export interface Tutorial {
     id: string;
     chapterId: string;
@@ -14,6 +19,7 @@ export interface Tutorial {
     videoId?: string;
     order: number;
     isHidden?: boolean;
+    components?: ExperimentComponent[];
     code?: string;
     compiledHex?: string;
     transcript?: string;

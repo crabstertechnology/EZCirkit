@@ -17,7 +17,7 @@ import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -253,6 +253,32 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
   const [autoCompileOnSave, setAutoCompileOnSave] = useState(true);
   const [compileError, setCompileError] = useState<string | null>(null);
   const [compileSuccessMsg, setCompileSuccessMsg] = useState<string | null>(null);
+  const [components, setComponents] = useState<Array<{ name: string; quantity: string }>>([]);
+
+  const handleAddComponent = () => {
+    setComponents((prev) => [...prev, { name: '', quantity: '1' }]);
+  };
+
+  const handleUpdateComponent = (index: number, field: 'name' | 'quantity', value: string) => {
+    setComponents((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemoveComponent = (index: number) => {
+    setComponents((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleQuickAdd = (name: string, quantity = '1') => {
+    setComponents((prev) => {
+      const exists = prev.some((c) => c.name.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        toast({ title: 'Already Added', description: `"${name}" is already in the components list.` });
+        return prev;
+      }
+      return [...prev, { name, quantity }];
+    });
+  };
   
   // Pre-generate the tutorial ID so it is consistent across uploads and submissions
   const [tutorialId] = useState(() => tutorial?.id || doc(collection(firestore, '_')).id);
@@ -318,6 +344,11 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
 
   useEffect(() => {
     if (tutorial) {
+      setComponents(
+        Array.isArray(tutorial.components) && tutorial.components.length > 0
+          ? tutorial.components.map((c) => ({ name: c.name || '', quantity: c.quantity || '1' }))
+          : []
+      );
       form.reset({
         ...tutorial,
         level: tutorial.level || 'Beginner',
@@ -330,6 +361,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         isHidden: tutorial.isHidden ?? false,
       });
     } else {
+      setComponents([]);
       form.reset({
         title: '',
         description: '',
@@ -480,8 +512,16 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       }
     }
 
+    const cleanedComponents = components
+      .map((c) => ({
+        name: c.name.trim(),
+        quantity: (c.quantity || '1').trim(),
+      }))
+      .filter((c) => c.name.length > 0);
+
     const tutorialData = {
       ...data,
+      components: cleanedComponents,
       isHidden: data.isHidden ?? false,
       compiledHex: finalHex || undefined,
       imageId: data.imageId || 'tutorial-1',
@@ -646,6 +686,129 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                 <FormMessage />
             </FormItem>
         )}/>
+
+        {/* Components & Quantity (Bill of Materials) */}
+        <div className="space-y-3 p-4 rounded-xl border border-zinc-200 bg-zinc-50/60 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-orange-600" />
+                <Label className="font-bold text-sm text-zinc-900">Required Components & Quantity</Label>
+                {components.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] font-bold bg-orange-50 text-orange-700 border-orange-200">
+                    {components.length} items
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Add parts and quantities needed for this experiment. Displayed to students in tabular form inside the IDE and experiment details.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddComponent}
+              className="h-8 text-xs font-semibold gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-100 hover:text-orange-800 cursor-pointer self-start sm:self-auto"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Component</span>
+            </Button>
+          </div>
+
+          {/* Quick Add Common Parts */}
+          <div className="space-y-1.5 pt-1 border-t border-zinc-200/60">
+            <span className="text-[11px] font-semibold text-zinc-500">Quick Add Common Parts:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { name: 'Arduino Uno R3', qty: '1' },
+                { name: 'Breadboard', qty: '1' },
+                { name: 'Jumper Wires (M-M)', qty: '10' },
+                { name: 'Jumper Wires (M-F)', qty: '4' },
+                { name: 'LED (5mm)', qty: '1' },
+                { name: '220Ω Resistor', qty: '1' },
+                { name: '10kΩ Resistor', qty: '1' },
+                { name: 'DHT11 Sensor', qty: '1' },
+                { name: 'HC-SR04 Ultrasonic', qty: '1' },
+                { name: 'Buzzer', qty: '1' },
+                { name: 'Push Button', qty: '1' },
+                { name: 'Servo Motor (SG90)', qty: '1' },
+              ].map(preset => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => handleQuickAdd(preset.name, preset.qty)}
+                  className="px-2 py-0.5 text-[11px] font-medium bg-white hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 border border-zinc-200 rounded-md text-zinc-700 transition-colors cursor-pointer shadow-2xs"
+                >
+                  + {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tabular Form */}
+          {components.length > 0 ? (
+            <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-xs">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-100/80 border-b border-zinc-200 text-zinc-600">
+                    <th className="py-2.5 px-3 font-bold w-10 text-center">#</th>
+                    <th className="py-2.5 px-3 font-bold">Component Name / Model</th>
+                    <th className="py-2.5 px-3 font-bold w-32 text-center">Quantity</th>
+                    <th className="py-2.5 px-2 font-bold w-10 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {components.map((comp, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-50/60 transition-colors">
+                      <td className="py-2 px-3 text-center text-zinc-400 font-mono font-bold">
+                        {idx + 1}
+                      </td>
+                      <td className="py-2 px-3">
+                        <Input
+                          placeholder="e.g. DHT11 Temperature & Humidity Sensor"
+                          value={comp.name}
+                          onChange={(e) => handleUpdateComponent(idx, 'name', e.target.value)}
+                          className="h-8 text-xs rounded-lg bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <Input
+                          placeholder="1, 4 pcs..."
+                          value={comp.quantity}
+                          onChange={(e) => handleUpdateComponent(idx, 'quantity', e.target.value)}
+                          className="h-8 text-xs text-center font-mono rounded-lg bg-zinc-50/50 focus:bg-white"
+                        />
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveComponent(idx)}
+                          className="h-7 w-7 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                          title="Remove Component"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="border border-dashed border-zinc-300/80 rounded-xl p-4 text-center bg-white/70 space-y-1.5">
+              <p className="text-xs text-zinc-600 font-medium">
+                No components added yet.
+              </p>
+              <p className="text-[11px] text-zinc-400">
+                Click <strong>Add Component</strong> or select from the quick parts above to build your parts list.
+              </p>
+            </div>
+          )}
+        </div>
 
          <FormField name="code" control={form.control} render={({ field }) => (
             <FormItem className="space-y-2">

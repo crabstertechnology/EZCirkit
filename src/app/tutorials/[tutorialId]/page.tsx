@@ -24,6 +24,7 @@ interface Tutorial {
   code?: string;
   notes?: string;
   isHidden?: boolean;
+  components?: Array<{ name: string; quantity: string }>;
 }
 
 export default function TutorialDetailPage() {
@@ -82,6 +83,7 @@ export default function TutorialDetailPage() {
           code: tutData.code || '',
           notes: tutData.notes || '',
           isHidden: !!tutData.isHidden,
+          components: Array.isArray(tutData.components) ? tutData.components : undefined,
         });
         
         setIsLoading(false);
@@ -238,6 +240,44 @@ export default function TutorialDetailPage() {
                   allowFullScreen
                   className="absolute inset-0 w-full h-full border-none"
                 ></iframe>
+              </div>
+            </div>
+          )}
+
+          {/* Required Components & Quantity Table */}
+          {tutorial.components && tutorial.components.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Cpu className="h-4 w-4 text-orange-500" /> Required Components & Quantity
+                </h2>
+                <Badge variant="outline" className="font-mono font-bold text-[10px] bg-orange-50 text-orange-700 border-orange-200">
+                  {tutorial.components.length} {tutorial.components.length === 1 ? 'part' : 'parts'}
+                </Badge>
+              </div>
+              <div className="border border-border/60 rounded-xl overflow-hidden bg-background shadow-xs">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-50 dark:bg-zinc-900 border-b border-border/80">
+                      <th className="p-3 font-bold text-muted-foreground uppercase tracking-wider w-12 text-center">#</th>
+                      <th className="p-3 font-bold text-muted-foreground uppercase tracking-wider">Component Name</th>
+                      <th className="p-3 font-bold text-muted-foreground uppercase tracking-wider w-28 text-center">Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tutorial.components.map((comp, idx) => (
+                      <tr key={idx} className="border-b border-border/40 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                        <td className="p-3 text-center text-muted-foreground font-mono font-bold">{idx + 1}</td>
+                        <td className="p-3 font-semibold text-foreground">{comp.name}</td>
+                        <td className="p-3 text-center">
+                          <Badge variant="outline" className="font-mono font-bold text-[11px] px-2.5 py-0.5 bg-orange-50 text-orange-700 border-orange-200">
+                            {comp.quantity}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

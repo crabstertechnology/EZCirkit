@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff } from 'lucide-react';
+import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu } from 'lucide-react';
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -54,6 +54,7 @@ export default function IdeSelectionPage() {
   const [editingChapter, setEditingChapter] = useState<TutorialChapter | null>(null);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [selectedChapterForAdd, setSelectedChapterForAdd] = useState<string>('');
+  const [previewTutorial, setPreviewTutorial] = useState<Tutorial | null>(null);
 
   // Firestore user doc
   const userDocRef = useMemoFirebase(
@@ -564,20 +565,23 @@ export default function IdeSelectionPage() {
                       </div>
 
                       <CardHeader className="space-y-1 p-3.5 flex-grow">
-                        {(!hasPurchased || (isAdmin && tut.isHidden)) && (
-                          <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
-                            {!hasPurchased && (
-                              <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
-                                <Lock className="h-2.5 w-2.5" /> Premium
-                              </Badge>
-                            )}
-                            {isAdmin && tut.isHidden && (
-                              <Badge variant="outline" className="text-[9.5px] text-amber-700 bg-amber-50 border-amber-300 gap-1 py-0.5 px-2 font-bold rounded-full">
-                                <EyeOff className="h-2.5 w-2.5" /> Hidden from Students
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
+                          {!hasPurchased && (
+                            <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
+                              <Lock className="h-2.5 w-2.5" /> Premium
+                            </Badge>
+                          )}
+                          {isAdmin && tut.isHidden && (
+                            <Badge variant="outline" className="text-[9.5px] text-amber-700 bg-amber-50 border-amber-300 gap-1 py-0.5 px-2 font-bold rounded-full">
+                              <EyeOff className="h-2.5 w-2.5" /> Hidden from Students
+                            </Badge>
+                          )}
+                          {tut.components && tut.components.length > 0 && (
+                            <Badge variant="outline" className="text-[9.5px] text-zinc-600 bg-zinc-50 border-zinc-200/90 gap-1 py-0.5 px-2 font-bold rounded-full">
+                              <Cpu className="h-2.5 w-2.5 text-orange-500" /> {tut.components.length} {tut.components.length === 1 ? 'Part' : 'Parts'}
+                            </Badge>
+                          )}
+                        </div>
 
                         <CardTitle className="text-[13px] font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
                           {tut.title}
@@ -589,17 +593,34 @@ export default function IdeSelectionPage() {
                       </CardHeader>
 
                       <CardFooter className="px-3.5 pb-3.5 pt-0">
-                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm">
-                          {hasPurchased ? (
-                            <>
-                              <Code2 className="h-3.5 w-3.5" /> Launch IDE
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="h-3.5 w-3.5" /> Unlock Project
-                            </>
+                        <div className="flex gap-2 w-full">
+                          {tut.components && tut.components.length > 0 && (
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setPreviewTutorial(tut);
+                              }}
+                              className="w-1/3 bg-zinc-50 hover:bg-orange-50 hover:text-orange-600 border-zinc-200 text-[10px] font-bold py-1.5 gap-1 transition-all shadow-xs cursor-pointer"
+                              title="View Required Components & Quantity"
+                            >
+                              <Cpu className="h-3 w-3 text-orange-500" /> Parts
+                            </Button>
                           )}
-                        </Button>
+                          <Button className={`${tut.components && tut.components.length > 0 ? 'w-2/3' : 'w-full'} bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm`}>
+                            {hasPurchased ? (
+                              <>
+                                <Code2 className="h-3.5 w-3.5" /> Launch IDE
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-3.5 w-3.5" /> Unlock Project
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </CardFooter>
 
                     </Card>
@@ -617,6 +638,120 @@ export default function IdeSelectionPage() {
           )
         )}
       </div>
+
+      {/* Components & Experiment Details Preview Dialog */}
+      <Dialog open={!!previewTutorial} onOpenChange={(open) => !open && setPreviewTutorial(null)}>
+        <DialogContent className="max-w-xl w-[95vw] rounded-2xl bg-white border-zinc-200 text-zinc-900 max-h-[85vh] overflow-y-auto p-6 shadow-2xl">
+          {previewTutorial && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="outline" className="text-[10px] bg-orange-50 border-orange-200 text-orange-700 font-bold uppercase">
+                    {previewTutorial.level}
+                  </Badge>
+                  <span className="text-xs text-zinc-400 font-medium flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {previewTutorial.duration}
+                  </span>
+                </div>
+                <DialogTitle className="text-lg font-black tracking-tight text-zinc-900">
+                  {previewTutorial.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-zinc-500 line-clamp-3 leading-relaxed">
+                  {previewTutorial.description}
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Components Table */}
+              <div className="space-y-2 pt-2 border-t border-zinc-100">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                    <Cpu className="h-3.5 w-3.5 text-orange-500" /> Required Components & Quantity
+                  </h4>
+                  {previewTutorial.components && previewTutorial.components.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] font-bold">
+                      {previewTutorial.components.length} items
+                    </Badge>
+                  )}
+                </div>
+
+                {previewTutorial.components && previewTutorial.components.length > 0 ? (
+                  <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                    <table className="w-full text-xs text-left border-collapse">
+                      <thead>
+                        <tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-600">
+                          <th className="py-2 px-3 font-bold w-10 text-center">#</th>
+                          <th className="py-2 px-3 font-bold">Component Name</th>
+                          <th className="py-2 px-3 font-bold w-28 text-center">Quantity</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                        {previewTutorial.components.map((comp, idx) => (
+                          <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                            <td className="py-2 px-3 text-center text-zinc-400 font-mono font-bold">{idx + 1}</td>
+                            <td className="py-2 px-3 font-semibold text-zinc-800">{comp.name}</td>
+                            <td className="py-2 px-3 text-center">
+                              <Badge variant="outline" className="font-mono font-bold text-[10px] px-2 py-0.5 bg-orange-50 text-orange-700 border-orange-200">
+                                {comp.quantity}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-4 border border-dashed border-zinc-200 rounded-xl text-center text-xs text-zinc-400">
+                    No component list added for this experiment yet.
+                  </div>
+                )}
+              </div>
+
+              {/* Diagram preview if available */}
+              {previewTutorial.diagramUrl && (
+                <div className="space-y-2 pt-2 border-t border-zinc-100">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700">Circuit Wiring Diagram</h4>
+                  <div className="border border-zinc-200 rounded-xl p-2 bg-zinc-50 flex items-center justify-center max-h-56 overflow-hidden">
+                    <img
+                      src={previewTutorial.diagramUrl}
+                      alt={previewTutorial.title}
+                      className="max-h-52 object-contain rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Pinout Connections */}
+              {previewTutorial.pinout && (
+                <div className="space-y-2 pt-2 border-t border-zinc-100">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700">Pinout Connections</h4>
+                  <pre className="font-mono text-xs bg-zinc-50 border border-zinc-200 p-3 rounded-xl whitespace-pre-wrap text-zinc-700">
+                    {previewTutorial.pinout}
+                  </pre>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-zinc-100 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewTutorial(null)}
+                  className="rounded-xl text-xs cursor-pointer"
+                >
+                  Close
+                </Button>
+                <Link
+                  href={`/editor/index.html?experiment=${previewTutorial.id}&chapter=${previewTutorial.chapterId}`}
+                  onClick={(e) => handleTutorialClick(e, previewTutorial)}
+                >
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold gap-1.5 shadow-sm cursor-pointer">
+                    <Code2 className="h-3.5 w-3.5" /> Launch in Web IDE
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Premium Lock Dialog */}
       <Dialog open={isLockDialogOpen} onOpenChange={setIsLockDialogOpen}>

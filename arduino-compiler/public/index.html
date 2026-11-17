@@ -303,7 +303,7 @@
     <div class="modal-overlay" id="experimentInfoModal">
       <div class="modal-container" style="max-width: 600px; width: 90%;">
         <div class="modal-header">
-          <h3 id="infoModalTitle">Experiment Info & Pinout</h3>
+          <h3 id="infoModalTitle">Experiment Info & Components</h3>
           <button class="modal-close-btn" id="closeInfoModalBtn">
             <i data-lucide="x"></i>
           </button>
@@ -313,6 +313,31 @@
             <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Description</h4>
             <div id="infoModalDescriptionText" style="font-size: 12px; line-height: 1.6; color: var(--text-muted); background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); white-space: pre-wrap;"></div>
           </div>
+
+          <!-- Components List in Tabular Form -->
+          <div id="infoModalComponentsContainer" style="width: 100%; display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="cpu" style="width: 15px; height: 15px; color: #ea580c;"></i>
+                Required Components & Quantity
+              </h4>
+              <span id="infoModalComponentsCount" style="font-size: 11px; font-weight: 700; color: #ea580c; background: rgba(234, 88, 12, 0.1); border: 1px solid rgba(234, 88, 12, 0.2); padding: 2px 8px; border-radius: 999px;">0 items</span>
+            </div>
+            <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: var(--bg-secondary);">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                <thead>
+                  <tr style="background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--border-color);">
+                    <th style="padding: 8px 12px; font-weight: 700; color: var(--text-muted); width: 44px; text-align: center;">#</th>
+                    <th style="padding: 8px 12px; font-weight: 700; color: var(--text-muted);">Component Name</th>
+                    <th style="padding: 8px 12px; font-weight: 700; color: var(--text-muted); width: 100px; text-align: center;">Quantity</th>
+                  </tr>
+                </thead>
+                <tbody id="infoModalComponentsTableBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div id="infoModalDiagramContainer" style="width: 100%; display: none; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); background: #fff; padding: 8px;">
             <img id="infoModalImage" src="" alt="Circuit Diagram">
           </div>

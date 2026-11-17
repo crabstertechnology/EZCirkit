@@ -226,12 +226,14 @@ async function applyExperimentById(experimentId) {
   currentExperimentInfo = {
     description: exp.description || '',
     diagramUrl: exp.diagramUrl || '',
-    pinout: exp.pinout || ''
+    pinout: exp.pinout || '',
+    components: Array.isArray(exp.components) ? exp.components : []
   };
 
+  const hasComponents = !!(currentExperimentInfo.components && currentExperimentInfo.components.length > 0);
   const experimentInfoBtn = document.getElementById('experimentInfoBtn');
   if (experimentInfoBtn) {
-    experimentInfoBtn.style.display = (exp.description || exp.diagramUrl || exp.pinout) ? 'flex' : 'none';
+    experimentInfoBtn.style.display = (exp.description || exp.diagramUrl || exp.pinout || hasComponents) ? 'flex' : 'none';
   }
 
   // Load code in Monaco Editor
@@ -663,6 +665,8 @@ function setupEventListeners() {
       const hasDescription = !!(currentExperimentInfo && currentExperimentInfo.description);
       const hasDiagram = !!(currentExperimentInfo && currentExperimentInfo.diagramUrl);
       const hasPinout = !!(currentExperimentInfo && currentExperimentInfo.pinout);
+      const componentsList = (currentExperimentInfo && Array.isArray(currentExperimentInfo.components)) ? currentExperimentInfo.components : [];
+      const hasComponents = componentsList.length > 0;
 
       const infoModalDescriptionContainer = document.getElementById('infoModalDescriptionContainer');
       const infoModalDescriptionText = document.getElementById('infoModalDescriptionText');
@@ -670,6 +674,61 @@ function setupEventListeners() {
         infoModalDescriptionContainer.style.display = hasDescription ? 'block' : 'none';
         if (hasDescription && infoModalDescriptionText) {
           infoModalDescriptionText.textContent = currentExperimentInfo.description;
+        }
+      }
+
+      const infoModalComponentsContainer = document.getElementById('infoModalComponentsContainer');
+      const infoModalComponentsTableBody = document.getElementById('infoModalComponentsTableBody');
+      const infoModalComponentsCount = document.getElementById('infoModalComponentsCount');
+      if (infoModalComponentsContainer) {
+        infoModalComponentsContainer.style.display = hasComponents ? 'block' : 'none';
+        if (hasComponents) {
+          if (infoModalComponentsCount) {
+            infoModalComponentsCount.textContent = `${componentsList.length} ${componentsList.length === 1 ? 'item' : 'items'}`;
+          }
+          if (infoModalComponentsTableBody) {
+            infoModalComponentsTableBody.innerHTML = '';
+            componentsList.forEach((c, idx) => {
+              const tr = document.createElement('tr');
+              tr.style.borderBottom = '1px solid var(--border-color)';
+              tr.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)';
+
+              const tdNum = document.createElement('td');
+              tdNum.style.padding = '8px 12px';
+              tdNum.style.textAlign = 'center';
+              tdNum.style.color = 'var(--text-muted)';
+              tdNum.style.fontFamily = 'var(--font-mono)';
+              tdNum.style.fontWeight = '600';
+              tdNum.textContent = String(idx + 1);
+
+              const tdName = document.createElement('td');
+              tdName.style.padding = '8px 12px';
+              tdName.style.fontWeight = '600';
+              tdName.style.color = 'var(--text-main)';
+              tdName.textContent = c.name || 'Component';
+
+              const tdQty = document.createElement('td');
+              tdQty.style.padding = '8px 12px';
+              tdQty.style.textAlign = 'center';
+              const qtyBadge = document.createElement('span');
+              qtyBadge.style.display = 'inline-block';
+              qtyBadge.style.padding = '2px 8px';
+              qtyBadge.style.borderRadius = '6px';
+              qtyBadge.style.fontSize = '11px';
+              qtyBadge.style.fontWeight = '700';
+              qtyBadge.style.background = 'rgba(234, 88, 12, 0.1)';
+              qtyBadge.style.color = '#ea580c';
+              qtyBadge.style.border = '1px solid rgba(234, 88, 12, 0.25)';
+              qtyBadge.style.fontFamily = 'var(--font-mono)';
+              qtyBadge.textContent = String(c.quantity || '1');
+              tdQty.appendChild(qtyBadge);
+
+              tr.appendChild(tdNum);
+              tr.appendChild(tdName);
+              tr.appendChild(tdQty);
+              infoModalComponentsTableBody.appendChild(tr);
+            });
+          }
         }
       }
 
@@ -691,7 +750,7 @@ function setupEventListeners() {
       }
 
       if (infoModalEmptyState) {
-        infoModalEmptyState.style.display = (!hasDescription && !hasDiagram && !hasPinout) ? 'block' : 'none';
+        infoModalEmptyState.style.display = (!hasDescription && !hasDiagram && !hasPinout && !hasComponents) ? 'block' : 'none';
       }
 
       experimentInfoModal.classList.add('show');
@@ -1583,13 +1642,25 @@ async function loadExperimentFromUrlParams() {
       const diagramUrl = data.fields.diagramUrl ? data.fields.diagramUrl.stringValue : '';
       const pinout = data.fields.pinout ? data.fields.pinout.stringValue : '';
 
-      currentExperimentInfo = { description, diagramUrl, pinout };
+      let components = [];
+      if (data.fields.components && data.fields.components.arrayValue && data.fields.components.arrayValue.values) {
+        components = data.fields.components.arrayValue.values.map(v => {
+          const m = v.mapValue ? v.mapValue.fields : {};
+          return {
+            name: m.name ? (m.name.stringValue || '') : '',
+            quantity: m.quantity ? (m.quantity.stringValue || (m.quantity.integerValue !== undefined ? String(m.quantity.integerValue) : '1')) : '1'
+          };
+        }).filter(c => c.name || c.quantity);
+      }
+
+      currentExperimentInfo = { description, diagramUrl, pinout, components };
       currentExperimentId = experimentId;
       defaultExperimentCode = code;
 
+      const hasComponents = components.length > 0;
       const experimentInfoBtn = document.getElementById('experimentInfoBtn');
       if (experimentInfoBtn) {
-        experimentInfoBtn.style.display = (description || diagramUrl || pinout) ? 'flex' : 'none';
+        experimentInfoBtn.style.display = (description || diagramUrl || pinout || hasComponents) ? 'flex' : 'none';
       }
 
       logToConsole(`Loaded experiment: ${title}`, "success");
