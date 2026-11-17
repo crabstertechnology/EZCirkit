@@ -120,7 +120,7 @@ export default function ExperimentsShowcase() {
     const selectedIds = activeSettings.selectedExperiments;
     if (selectedIds && selectedIds.length > 0) {
       return allExperiments
-        .filter(p => selectedIds.includes(p.id))
+        .filter(p => !p.isHidden && selectedIds.includes(p.id))
         .sort((a, b) => selectedIds.indexOf(a.id) - selectedIds.indexOf(b.id));
     }
 

@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, getDocs, where, Unsubscribe, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getDocs, where, Unsubscribe, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings } from 'lucide-react';
+import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -42,6 +42,7 @@ export default function IdeSelectionPage() {
   }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<string>('All');
+  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'visible' | 'hidden'>('all');
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
@@ -204,12 +205,24 @@ export default function IdeSelectionPage() {
   // Filtered tutorials list
   const filteredTutorials = useMemo(() => {
     return allTutorials.filter(tut => {
+      // Non-admins never see hidden tutorials
+      if (!isAdmin && tut.isHidden) return false;
+
+      // Admins filter by visibility tab
+      if (isAdmin) {
+        if (visibilityFilter === 'visible' && tut.isHidden) return false;
+        if (visibilityFilter === 'hidden' && !tut.isHidden) return false;
+      }
+
       const matchesSearch = tut.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             tut.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesChapter = selectedChapter === 'All' || tut.chapterId === selectedChapter;
       return matchesSearch && matchesChapter;
     });
-  }, [allTutorials, searchQuery, selectedChapter]);
+  }, [allTutorials, searchQuery, selectedChapter, isAdmin, visibilityFilter]);
+
+  const visibleCount = useMemo(() => allTutorials.filter(t => !t.isHidden).length, [allTutorials]);
+  const hiddenCount = useMemo(() => allTutorials.filter(t => t.isHidden).length, [allTutorials]);
 
   const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc || isLoadingGeneral;
 
@@ -217,6 +230,26 @@ export default function IdeSelectionPage() {
     if (!hasPurchased) {
       e.preventDefault();
       setIsLockDialogOpen(true);
+    }
+  };
+
+  const handleToggleVisibility = async (tutorial: Tutorial, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!firestore) return;
+    const newHiddenState = !tutorial.isHidden;
+    try {
+      await updateDoc(doc(firestore, `tutorialChapters/${tutorial.chapterId}/tutorials`, tutorial.id), {
+        isHidden: newHiddenState,
+      });
+      toast({
+        title: newHiddenState ? 'Experiment Hidden' : 'Experiment Made Visible',
+        description: newHiddenState
+          ? `"${tutorial.title}" is now hidden from students. You can re-enable it at any time.`
+          : `"${tutorial.title}" is now visible to students.`,
+      });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error updating visibility', description: error.message });
     }
   };
 
@@ -332,7 +365,45 @@ export default function IdeSelectionPage() {
           </div>
 
           <div className="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
-
+            {/* Visibility filter for Admin */}
+            {isAdmin && (
+              <div className="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setVisibilityFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                    visibilityFilter === 'all'
+                      ? 'bg-white text-zinc-900 shadow-sm font-bold'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+                >
+                  All ({allTutorials.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibilityFilter('visible')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                    visibilityFilter === 'visible'
+                      ? 'bg-white text-emerald-700 shadow-sm font-bold'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+                >
+                  Visible ({visibleCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibilityFilter('hidden')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                    visibilityFilter === 'hidden'
+                      ? 'bg-amber-500 text-white shadow-sm font-bold'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+                >
+                  <EyeOff className="h-3 w-3" />
+                  Hidden ({hiddenCount})
+                </button>
+              </div>
+            )}
 
             {/* Chapter Filter & Edit Icon if Admin */}
             <div className="flex items-center gap-1.5">
@@ -395,7 +466,20 @@ export default function IdeSelectionPage() {
                       <Button 
                         size="icon" 
                         variant="outline" 
-                        className="h-8 w-8 bg-white/95 hover:bg-orange-50 border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 shadow-sm transition-all rounded-lg"
+                        className={`h-8 w-8 shadow-sm transition-all rounded-lg cursor-pointer ${
+                          tut.isHidden 
+                            ? 'bg-amber-500 text-white hover:bg-amber-600 border-amber-600' 
+                            : 'bg-white/95 hover:bg-zinc-100 border-zinc-200 text-zinc-700 hover:text-zinc-900'
+                        }`}
+                        onClick={(e) => handleToggleVisibility(tut, e)}
+                        title={tut.isHidden ? "Unhide experiment (show to students)" : "Hide experiment from students"}
+                      >
+                        {tut.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        className="h-8 w-8 bg-white/95 hover:bg-orange-50 border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 shadow-sm transition-all rounded-lg cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -408,7 +492,7 @@ export default function IdeSelectionPage() {
                       <Button 
                         size="icon" 
                         variant="outline" 
-                        className="h-8 w-8 bg-white/95 hover:bg-rose-50 border-zinc-200 hover:border-rose-200 text-zinc-700 hover:text-rose-600 shadow-sm transition-all rounded-lg"
+                        className="h-8 w-8 bg-white/95 hover:bg-rose-50 border-zinc-200 hover:border-rose-200 text-zinc-700 hover:text-rose-600 shadow-sm transition-all rounded-lg cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -421,12 +505,25 @@ export default function IdeSelectionPage() {
                     </div>
                   )}
 
+                  {/* Hidden badge top-right for Admins */}
+                  {isAdmin && tut.isHidden && (
+                    <div className="absolute top-3 right-3 z-20 pointer-events-none">
+                      <Badge variant="outline" className="bg-amber-500/90 backdrop-blur-sm text-white border-amber-600 text-[10px] gap-1 font-bold shadow-sm px-2 py-0.5">
+                        <EyeOff className="h-3 w-3" /> Hidden
+                      </Badge>
+                    </div>
+                  )}
+
                   <Link
                     href={`/editor/index.html?experiment=${tut.id}&chapter=${tut.chapterId}`}
                     onClick={(e) => handleTutorialClick(e, tut)}
                     className="block h-full"
                   >
-                    <Card className="bg-white hover:bg-zinc-50/50 border border-zinc-200/80 hover:border-orange-200/60 transition-all duration-300 overflow-hidden flex flex-col h-full rounded-2xl relative shadow-sm hover:shadow-md">
+                    <Card className={`bg-white hover:bg-zinc-50/50 border transition-all duration-300 overflow-hidden flex flex-col h-full rounded-2xl relative shadow-sm hover:shadow-md ${
+                      tut.isHidden 
+                        ? 'border-amber-300/80 bg-amber-50/15 border-dashed ring-1 ring-amber-300/40 opacity-80 hover:opacity-100' 
+                        : 'border-zinc-200/80 hover:border-orange-200/60'
+                    }`}>
                       
                       {/* Image Thumbnail Container */}
                       <div className="relative h-48 w-full bg-white overflow-hidden border-b border-zinc-200/50 flex items-center justify-center">
@@ -467,11 +564,18 @@ export default function IdeSelectionPage() {
                       </div>
 
                       <CardHeader className="space-y-1 p-3.5 flex-grow">
-                        {!hasPurchased && (
-                          <div className="flex items-center justify-start mb-1">
-                            <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
-                              <Lock className="h-2.5 w-2.5" /> Premium
-                            </Badge>
+                        {(!hasPurchased || (isAdmin && tut.isHidden)) && (
+                          <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
+                            {!hasPurchased && (
+                              <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <Lock className="h-2.5 w-2.5" /> Premium
+                              </Badge>
+                            )}
+                            {isAdmin && tut.isHidden && (
+                              <Badge variant="outline" className="text-[9.5px] text-amber-700 bg-amber-50 border-amber-300 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <EyeOff className="h-2.5 w-2.5" /> Hidden from Students
+                              </Badge>
+                            )}
                           </div>
                         )}
 

@@ -17,7 +17,7 @@ import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,7 @@ const tutorialSchema = z.object({
   notes: z.string().optional(),
   diagramUrl: z.string().optional(),
   pinout: z.string().optional(),
+  isHidden: z.boolean().optional(),
 });
 
 interface Asset {
@@ -288,6 +289,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       notes: '',
       diagramUrl: '',
       pinout: '',
+      isHidden: false,
     },
   });
 
@@ -325,6 +327,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         notes: tutorial.notes || '',
         diagramUrl: tutorial.diagramUrl || '',
         pinout: tutorial.pinout || '',
+        isHidden: tutorial.isHidden ?? false,
       });
     } else {
       form.reset({
@@ -341,6 +344,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         notes: '',
         diagramUrl: '',
         pinout: '',
+        isHidden: false,
       });
 
       if (firestore && chapterId) {
@@ -478,6 +482,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
 
     const tutorialData = {
       ...data,
+      isHidden: data.isHidden ?? false,
       compiledHex: finalHex || undefined,
       imageId: data.imageId || 'tutorial-1',
       duration: data.duration || '5 mins',
@@ -517,6 +522,32 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         <FormField name="order" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Order</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
+
+        <FormField
+          name="isHidden"
+          control={form.control}
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel className="text-sm font-semibold text-zinc-900 flex items-center gap-2 cursor-pointer">
+                  {field.value ? <EyeOff className="h-4 w-4 text-amber-600" /> : <Eye className="h-4 w-4 text-emerald-600" />}
+                  <span>Hide Experiment from Students</span>
+                </FormLabel>
+                <p className="text-xs text-zinc-500">
+                  {field.value
+                    ? 'Hidden from students. Visible only to admins. Can be re-enabled at any time.'
+                    : 'Currently visible to students on the IDE experiments list and homepage.'}
+                </p>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
         
         <FormField name="description" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short summary of the project." {...field} rows={5} /></FormControl><FormMessage /></FormItem>

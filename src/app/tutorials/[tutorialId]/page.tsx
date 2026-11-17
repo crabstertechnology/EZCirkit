@@ -23,6 +23,7 @@ interface Tutorial {
   pinout?: string;
   code?: string;
   notes?: string;
+  isHidden?: boolean;
 }
 
 export default function TutorialDetailPage() {
@@ -80,6 +81,7 @@ export default function TutorialDetailPage() {
           pinout: tutData.pinout || '',
           code: tutData.code || '',
           notes: tutData.notes || '',
+          isHidden: !!tutData.isHidden,
         });
         
         setIsLoading(false);
@@ -200,6 +202,11 @@ export default function TutorialDetailPage() {
             <Badge variant="secondary" className="font-extrabold text-[10px] tracking-wider uppercase">
               {tutorial.level}
             </Badge>
+            {tutorial.isHidden && (
+              <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-300 font-extrabold text-[10px] tracking-wider uppercase">
+                Hidden (Admin Only)
+              </Badge>
+            )}
             <span className="text-xs text-muted-foreground font-bold flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" /> {tutorial.duration} read
             </span>

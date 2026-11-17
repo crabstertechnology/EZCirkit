@@ -13,6 +13,7 @@ export interface Tutorial {
     imageId: string;
     videoId?: string;
     order: number;
+    isHidden?: boolean;
     code?: string;
     compiledHex?: string;
     transcript?: string;
