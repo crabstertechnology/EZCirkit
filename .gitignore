@@ -46,3 +46,7 @@ firestore-debug.log
 
 # arduino-compiler
 arduino-compiler/builds/
+
+# local asset backups & binaries
+kit_raw/
+*.apk

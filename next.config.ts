@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 
+  outputFileTracingExcludes: {
+    '*': [
+      './ezcirkit_app/**/*',
+      './Detach/**/*',
+      './kit_raw/**/*',
+      './*.apk',
+    ],
+  },
+
   images: {
     // Serve modern formats: avif first, then webp fallback
     formats: ['image/avif', 'image/webp'],
