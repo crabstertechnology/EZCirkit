@@ -3,25 +3,25 @@
     {
       "id": "hero-image",
       "description": "Main EZCirkit electronics kit displayed attractively.",
-      "imageUrl": "/1.jpg",
+      "imageUrl": "/kit/new-kit-front.png",
       "imageHint": "electronics kit"
     },
     {
       "id": "product-slide-1",
-      "description": "EZCirkit box and components.",
-      "imageUrl": "/1.jpg",
+      "description": "EZCirkit box front.",
+      "imageUrl": "/kit/new-kit-front.png",
       "imageHint": "product box"
     },
     {
       "id": "product-slide-2",
-      "description": "Close-up of various electronic components from the kit.",
-      "imageUrl": "/2.jpg",
+      "description": "EZCirkit box back with components.",
+      "imageUrl": "/kit/kit-back.png",
       "imageHint": "electronic components"
     },
     {
       "id": "product-video-thumb",
       "description": "Thumbnail for a video showing the kit in action.",
-      "imageUrl": "/2.jpg",
+      "imageUrl": "/kit/kit-back.png",
       "imageHint": "play button"
     },
     {

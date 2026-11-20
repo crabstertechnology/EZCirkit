@@ -94,7 +94,6 @@ const FlagshipProductSection = () => {
     if (isKit) {
       return [
         { src: primaryImg, alt: 'Front View' },
-        { src: '/kit/kit-inside.png', alt: 'Inside View' },
         { src: '/kit/kit-back.png', alt: 'Back View' },
       ];
     }

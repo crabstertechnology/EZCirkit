@@ -74,12 +74,6 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ reviews, averageRatin
     },
     {
       id: 'product-slide-2',
-      description: 'EZCirkit Starter Kit Inside Components View',
-      imageUrl: '/kit/kit-inside.png',
-      imageHint: 'product inside'
-    },
-    {
-      id: 'product-slide-3',
       description: 'EZCirkit Starter Kit Back Box View',
       imageUrl: '/kit/kit-back.png',
       imageHint: 'product back'

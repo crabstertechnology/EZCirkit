@@ -23,7 +23,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'DC Submersible Water Pump',
       'Jumper Wires (M-F)'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect Soil Moisture Sensor VCC to Arduino 5V and GND to Arduino GND.',
       'Connect Soil Moisture Sensor Analog Out to Arduino A0 pin.',
@@ -44,7 +44,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'DHT11 Temp & Humidity Sensor',
       'Jumper Wires (M-F)'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect DHT11 Sensor VCC pin to Arduino 5V.',
       'Connect DHT11 Sensor GND pin to Arduino GND.',
@@ -65,7 +65,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Jumper Wires (M-F)',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect OLED VCC to 5V and GND to GND on the breadboard rail.',
       'Connect OLED SCL pin to Arduino A5 (SCL) and SDA pin to Arduino A4 (SDA).',
@@ -86,7 +86,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Resistors Pack',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect TTP223 Touch Module VCC to 5V and GND to GND.',
       'Connect TTP223 Touch Module OUT pin to Arduino digital pin D3.',
@@ -108,7 +108,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Tactile Push Buttons',
       'Resistors Pack'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect Soil Moisture Sensor VCC to 5V, GND to GND, and Analog Out to A0.',
       'Connect Active Piezo Buzzer positive (+) pin to digital pin D8 and negative (-) pin to GND.',
@@ -129,7 +129,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Resistors Pack',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Place the 7-Segment Display on the breadboard.',
       'Connect segments A, B, C, D, E, F, G to Arduino pins D2, D3, D4, D5, D6, D7, D8 through 220Ω current-limiting resistors.',
@@ -151,7 +151,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Jumper Wires (M-F)',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect LM35 VCC to 5V, GND to GND, and Out pin to Arduino Analog pin A1.',
       'Connect Relay Module VCC to 5V, GND to GND, and IN pin to digital pin D7.',
@@ -171,7 +171,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Tactile Push Buttons',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect the Piezo Buzzer positive pin to Arduino digital pin D8 and negative pin to GND.',
       'Connect the tactile button on the breadboard, bridging pin D2 to GND.',
@@ -192,7 +192,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Jumper Wires (M-F)',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect three LEDs (Red, Yellow, Green) to pins D3, D4, D5 through 220Ω resistors.',
       'Place three bare jumper wires at different heights inside a glass cup, connecting them to A0, A1, A2.',
@@ -212,7 +212,7 @@ export const PROJECTS_DATA: ProjectItem[] = [
       'Resistors Pack',
       'Solderless Breadboard'
     ],
-    image: '/2.jpg',
+    image: '/kit/new-kit-front.png',
     wiringInstructions: [
       'Connect the Red LED anode to pin D10 via a 220Ω resistor.',
       'Connect the Yellow LED anode to pin D9 via a 220Ω resistor.',
