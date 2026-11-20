@@ -404,7 +404,7 @@ function ShopPageContent() {
                       {/* Image */}
                       <div className="relative aspect-square w-full overflow-hidden bg-zinc-50 dark:bg-zinc-800">
                         <img
-                          src={p.image === '/1.jpg' ? '/kit/new-kit-front.png' : (p.image || '/logo.png')}
+                          src={(!p.image || p.image === '/1.jpg' || p.image.startsWith('data:image')) ? '/kit/new-kit-front.png' : p.image}
                           alt={p.name}
                           loading="lazy"
                           className="absolute inset-0 w-full h-full object-contain p-2.5 transition-transform duration-500 group-hover:scale-[1.04]"
@@ -506,7 +506,7 @@ function ShopPageContent() {
               {/* Product Visual */}
               <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-border/60 bg-zinc-100">
                 <Image
-                  src={selectedProduct.image === '/1.jpg' ? '/kit/new-kit-front.png' : selectedProduct.image}
+                  src={(!selectedProduct.image || selectedProduct.image === '/1.jpg' || selectedProduct.image.startsWith('data:image')) ? '/kit/new-kit-front.png' : selectedProduct.image}
                   alt={selectedProduct.name}
                   fill
                   className="object-cover"

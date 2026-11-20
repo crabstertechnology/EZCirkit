@@ -89,11 +89,12 @@ const FlagshipProductSection = () => {
 
   const carouselImages = React.useMemo(() => {
     if (!product) return [];
-    // Guard: treat empty string same as missing
-    const primaryImg = product.image && product.image.trim() !== '' ? product.image : '/kit/new-kit-front.png';
+    const isOldImage = !product.image || product.image === '/1.jpg' || product.image.startsWith('data:image');
+    const primaryImg = !isOldImage && product.image.trim() !== '' ? product.image : '/kit/new-kit-front.png';
     if (isKit) {
       return [
-        { src: primaryImg, alt: 'Front View' },
+        { src: '/kit/new-kit-front.png', alt: 'Front View' },
+        { src: '/kit/kit-inside.png', alt: 'Inside View' },
         { src: '/kit/kit-back.png', alt: 'Back View' },
       ];
     }

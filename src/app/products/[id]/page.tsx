@@ -183,14 +183,20 @@ export default function ProductDetailPage(props: any) {
   // Set default main image
   useEffect(() => {
     if (product?.image) {
-      setActiveImage(product.image);
+      const isOldImage = product.image.startsWith('data:image') || product.image === '/1.jpg';
+      setActiveImage(isOldImage ? '/kit/new-kit-front.png' : product.image);
     }
   }, [product]);
 
   // Gallery Array memoized
   const gallery = React.useMemo(() => {
     if (!product) return [];
-    return [product.image, ...(product.gallery || [])].filter(Boolean);
+    const isKit = product.category?.toLowerCase() === 'ezcirkit' || product.id === 'azTYls91q9XKl58LRY4g' || product.name?.toLowerCase().includes('kit');
+    if (isKit) {
+      return ['/kit/new-kit-front.png', '/kit/kit-inside.png', '/kit/kit-back.png'];
+    }
+    const cleanImage = (!product.image || product.image === '/1.jpg' || product.image.startsWith('data:image')) ? '/kit/new-kit-front.png' : product.image;
+    return [cleanImage, ...(product.gallery || [])].filter(Boolean);
   }, [product]);
 
   // Auto slide gallery images every 3 seconds (pauses when user zooms / hovers)
