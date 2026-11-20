@@ -7,11 +7,11 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { useUser, useFirestore, setDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
-import { Upload, X, Image as ImageIcon, Plus, Search, Check } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Plus, Search, Check, Loader2 } from 'lucide-react';
 import type { Product } from '@/app/admin/products/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -334,7 +334,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
   const isEditing = !!product;
+
+  const standardCategories = React.useMemo(
+    () => [
+      'Components',
+      'Sensors',
+      'Arduino Boards',
+      'Development Boards',
+      'Displays',
+      'Power Modules',
+      'Robotics',
+      'Wires & Connectors',
+      'DIY Kits',
+      'EZCirkit',
+    ],
+    []
+  );
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -361,30 +378,112 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     },
   });
 
-  useEffect(() => {
-    if (product) {
-      form.reset({
-        ...product,
-        category: product.category || 'Components',
-        brand: (product as any).brand || '',
-        sku: (product as any).sku || '',
-        features: (product as any).features || '',
-        specifications: (product as any).specifications || '',
-        additionalResources: (product as any).additionalResources || '',
-        warranty: (product as any).warranty || '',
-        shipping: (product as any).shipping || '',
-        gallery: (product as any).gallery || [],
-        metaTitle: (product as any).metaTitle || '',
-        metaDescription: (product as any).metaDescription || '',
-        faqs: typeof (product as any).faqs === 'string'
-          ? (product as any).faqs
-          : (product as any).faqs
-            ? JSON.stringify((product as any).faqs, null, 2)
-            : '',
+  const availableCategories = React.useMemo(() => {
+    const catSet = new Set<string>(standardCategories);
+    if (allProducts && Array.isArray(allProducts)) {
+      allProducts.forEach((p: any) => {
+        if (p.category && typeof p.category === 'string' && p.category.trim()) {
+          catSet.add(p.category.trim());
+        }
       });
+    }
+    const currentVal = form.watch('category');
+    if (currentVal && typeof currentVal === 'string' && currentVal.trim()) {
+      catSet.add(currentVal.trim());
+    }
+    return Array.from(catSet).sort((a, b) => a.localeCompare(b));
+  }, [allProducts, standardCategories, form.watch('category')]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (product?.id && firestore) {
+      setIsLoadingDoc(true);
+      const productRef = doc(firestore, 'products', product.id);
+
+      getDoc(productRef)
+        .then((snapshot) => {
+          if (isCancelled) return;
+          setIsLoadingDoc(false);
+
+          const liveData = snapshot.exists() ? (snapshot.data() as any) : null;
+          const merged = liveData ? { ...product, ...liveData } : product;
+
+          // Determine the saved category with strict priority:
+          // 1. Live Firestore document category (trimmed non-empty)
+          // 2. Product prop category (trimmed non-empty)
+          // 3. Fallback to 'Components' only if truly empty/unset
+          const rawCategory =
+            typeof liveData?.category === 'string' && liveData.category.trim() !== ''
+              ? liveData.category.trim()
+              : typeof product?.category === 'string' && product.category.trim() !== ''
+              ? product.category.trim()
+              : 'Components';
+
+          form.reset({
+            id: merged.id || product.id,
+            name: merged.name || '',
+            description: merged.description || '',
+            price: Number(merged.price ?? 0),
+            originalPrice: merged.originalPrice !== undefined ? Number(merged.originalPrice) : 0,
+            stock: Number(merged.stock ?? 0),
+            image: merged.image || '/kit/new-kit-front.png',
+            category: rawCategory,
+            brand: merged.brand || '',
+            sku: merged.sku || '',
+            features: merged.features || '',
+            specifications: merged.specifications || '',
+            additionalResources: merged.additionalResources || '',
+            warranty: merged.warranty || '7 Days replacement against manufacturing defects.',
+            shipping:
+              merged.shipping ||
+              'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
+            gallery: Array.isArray(merged.gallery) ? merged.gallery : [],
+            metaTitle: merged.metaTitle || '',
+            metaDescription: merged.metaDescription || '',
+            faqs:
+              typeof merged.faqs === 'string'
+                ? merged.faqs
+                : merged.faqs
+                ? JSON.stringify(merged.faqs, null, 2)
+                : '',
+          });
+        })
+        .catch((err) => {
+          if (isCancelled) return;
+          setIsLoadingDoc(false);
+          console.error('Error fetching live product category from Firestore:', err);
+
+          const fallbackCategory =
+            typeof product?.category === 'string' && product.category.trim() !== ''
+              ? product.category.trim()
+              : 'Components';
+
+          form.reset({
+            ...product,
+            category: fallbackCategory,
+            brand: (product as any).brand || '',
+            sku: (product as any).sku || '',
+            features: (product as any).features || '',
+            specifications: (product as any).specifications || '',
+            additionalResources: (product as any).additionalResources || '',
+            warranty: (product as any).warranty || '',
+            shipping: (product as any).shipping || '',
+            gallery: (product as any).gallery || [],
+            metaTitle: (product as any).metaTitle || '',
+            metaDescription: (product as any).metaDescription || '',
+            faqs:
+              typeof (product as any).faqs === 'string'
+                ? (product as any).faqs
+                : (product as any).faqs
+                ? JSON.stringify((product as any).faqs, null, 2)
+                : '',
+          });
+        });
     } else {
+      // Create a new product
       form.reset({
-        id: doc(collection(firestore, '_')).id,
+        id: firestore ? doc(collection(firestore, '_')).id : '',
         name: '',
         description: '',
         price: 0,
@@ -398,14 +497,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
         specifications: '',
         additionalResources: '',
         warranty: '7 Days replacement against manufacturing defects.',
-        shipping: 'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
+        shipping:
+          'Dispatched within 24 hours. Delivery in 2–7 business days across India. Secure packaging to prevent transit damage.',
         gallery: [],
         metaTitle: '',
         metaDescription: '',
         faqs: '',
       });
     }
-  }, [product, form, firestore]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [product?.id, firestore]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (val: string) => void) => {
     const file = e.target.files?.[0];
@@ -473,14 +577,57 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
     }
     setIsSubmitting(true);
     
-    const productRef = doc(firestore, 'products', data.id);
-    
-    // Write product data
-    setDocumentNonBlocking(productRef, data, { merge: true });
+    try {
+      const productRef = doc(firestore, 'products', data.id);
+      const categoryToSave =
+        data.category && typeof data.category === 'string' && data.category.trim() !== ''
+          ? data.category.trim()
+          : 'Components';
 
-    toast({ title: `Product ${isEditing ? 'updated' : 'added'} successfully!` });
-    onSave();
-    setIsSubmitting(false);
+      const cleanData: Record<string, any> = {
+        id: data.id,
+        name: data.name.trim(),
+        price: Number(data.price),
+        stock: Number(data.stock),
+        image: data.image.trim(),
+        category: categoryToSave,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (data.description !== undefined) cleanData.description = data.description;
+      if (data.originalPrice !== undefined && !isNaN(Number(data.originalPrice))) {
+        cleanData.originalPrice = Number(data.originalPrice);
+      }
+      if (data.brand !== undefined) cleanData.brand = data.brand.trim();
+      if (data.sku !== undefined) cleanData.sku = data.sku.trim();
+      if (data.features !== undefined) cleanData.features = data.features;
+      if (data.specifications !== undefined) cleanData.specifications = data.specifications;
+      if (data.additionalResources !== undefined) cleanData.additionalResources = data.additionalResources;
+      if (data.warranty !== undefined) cleanData.warranty = data.warranty;
+      if (data.shipping !== undefined) cleanData.shipping = data.shipping;
+      if (data.gallery !== undefined) cleanData.gallery = data.gallery;
+      if (data.metaTitle !== undefined) cleanData.metaTitle = data.metaTitle.trim();
+      if (data.metaDescription !== undefined) cleanData.metaDescription = data.metaDescription.trim();
+      if (data.faqs !== undefined) cleanData.faqs = data.faqs;
+
+      // Await database write to guarantee the category and product updates persist
+      await setDoc(productRef, cleanData, { merge: true });
+
+      toast({
+        title: `Product ${isEditing ? 'updated' : 'added'} successfully!`,
+        description: `Category saved as "${categoryToSave}".`,
+      });
+      onSave();
+    } catch (err: any) {
+      console.error('Error saving product to Firestore:', err);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to save product',
+        description: err?.message || 'A network or permission error occurred while saving.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -515,24 +662,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSave, product }) => {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel className="flex items-center justify-between">
+                      <span>Category</span>
+                      {isLoadingDoc && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-normal">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Fetching category...
+                        </span>
+                      )}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || 'Components'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Category" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Sensors">Sensors</SelectItem>
-                        <SelectItem value="Arduino Boards">Arduino Boards</SelectItem>
-                        <SelectItem value="Development Boards">Development Boards</SelectItem>
-                        <SelectItem value="Displays">Displays</SelectItem>
-                        <SelectItem value="Power Modules">Power Modules</SelectItem>
-                        <SelectItem value="Robotics">Robotics</SelectItem>
-                        <SelectItem value="Wires & Connectors">Wires & Connectors</SelectItem>
-                        <SelectItem value="Components">Components</SelectItem>
-                        <SelectItem value="DIY Kits">DIY Kits</SelectItem>
-                        <SelectItem value="EZCirkit">EZCirkit</SelectItem>
+                        {availableCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

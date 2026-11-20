@@ -326,8 +326,16 @@ const ProductsPage = () => {
             </Button>
           </div>
 
-          {/* Add Product Modal Trigger */}
-          <Dialog open={isProductFormOpen} onOpenChange={setIsProductFormOpen}>
+          {/* Add / Edit Product Modal */}
+          <Dialog
+            open={isProductFormOpen}
+            onOpenChange={(open) => {
+              setIsProductFormOpen(open);
+              if (!open) {
+                setEditingProduct(null);
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button
                 onClick={() => handleOpenForm(null)}
@@ -341,7 +349,14 @@ const ProductsPage = () => {
               <DialogHeader>
                 <DialogTitle>{editingProduct ? 'Edit Product' : 'Add a New Product'}</DialogTitle>
               </DialogHeader>
-              <ProductForm onSave={() => setIsProductFormOpen(false)} product={editingProduct} />
+              <ProductForm
+                key={editingProduct?.id || 'new-product'}
+                onSave={() => {
+                  setIsProductFormOpen(false);
+                  setEditingProduct(null);
+                }}
+                product={editingProduct}
+              />
             </DialogContent>
           </Dialog>
         </div>
