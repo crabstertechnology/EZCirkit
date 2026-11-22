@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
           <li>📦 Source Code Downloads</li>
           <li>🔄 Free Future Updates</li>
         </ul>
-        <a href="https://ezcirkit.com/dashboard" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #F97316; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
-          Go to Dashboard →
+        <a href="https://shop.crabstertech.in/" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background-color: #F97316; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          Go to Home →
         </a>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="font-size: 12px; color: #aaa;">Need help? Contact us at crabstertech@gmail.com</p>

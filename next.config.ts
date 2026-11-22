@@ -77,6 +77,11 @@ const nextConfig: NextConfig = {
         destination: '/ide',
         permanent: false,
       },
+      {
+        source: '/dashboard',
+        destination: '/',
+        permanent: false,
+      },
     ];
   },
 

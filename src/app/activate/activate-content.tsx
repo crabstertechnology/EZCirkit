@@ -27,6 +27,7 @@ import {
   QrCode,
   ShieldCheck,
   BookOpen,
+  Home,
 } from 'lucide-react';
 
 // --------------------------------------------------------------------------
@@ -261,8 +262,8 @@ export default function ActivatePageContent() {
           badgeVariant="default"
         >
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button onClick={() => router.push('/dashboard')}>
-              <BookOpen className="h-4 w-4 mr-2" /> Go to Dashboard
+            <Button onClick={() => router.push('/')}>
+              <Home className="h-4 w-4 mr-2" /> Go to Home
             </Button>
             <Button variant="outline" onClick={() => router.push('/ide')}>
               Open EZCirkit IDE
