@@ -179,7 +179,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ averageRating, reviewCount, i
 
           {/* SLIDE 2: Whole Detach Section (3 seconds) - Dedicated vertical poster for mobile, landscape for desktop */}
           <div className={cn(getSlideClasses(1), "flex flex-col items-center justify-center relative overflow-hidden bg-[#fdfbf3]")}>
-            <Link href="/products" className="relative w-full h-full flex flex-col items-center justify-center">
+            <Link href="https://detach.crabstertech.in/" target="_blank" rel="noopener noreferrer" className="relative w-full h-full flex flex-col items-center justify-center">
               {/* Mobile View: Vertical / Portrait Poster (Activated when mobile sidebar/header is active < md) */}
               <div className="relative w-full aspect-[4705/8360] block md:hidden">
                 <Image
