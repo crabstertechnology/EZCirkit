@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 
 export async function GET(req: NextRequest) {
   const checks: Record<string, any> = {};
@@ -33,6 +33,12 @@ export async function GET(req: NextRequest) {
     const testDoc = db.collection('offline_kits_test').doc('ping');
     await testDoc.set({ timestamp: new Date().toISOString(), message: "Hello from test-admin!" });
     checks.firestoreWrite = 'success';
+
+    // Test Admin Auth
+    const adminAuth = await getAdminAuth();
+    checks.adminAuthInit = 'success';
+    const sampleToken = await adminAuth.createCustomToken('health-check-test-uid');
+    checks.adminAuthCustomToken = !!sampleToken;
 
     return NextResponse.json({ success: true, checks });
   } catch (err: any) {

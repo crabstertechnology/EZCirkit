@@ -69,6 +69,17 @@ export default function ActivatePageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --------------------------------------------------------------------------
+  // Pre-fill user details if already signed in
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    if (auth?.currentUser) {
+      if (!name && auth.currentUser.displayName) setName(auth.currentUser.displayName);
+      if (!email && auth.currentUser.email) setEmail(auth.currentUser.email);
+      if (!phone && auth.currentUser.phoneNumber) setPhone(auth.currentUser.phoneNumber);
+    }
+  }, [auth?.currentUser]);
+
+  // --------------------------------------------------------------------------
   // On mount: read QR token from URL
   // --------------------------------------------------------------------------
   useEffect(() => {
@@ -86,7 +97,13 @@ export default function ActivatePageContent() {
     setPhase('loading');
     try {
       const res = await fetch(`/api/offline-kits/validate?token=${encodeURIComponent(token)}`);
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
 
       if (!data.valid) {
         if (data.reason === 'already_activated') {
@@ -137,20 +154,29 @@ export default function ActivatePageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: validatedToken,
+          kitId: resolvedKitId,
           name, email, phone, password,
           country, state, college, profession,
         }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
 
       if (!res.ok) {
         if (data.error === 'email_in_use') {
           setFormError('An account with this email already exists. Please log in instead.');
         } else if (data.error === 'already_activated') {
           setPhase('already-activated');
+        } else if (data.error === 'invalid_token') {
+          setFormError('The activation token is invalid or has expired.');
         } else {
-          setFormError(data.error || 'Activation failed. Please try again.');
+          setFormError(data.error || `Activation failed (${res.status}). Please try again.`);
         }
         setIsSubmitting(false);
         return;
