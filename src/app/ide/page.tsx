@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu } from 'lucide-react';
+import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -24,6 +24,7 @@ export default function IdeSelectionPage() {
   const [allTutorials, setAllTutorials] = useState<Tutorial[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataLoadedOnce, setDataLoadedOnce] = useState(false);
+  const [isSyncingPrecompiled, setIsSyncingPrecompiled] = useState(false);
 
   // Load IDE selection cache on client mount to make loading instant
   useEffect(() => {
@@ -227,6 +228,35 @@ export default function IdeSelectionPage() {
 
   const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc || isLoadingGeneral;
 
+  const handleSyncPrecompiled = async () => {
+    try {
+      setIsSyncingPrecompiled(true);
+      toast({ title: 'Precompiling experiments...', description: 'Compiling sketches and generating 0ms USB upload binaries.' });
+      const res = await fetch('/api/admin/compile-all', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: 'Precompilation Complete!',
+          description: data.message || `All ${data.synced} experiments precompiled and ready for upload!`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Precompilation Failed',
+          description: data.error || 'Failed to sync precompiled binaries.',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Network Error',
+        description: err.message || 'Error syncing precompiled binaries.',
+      });
+    } finally {
+      setIsSyncingPrecompiled(false);
+    }
+  };
+
   const handleTutorialClick = (e: React.MouseEvent, tut: Tutorial) => {
     if (!hasPurchased) {
       e.preventDefault();
@@ -332,7 +362,26 @@ export default function IdeSelectionPage() {
                 <p className="text-xs text-zinc-500">Manage experiments and chapters directly on this page.</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={handleSyncPrecompiled}
+                disabled={isSyncingPrecompiled}
+                variant="outline"
+                className="bg-white border-zinc-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 text-zinc-700 text-xs font-semibold py-2 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm"
+                title="Compile all experiments and generate offline binaries for 0ms USB upload"
+              >
+                {isSyncingPrecompiled ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 text-orange-500 fill-orange-500" />
+                    Precompile All
+                  </>
+                )}
+              </Button>
               <Button 
                 onClick={handleAddChapter}
                 variant="outline" 
@@ -579,6 +628,11 @@ export default function IdeSelectionPage() {
                           {tut.components && tut.components.length > 0 && (
                             <Badge variant="outline" className="text-[9.5px] text-zinc-600 bg-zinc-50 border-zinc-200/90 gap-1 py-0.5 px-2 font-bold rounded-full">
                               <Cpu className="h-2.5 w-2.5 text-orange-500" /> {tut.components.length} {tut.components.length === 1 ? 'Part' : 'Parts'}
+                            </Badge>
+                          )}
+                          {tut.compiledHex && (
+                            <Badge variant="outline" className="text-[9.5px] text-emerald-700 bg-emerald-50 border-emerald-200/90 gap-1 py-0.5 px-2 font-bold rounded-full" title="Precompiled Intel HEX binary ready for 0ms USB flashing">
+                              <Zap className="h-2.5 w-2.5 text-emerald-600 fill-emerald-600" /> Precompiled
                             </Badge>
                           )}
                         </div>
