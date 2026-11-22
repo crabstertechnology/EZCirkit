@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,8 @@ import {
   ShieldCheck,
   BookOpen,
   Home,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 // --------------------------------------------------------------------------
@@ -68,6 +70,9 @@ export default function ActivatePageContent() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // --------------------------------------------------------------------------
   // Pre-fill user details if already signed in
@@ -207,6 +212,78 @@ export default function ActivatePageContent() {
   }
 
   // --------------------------------------------------------------------------
+  // Activate using Google Auth
+  // --------------------------------------------------------------------------
+  async function handleGoogleActivate() {
+    if (!auth) return;
+    setFormError('');
+    setIsGoogleSubmitting(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const googleUser = result.user;
+
+      const res = await fetch('/api/offline-kits/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: validatedToken,
+          kitId: resolvedKitId,
+          uid: googleUser.uid,
+          name: googleUser.displayName || googleUser.email?.split('@')[0] || 'EZCirkit User',
+          email: googleUser.email,
+          phone: googleUser.phoneNumber || phone || '',
+          country: country || 'India',
+          state: state || '',
+          college,
+          profession,
+          authProvider: 'google',
+        }),
+      });
+
+      let data: any = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        if (data.error === 'already_activated') {
+          setPhase('already-activated');
+        } else if (data.error === 'invalid_token') {
+          setFormError('The activation token is invalid or has expired.');
+        } else {
+          setFormError(data.error || `Activation failed (${res.status}). Please try again.`);
+        }
+        setIsGoogleSubmitting(false);
+        return;
+      }
+
+      // Send welcome email (fire-and-forget)
+      fetch('/api/offline-kits/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: googleUser.displayName || 'EZCirkit User',
+          email: googleUser.email,
+          kitId: resolvedKitId,
+        }),
+      }).catch(() => {});
+
+      setPhase('success');
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setFormError(err.message || 'Google authentication failed. Please try again.');
+      }
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Render helpers
   // --------------------------------------------------------------------------
 
@@ -306,7 +383,53 @@ export default function ActivatePageContent() {
               Register to unlock tutorials, circuit diagrams, and the EZCirkit IDE.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            {/* Activate using Google Auth */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2.5 cursor-pointer h-11 font-medium shadow-sm hover:bg-accent border-2"
+              disabled={isSubmitting || isGoogleSubmitting}
+              onClick={handleGoogleActivate}
+            >
+              {isGoogleSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Connecting with Google…
+                </>
+              ) : (
+                <>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582l3.51-3.51C17.642 1.091 14.974 0 12 0 7.354 0 3.307 2.67 1.296 6.57l3.97 3.195z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.275c0-.825-.075-1.62-.21-2.385H12v4.51h6.46c-.28 1.48-1.12 2.73-2.38 3.58l3.7 2.87c2.16-2 3.71-4.935 3.71-8.575z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.266 14.235A7.098 7.098 0 0 1 4.9 12c0-.795.13-1.56.366-2.265L1.296 6.54A11.967 11.967 0 0 0 0 12c0 1.92.455 3.73 1.256 5.34l4.01-3.105z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.97-1.075 7.96-2.915l-3.7-2.87c-1.025.688-2.342 1.1-3.96 1.1-3.055 0-5.64-2.065-6.565-4.845L1.256 17.34C3.267 21.305 7.314 24 12 24z"
+                    />
+                  </svg>
+                  <span>Activate using Google</span>
+                </>
+              )}
+            </Button>
+
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-3 text-muted-foreground font-semibold">Or register with email</span>
+              </div>
+            </div>
+
             <form onSubmit={handleActivate} className="space-y-4">
               {/* Name + Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -330,11 +453,51 @@ export default function ActivatePageContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Password *</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="confirm-password">Confirm Password *</Label>
-                  <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span className="sr-only">{showConfirmPassword ? 'Hide password' : 'Show password'}</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 

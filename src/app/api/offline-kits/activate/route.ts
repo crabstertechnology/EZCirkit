@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     const {
       token,
       kitId,
+      uid: clientUid,
       name,
       email,
       phone,
@@ -19,9 +20,11 @@ export async function POST(req: NextRequest) {
       state,
       college,
       profession,
+      authProvider,
     } = body as {
       token?: string;
       kitId?: string;
+      uid?: string;
       name?: string;
       email?: string;
       phone?: string;
@@ -30,6 +33,7 @@ export async function POST(req: NextRequest) {
       state?: string;
       college?: string;
       profession?: string;
+      authProvider?: string;
     };
 
     const cleanToken = (token || '').trim();
@@ -85,13 +89,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'already_activated', kitId: kitData.kitId }, { status: 400 });
     }
 
-    // 2. Create or link Firebase Auth user (via direct REST API, zero ESM/jwks-rsa dependencies)
-    const { localId: uid, isNew } = await createAuthUser({
-      email: cleanEmail,
-      password: password || undefined,
-      displayName: cleanName,
-      phoneNumber: cleanPhone.startsWith('+') ? cleanPhone : undefined,
-    });
+    // 2. Create or link Firebase Auth user
+    let uid = clientUid || '';
+    let isNew = false;
+
+    if (!uid) {
+      const authResult = await createAuthUser({
+        email: cleanEmail,
+        password: password || undefined,
+        displayName: cleanName,
+        phoneNumber: cleanPhone.startsWith('+') ? cleanPhone : undefined,
+      });
+      uid = authResult.localId;
+      isNew = authResult.isNew;
+    }
 
     const now = FieldValue.serverTimestamp();
 
