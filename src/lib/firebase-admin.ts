@@ -56,3 +56,67 @@ export async function getAdminAuth() {
 
 export const ADMIN_SECRET =
   process.env.ADMIN_API_SECRET || 'ezcirkit-admin-2024';
+
+/**
+ * Revokes tutorial and IDE access for a customer linked to an offline kit.
+ * Clears hasTutorialAccess and unlinks kitId.
+ */
+export async function revokeKitUserAccess(
+  db: FirebaseFirestore.Firestore,
+  kitData: {
+    activatedBy?: string | null;
+    customerEmail?: string | null;
+    kitId?: string | null;
+  },
+  reason: 'kit_deleted' | 'kit_deactivated' = 'kit_deleted'
+) {
+  const uid = kitData?.activatedBy;
+  const email = kitData?.customerEmail;
+  const kitId = kitData?.kitId;
+  const now = new Date().toISOString();
+
+  const updatePayload = {
+    hasTutorialAccess: false,
+    kitId: null,
+    kitAccessRevokedAt: now,
+    revocationReason: reason,
+  };
+
+  // 1. Direct UID update
+  if (uid) {
+    try {
+      const userRef = db.collection('users').doc(uid);
+      const userSnap = await userRef.get();
+      if (userSnap.exists) {
+        await userRef.update(updatePayload);
+        return;
+      }
+    } catch (e) {
+      console.warn(`[revokeKitUserAccess] failed to update user ${uid}:`, e);
+    }
+  }
+
+  // 2. Fallback: Search by customerEmail
+  if (email) {
+    try {
+      const usersSnap = await db.collection('users').where('email', '==', email.toLowerCase().trim()).get();
+      for (const doc of usersSnap.docs) {
+        await doc.ref.update(updatePayload);
+      }
+    } catch (e) {
+      console.warn(`[revokeKitUserAccess] failed to update email ${email}:`, e);
+    }
+  }
+
+  // 3. Fallback: Search by kitId
+  if (kitId) {
+    try {
+      const kitUsersSnap = await db.collection('users').where('kitId', '==', kitId).get();
+      for (const doc of kitUsersSnap.docs) {
+        await doc.ref.update(updatePayload);
+      }
+    } catch (e) {
+      console.warn(`[revokeKitUserAccess] failed to update kitId ${kitId}:`, e);
+    }
+  }
+}

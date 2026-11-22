@@ -402,7 +402,7 @@ export default function KitDetailPage() {
                         This kit is linked to customer {kit.customerName} ({kit.customerEmail}).
                       </span>
                       <span className="block">
-                        Deleting it will permanently remove the kit record. The customer&apos;s Firebase account will still exist, but this kit will be untrackable.
+                        Deleting it will permanently remove the kit record and revoke the customer&apos;s tutorial &amp; IDE access. This action cannot be undone.
                       </span>
                     </>
                   ) : (

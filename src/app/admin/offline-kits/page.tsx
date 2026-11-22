@@ -466,7 +466,7 @@ export default function OfflineKitsPage() {
                         {selectedActivatedCount} of the selected kits are activated and linked to customers.
                       </span>
                       <span className="block">
-                        All {selectedCount} kits will be permanently deleted from Firestore. Customer Firebase accounts will still exist but these kits will no longer be trackable. This cannot be undone.
+                        All {selectedCount} kits will be permanently deleted from Firestore, and tutorial &amp; IDE access will be revoked for all linked customers. This action cannot be undone.
                       </span>
                     </>
                   ) : (

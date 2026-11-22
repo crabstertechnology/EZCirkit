@@ -1,10 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb, ADMIN_SECRET } from '@/lib/firebase-admin';
+import { getAdminDb, ADMIN_SECRET, revokeKitUserAccess } from '@/lib/firebase-admin';
 
 // ---------------------------------------------------------------------------
 // DELETE /api/offline-kits/delete  { docId }
-// Permanently removes a kit document. Only works for pending kits (not activated).
+// Permanently removes a kit document. Revokes user access if activated.
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   if (req.headers.get('x-admin-secret') !== ADMIN_SECRET) {
@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Kit not found' }, { status: 404 });
     }
 
-    const status = snap.data()?.status;
+    const kitData = snap.data();
+    const status = kitData?.status;
 
     // Safety: block deleting activated kits unless force flag is passed
     if (status === 'activated' && !force) {
@@ -33,9 +34,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Revoke customer access if kit was activated or has linked customer
+    if (status === 'activated' || kitData?.activatedBy || kitData?.customerEmail) {
+      await revokeKitUserAccess(db, kitData || {}, 'kit_deleted');
+    }
+
     await ref.delete();
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, revokedAccess: !!(kitData?.activatedBy || kitData?.customerEmail) });
   } catch (err: any) {
     console.error('Error in delete API:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

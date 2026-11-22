@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb, ADMIN_SECRET } from '@/lib/firebase-admin';
+import { getAdminDb, ADMIN_SECRET, revokeKitUserAccess } from '@/lib/firebase-admin';
 
 // ---------------------------------------------------------------------------
 // POST /api/offline-kits/bulk-delete  { docIds: string[], force?: boolean }
@@ -34,10 +34,16 @@ export async function POST(req: NextRequest) {
         const snap = await ref.get();
         if (!snap.exists) { errors.push(docId); continue; }
 
-        const status = snap.data()?.status;
+        const kitData = snap.data();
+        const status = kitData?.status;
         if (status === 'activated' && !force) {
           skipped.push(docId);
           continue;
+        }
+
+        // Revoke customer tutorial & IDE access if kit is activated or linked to a customer
+        if (status === 'activated' || kitData?.activatedBy || kitData?.customerEmail) {
+          await revokeKitUserAccess(db, kitData || {}, 'kit_deleted');
         }
 
         batch.delete(ref);
