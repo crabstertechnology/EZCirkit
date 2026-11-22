@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { createAuthUser, createCustomToken } from '@/lib/firebase-auth-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
   try {
     const db = await getAdminDb();
-    const adminAuth = await getAdminAuth();
 
     const body = await req.json().catch(() => ({}));
     const {
@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
 
     if (!cleanToken) {
       return NextResponse.json({ error: 'invalid_token' }, { status: 400 });
+    }
+
+    if (!cleanEmail) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     // 1. Find kit by token
@@ -81,48 +85,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'already_activated', kitId: kitData.kitId }, { status: 400 });
     }
 
-    // 2. Create or link Firebase Auth user
-    let uid: string;
-    let isExistingUser = false;
-
-    try {
-      const userRecord = await adminAuth.createUser({
-        email: cleanEmail,
-        password: password || undefined,
-        displayName: cleanName,
-        ...(cleanPhone.startsWith('+') ? { phoneNumber: cleanPhone } : {}),
-      });
-      uid = userRecord.uid;
-    } catch (authError: any) {
-      if (authError.code === 'auth/email-already-exists') {
-        // User already has an account — link the kit to their existing account!
-        const existingUser = await adminAuth.getUserByEmail(cleanEmail);
-        uid = existingUser.uid;
-        isExistingUser = true;
-
-        // Optionally update display name if not set
-        if (cleanName && (!existingUser.displayName || existingUser.displayName === '')) {
-          try {
-            await adminAuth.updateUser(uid, { displayName: cleanName });
-          } catch (e) {
-            console.warn('[offline-kits/activate] could not update display name:', e);
-          }
-        }
-      } else if (
-        authError.code === 'auth/phone-number-already-exists' ||
-        authError.code === 'auth/invalid-phone-number'
-      ) {
-        // Retry creating user without the phone number in Firebase Auth
-        const fallbackRecord = await adminAuth.createUser({
-          email: cleanEmail,
-          password: password || undefined,
-          displayName: cleanName,
-        });
-        uid = fallbackRecord.uid;
-      } else {
-        throw authError;
-      }
-    }
+    // 2. Create or link Firebase Auth user (via direct REST API, zero ESM/jwks-rsa dependencies)
+    const { localId: uid, isNew } = await createAuthUser({
+      email: cleanEmail,
+      password: password || undefined,
+      displayName: cleanName,
+      phoneNumber: cleanPhone.startsWith('+') ? cleanPhone : undefined,
+    });
 
     const now = FieldValue.serverTimestamp();
 
@@ -140,7 +109,7 @@ export async function POST(req: NextRequest) {
       activationToken: cleanToken,
       activationSource: 'offline_kit',
       updatedAt: now,
-      ...(isExistingUser ? {} : { createdAt: now, isAdmin: false }),
+      ...(isNew ? { createdAt: now, isAdmin: false } : {}),
     }, { merge: true });
 
     // 4. Mark kit as activated
@@ -155,19 +124,19 @@ export async function POST(req: NextRequest) {
       activationState: state || '',
     });
 
-    // 5. Create custom login token so the user can be logged in automatically
-    const customToken = await adminAuth.createCustomToken(uid);
+    // 5. Create custom login token so the user is logged in automatically
+    const customToken = createCustomToken(uid);
 
     return NextResponse.json({
       success: true,
       customToken,
       uid,
       kitId: kitData.kitId,
-      isExistingUser,
+      isExistingUser: !isNew,
     });
   } catch (err: any) {
     console.error('[offline-kits/activate] error:', err);
-    // Use status 400 instead of 500 to prevent Netlify proxy from stripping JSON error response
+    // Use status 400 instead of 500 to prevent Netlify reverse proxy from stripping JSON error response
     return NextResponse.json(
       {
         error: err.message || 'Activation failed. Please try again.',

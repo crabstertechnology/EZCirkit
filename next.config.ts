@@ -18,8 +18,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 
-  serverExternalPackages: ['firebase-admin'],
-
   outputFileTracingExcludes: {
     '*': [
       './ezcirkit_app/**/*',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { createCustomToken, findUserByEmail } from '@/lib/firebase-auth-admin';
 
 export async function GET(req: NextRequest) {
   const checks: Record<string, any> = {};
@@ -34,11 +35,14 @@ export async function GET(req: NextRequest) {
     await testDoc.set({ timestamp: new Date().toISOString(), message: "Hello from test-admin!" });
     checks.firestoreWrite = 'success';
 
-    // Test Admin Auth
-    const adminAuth = await getAdminAuth();
-    checks.adminAuthInit = 'success';
-    const sampleToken = await adminAuth.createCustomToken('health-check-test-uid');
-    checks.adminAuthCustomToken = !!sampleToken;
+    // Test direct custom token generation
+    const sampleToken = createCustomToken('health-check-test-uid');
+    checks.customTokenGeneration = !!sampleToken;
+
+    // Test Google Identity Toolkit OAuth lookup
+    const sampleUser = await findUserByEmail('sasirethika@gmail.com');
+    checks.identityToolkitLookup = !!sampleUser;
+    checks.identityToolkitUid = sampleUser?.localId || null;
 
     return NextResponse.json({ success: true, checks });
   } catch (err: any) {
