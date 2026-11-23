@@ -17,7 +17,7 @@ const EXPERIMENT_TOUR_STEPS: TourStep[] = [
     target: null,
     category: 'Getting Started',
     title: 'Welcome to Coding Experiments',
-    description: 'Explore 21+ hands-on Arduino electronics and coding experiments. Each project comes with step-by-step circuit wiring instructions, component requirements, and interactive coding.',
+    description: 'Explore hands-on Arduino electronics and coding experiments. Each project comes with step-by-step circuit wiring instructions, component requirements, and interactive coding.',
     note: 'Everything runs directly in your browser without requiring desktop Arduino IDE or driver installations.'
   },
   {
