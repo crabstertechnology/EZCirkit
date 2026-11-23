@@ -194,9 +194,13 @@ export default function IdeSelectionPage() {
   // Extract YouTube ID & Embed Helpers
   const extractYoutubeId = (url?: string): string | null => {
     if (!url) return null;
+    const clean = url.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    const match = clean.match(regExp);
+    if (match && match[2] && match[2].length === 11) return match[2];
+    const fallback = clean.match(/([a-zA-Z0-9_-]{11})/);
+    return fallback ? fallback[1] : null;
   };
 
   const getEmbedVideoUrl = (url?: string): string => {
@@ -559,20 +563,25 @@ export default function IdeSelectionPage() {
                           {tut.duration}
                         </div>
 
-                        {/* Play overlay button on hover */}
+                        {/* Play / Launch overlay button on hover */}
                         {hasPurchased && (
                           <div 
                             className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => {
-                              if (tut.videoId) {
+                              if (isVideoItem) {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setActiveVideoTutorial(tut);
                               }
+                              // For IDE experiments: do NOT prevent default or stop propagation, so clicking navigates directly to Web IDE!
                             }}
                           >
                             <div className="w-12 h-12 bg-white text-black border border-zinc-200 rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                              <Play className="h-5 w-5 fill-current ml-0.5 text-black" />
+                              {isVideoItem ? (
+                                <Play className="h-5 w-5 fill-current ml-0.5 text-black" />
+                              ) : (
+                                <Code2 className="h-5 w-5 text-black" />
+                              )}
                             </div>
                           </div>
                         )}

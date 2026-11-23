@@ -295,10 +295,14 @@ void loop() {
 
 async function applyExperimentById(experimentId) {
   const experiments = window.PRECOMPILED_EXPERIMENTS || {};
-  const exp = experiments[experimentId];
+  let exp = experiments[experimentId];
+  if (!exp) {
+    const matchKey = Object.keys(experiments).find(k => k.toLowerCase() === (experimentId || '').toLowerCase());
+    if (matchKey) exp = experiments[matchKey];
+  }
   if (!exp) return;
 
-  currentExperimentId = experimentId;
+  currentExperimentId = exp.id || experimentId;
   defaultExperimentCode = exp.code || '';
   currentExperimentInfo = {
     description: exp.description || '',
@@ -327,9 +331,10 @@ async function applyExperimentById(experimentId) {
 
   // Load YouTube Video if available
   if (exp.videoId && typeof window.playVideo === 'function') {
-    const id = typeof window.getYoutubeId === 'function' ? window.getYoutubeId(exp.videoId) : null;
-    const rawId = id || exp.videoId.replace(/.*(?:v=|\/embed\/|\/)/, '');
-    window.playVideo(rawId, exp.title);
+    const rawId = typeof window.getYoutubeId === 'function' ? window.getYoutubeId(exp.videoId) : exp.videoId;
+    if (rawId) {
+      window.playVideo(rawId, exp.title);
+    }
   }
 
   logToConsole(`Loaded experiment: ${exp.title}`, 'info');
@@ -643,23 +648,34 @@ function setupEventListeners() {
 
   // Extract YouTube ID from URL
   function getYoutubeId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    if (!url || typeof url !== 'string') return null;
+    const cleanUrl = url.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(cleanUrl)) return cleanUrl;
+    const match = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+    if (match && match[1]) return match[1];
+    const fallbackMatch = cleanUrl.match(/([a-zA-Z0-9_-]{11})/);
+    return fallbackMatch ? fallbackMatch[1] : null;
   }
 
   // Play Video function
   function playVideo(videoId, title) {
     if (!videoId) return;
+    const cleanId = getYoutubeId(videoId) || videoId;
+    if (!cleanId) return;
     
     // Update player UI
-    if (youtubePlayerTitle) {
-      youtubePlayerTitle.textContent = title || "YouTube Tutorial";
-      youtubePlayerTitle.style.display = 'inline-block';
+    const ytPlayerTitle = document.getElementById('youtubePlayerTitle') || youtubePlayerTitle;
+    const ytIframe = document.getElementById('youtubeIframe') || youtubeIframe;
+    const ytPlaceholder = document.getElementById('youtubePlaceholder') || youtubePlaceholder;
+    const ytContainer = document.getElementById('youtubePlayerContainer') || youtubePlayerContainer;
+
+    if (ytPlayerTitle) {
+      ytPlayerTitle.textContent = title || "YouTube Tutorial";
+      ytPlayerTitle.style.display = 'inline-block';
     }
-    if (youtubeIframe) youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    if (youtubePlaceholder) youtubePlaceholder.style.display = 'none';
-    if (youtubePlayerContainer) youtubePlayerContainer.style.display = 'flex';
+    if (ytIframe) ytIframe.src = `https://www.youtube.com/embed/${cleanId}?autoplay=1`;
+    if (ytPlaceholder) ytPlaceholder.style.display = 'none';
+    if (ytContainer) ytContainer.style.display = 'flex';
   }
 
   window.playVideo = playVideo;
@@ -1694,7 +1710,7 @@ function parseHexToPages(hexString) {
 async function loadExperimentFromUrlParams() {
   const urlParams = new URLSearchParams(window.location.search);
   const experimentId = urlParams.get('experiment');
-  const chapterId = urlParams.get('chapter');
+  let chapterId = urlParams.get('chapter');
   
   if (!experimentId) {
     switchToOnlineCompiler();
@@ -1705,85 +1721,80 @@ async function loadExperimentFromUrlParams() {
 
   // Fast path: Check if experiment exists in precompiled bundle
   const precompiled = window.PRECOMPILED_EXPERIMENTS || {};
-  if (precompiled[experimentId]) {
-    await applyExperimentById(experimentId);
-    return;
+  let precompiledExp = precompiled[experimentId];
+  if (!precompiledExp) {
+    const matchKey = Object.keys(precompiled).find(k => k.toLowerCase() === experimentId.toLowerCase());
+    if (matchKey) precompiledExp = precompiled[matchKey];
   }
 
-  try {
-    const url = `https://firestore.googleapis.com/v1/projects/studio-2519724075-3b571/databases/(default)/documents/tutorialChapters/${chapterId}/tutorials/${experimentId}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch experiment (Status: ${response.status})`);
+  let hasPrecompiled = false;
+  if (precompiledExp) {
+    await applyExperimentById(precompiledExp.id || experimentId);
+    hasPrecompiled = true;
+    if (!chapterId && precompiledExp.chapterId) {
+      chapterId = precompiledExp.chapterId;
     }
-    const data = await response.json();
-    if (data && data.fields) {
-      const title = data.fields.title ? data.fields.title.stringValue : 'Coding Tutorial';
-      const description = data.fields.description ? data.fields.description.stringValue : '';
-      const videoId = data.fields.videoId ? data.fields.videoId.stringValue : '';
-      const code = data.fields.code ? data.fields.code.stringValue : '';
-      const diagramUrl = data.fields.diagramUrl ? data.fields.diagramUrl.stringValue : '';
-      const pinout = data.fields.pinout ? data.fields.pinout.stringValue : '';
+  }
 
-      let components = [];
-      if (data.fields.components && data.fields.components.arrayValue && data.fields.components.arrayValue.values) {
-        components = data.fields.components.arrayValue.values.map(v => {
-          const m = v.mapValue ? v.mapValue.fields : {};
-          return {
-            name: m.name ? (m.name.stringValue || '') : '',
-            quantity: m.quantity ? (m.quantity.stringValue || (m.quantity.integerValue !== undefined ? String(m.quantity.integerValue) : '1')) : '1'
-          };
-        }).filter(c => c.name || c.quantity);
-      }
+  // Fetch latest experiment details from Firestore (to load real-time video, description, pinout, etc.)
+  if (chapterId) {
+    try {
+      const targetExpId = precompiledExp ? precompiledExp.id : experimentId;
+      const url = `https://firestore.googleapis.com/v1/projects/studio-2519724075-3b571/databases/(default)/documents/tutorialChapters/${chapterId}/tutorials/${targetExpId}`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.fields) {
+          const title = data.fields.title ? data.fields.title.stringValue : (precompiledExp?.title || 'Coding Tutorial');
+          const description = data.fields.description ? data.fields.description.stringValue : (precompiledExp?.description || '');
+          const videoId = data.fields.videoId ? data.fields.videoId.stringValue : (precompiledExp?.videoId || '');
+          const code = data.fields.code ? data.fields.code.stringValue : (precompiledExp?.code || '');
+          const diagramUrl = data.fields.diagramUrl ? data.fields.diagramUrl.stringValue : (precompiledExp?.diagramUrl || '');
+          const pinout = data.fields.pinout ? data.fields.pinout.stringValue : (precompiledExp?.pinout || '');
 
-      currentExperimentInfo = { description, diagramUrl, pinout, components };
-      currentExperimentId = experimentId;
-      defaultExperimentCode = code;
+          let components = [];
+          if (data.fields.components && data.fields.components.arrayValue && data.fields.components.arrayValue.values) {
+            components = data.fields.components.arrayValue.values.map(v => {
+              const m = v.mapValue ? v.mapValue.fields : {};
+              return {
+                name: m.name ? (m.name.stringValue || '') : '',
+                quantity: m.quantity ? (m.quantity.stringValue || (m.quantity.integerValue !== undefined ? String(m.quantity.integerValue) : '1')) : '1'
+              };
+            }).filter(c => c.name || c.quantity);
+          } else if (precompiledExp && precompiledExp.components) {
+            components = precompiledExp.components;
+          }
 
-      setExperimentTitle(title);
-      setEditorReadOnly(true);
+          currentExperimentInfo = { description, diagramUrl, pinout, components };
+          currentExperimentId = targetExpId;
+          if (code) defaultExperimentCode = code;
 
-      const hasComponents = components.length > 0;
-      const experimentInfoBtn = document.getElementById('experimentInfoBtn');
-      if (experimentInfoBtn) {
-        experimentInfoBtn.style.display = (description || diagramUrl || pinout || hasComponents) ? 'flex' : 'none';
-      }
+          setExperimentTitle(title);
+          setEditorReadOnly(true);
 
-      logToConsole(`Loaded experiment: ${title}`, "success");
-      logToConsole(`🔒 Experiment code is read-only. You can copy it with the Copy Code button.`, "info");
+          const hasComponents = components.length > 0;
+          const experimentInfoBtn = document.getElementById('experimentInfoBtn');
+          if (experimentInfoBtn) {
+            experimentInfoBtn.style.display = (description || diagramUrl || pinout || hasComponents) ? 'flex' : 'none';
+          }
 
-      // Load code in Monaco
-      if (code) {
-        if (editor) {
-          editor.setValue(code);
-        } else {
-          // Monaco Editor is still loading; queue the code
-          pendingCode = code;
-        }
-      }
+          // If precompiled wasn't already loaded, set code in editor
+          if (!hasPrecompiled && code) {
+            if (editor) {
+              editor.setValue(code);
+            } else {
+              pendingCode = code;
+            }
+            logToConsole(`Loaded experiment: ${title}`, "success");
+            logToConsole(`🔒 Experiment code is read-only. You can copy it with the Copy Code button.`, "info");
+          }
 
-      // Load precompiled HEX build (check Firestore document first, fallback to static file)
-      const compiledHexFromFirestore = data.fields.compiledHex ? data.fields.compiledHex.stringValue : '';
-      if (compiledHexFromFirestore) {
-        precompiledHexForCurrentExperiment = compiledHexFromFirestore;
-        compiledHex = precompiledHexForCurrentExperiment;
-        logToConsole(`⚡ Precompiled binary loaded directly from database (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly in 0ms!`, 'success');
-        const editorStatus = document.getElementById('editorStatus');
-        if (editorStatus) {
-          editorStatus.textContent = 'Precompiled (Ready)';
-          editorStatus.className = 'status-indicator success';
-        }
-        const uploadBtn = document.getElementById('uploadBtn');
-        if (uploadBtn) {
-          uploadBtn.disabled = false;
-        }
-      } else {
-        try {
-          const hexRes = await fetch(`/builds/experiments/${experimentId}.hex`);
-          if (hexRes.ok) {
-            precompiledHexForCurrentExperiment = await hexRes.text();
+          // Load precompiled HEX build from Firestore if not already set
+          const compiledHexFromFirestore = data.fields.compiledHex ? data.fields.compiledHex.stringValue : '';
+          if (compiledHexFromFirestore && !precompiledHexForCurrentExperiment) {
+            precompiledHexForCurrentExperiment = compiledHexFromFirestore;
             compiledHex = precompiledHexForCurrentExperiment;
-            logToConsole(`⚡ Precompiled build loaded (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+            logToConsole(`⚡ Precompiled binary loaded directly from database (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly in 0ms!`, 'success');
             const editorStatus = document.getElementById('editorStatus');
             if (editorStatus) {
               editorStatus.textContent = 'Precompiled (Ready)';
@@ -1794,26 +1805,45 @@ async function loadExperimentFromUrlParams() {
               uploadBtn.disabled = false;
             }
           }
-        } catch (hexErr) {
-          console.log('No precompiled build available:', hexErr);
-        }
-      }
 
-      // Load YouTube video
-      if (videoId && typeof window.playVideo === 'function') {
-        const id = typeof window.getYoutubeId === 'function' ? window.getYoutubeId(videoId) : null;
-        if (id) {
-          window.playVideo(id, title);
-        } else {
-          // Fallback if not a standard YouTube watch URL but is already an ID or embedded URL
-          const ytVideoIdMatch = videoId.match(/(?:embed\/|v=|\/)([\w-]{11})(?:\?|&|#|$)/);
-          const rawId = ytVideoIdMatch ? ytVideoIdMatch[1] : videoId;
-          window.playVideo(rawId, title);
+          // Always load YouTube video if provided
+          if (videoId && typeof window.playVideo === 'function') {
+            const rawId = typeof window.getYoutubeId === 'function' ? window.getYoutubeId(videoId) : videoId;
+            if (rawId) {
+              window.playVideo(rawId, title);
+            }
+          }
+
+          return;
+        }
+      } else {
+        console.warn(`Firestore experiment fetch returned status ${response.status}`);
+      }
+    } catch (err) {
+      console.warn("Could not fetch latest experiment from Firestore:", err);
+    }
+  }
+
+  // Fallback if not precompiled and Firestore didn't have HEX
+  if (!hasPrecompiled) {
+    try {
+      const hexRes = await fetch(`/builds/experiments/${experimentId}.hex`);
+      if (hexRes.ok) {
+        precompiledHexForCurrentExperiment = await hexRes.text();
+        compiledHex = precompiledHexForCurrentExperiment;
+        logToConsole(`⚡ Precompiled build loaded (${(precompiledHexForCurrentExperiment.length / 1024).toFixed(1)} KB). Ready to flash directly without server!`, 'success');
+        const editorStatus = document.getElementById('editorStatus');
+        if (editorStatus) {
+          editorStatus.textContent = 'Precompiled (Ready)';
+          editorStatus.className = 'status-indicator success';
+        }
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
         }
       }
+    } catch (hexErr) {
+      console.log('No precompiled build available:', hexErr);
     }
-  } catch (error) {
-    console.error("Error loading experiment details:", error);
-    logToConsole(`Error loading experiment: ${error.message}`, "error");
   }
 }
