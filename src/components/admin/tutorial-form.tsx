@@ -241,13 +241,27 @@ interface TutorialFormProps {
   onSave: () => void;
   tutorial?: Tutorial | null;
   chapterId: string;
+  chapters?: Array<{ id: string; title: string }>;
+  onChapterChange?: (chapterId: string) => void;
   defaultVideoOnly?: boolean;
   isFullScreen?: boolean;
+  onSubmittingChange?: (submitting: boolean) => void;
+  showChapterSelectorInside?: boolean;
 }
 
 const LEVEL_OPTIONS: TutorialLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
-const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId, defaultVideoOnly = false, isFullScreen = false }) => {
+const TutorialForm: React.FC<TutorialFormProps> = ({
+  onSave,
+  tutorial,
+  chapterId,
+  chapters,
+  onChapterChange,
+  defaultVideoOnly = false,
+  isFullScreen = false,
+  onSubmittingChange,
+  showChapterSelectorInside = false,
+}) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -408,6 +422,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       return;
     }
     setIsSubmitting(true);
+    onSubmittingChange?.(true);
 
     const isEditing = !!tutorial;
     const docRef = doc(firestore, `tutorialChapters/${chapterId}/tutorials`, tutorialId);
@@ -446,341 +461,514 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       });
     } finally {
       setIsSubmitting(false);
+      onSubmittingChange?.(false);
     }
   };
 
   const formContent = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        <FormField name="title" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel className="font-bold text-zinc-900">Experiment Title</FormLabel><FormControl><Input placeholder="e.g. Blinking an LED, Ultrasonic Distance Sensor" className="h-11 rounded-xl text-sm" {...field} /></FormControl><FormMessage /></FormItem>
-        )}/>
-
-
-        <FormField name="order" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Order</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-        )}/>
-
-        <FormField
-          name="isHidden"
-          control={form.control}
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel className="text-sm font-semibold text-zinc-900 flex items-center gap-2 cursor-pointer">
-                  {field.value ? <EyeOff className="h-4 w-4 text-amber-600" /> : <Eye className="h-4 w-4 text-emerald-600" />}
-                  <span>Hide Experiment from Students</span>
-                </FormLabel>
-                <p className="text-xs text-zinc-500">
-                  {field.value
-                    ? 'Hidden from students. Visible only to admins. Can be re-enabled at any time.'
-                    : 'Currently visible to students on the IDE experiments list and homepage.'}
-                </p>
+      <form id="tutorial-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className={cn(isFullScreen ? "grid grid-cols-1 xl:grid-cols-12 gap-6" : "space-y-5")}>
+          
+          {/* Left Column: Details, Description, and Hardware Components */}
+          <div className={cn(isFullScreen ? "xl:col-span-7 space-y-6" : "space-y-4")}>
+            
+            {/* Block 1: Basic Information */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <h3 className="font-bold text-sm text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-zinc-900" />
+                  Basic Information
+                </h3>
               </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
 
-        <FormField
-          name="isVideoOnly"
-          control={form.control}
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-orange-200 bg-orange-50/60 p-3.5 shadow-sm">
-              <div className="space-y-0.5 pr-2">
-                <FormLabel className="text-sm font-bold text-zinc-900 flex items-center gap-2 cursor-pointer">
-                  <Video className="h-4 w-4 text-orange-600" />
-                  <span>Introduction / Video Guide (Without IDE)</span>
-                </FormLabel>
-                <p className="text-xs text-zinc-600">
-                  Enable for introductory videos, hardware unboxing, theory, or guides that don't need the code editor. Students can watch the video directly on the experiments page without launching the IDE.
-                </p>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        
-        <FormField name="description" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short summary of the project." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
-        )}/>
-
-        <FormField name="videoId" control={form.control} render={({ field }) => (
-            <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Video className="h-3.5 w-3.5 text-orange-600" />
-                  <span>Video URL (YouTube, Vimeo, embed, etc.)</span>
-                  {form.watch('isVideoOnly') ? (
-                    <Badge variant="outline" className="text-[10px] bg-orange-100 text-orange-800 border-orange-200 font-bold ml-1">
-                      Featured Video
-                    </Badge>
-                  ) : (
-                    <span className="text-zinc-400 font-normal text-xs">(Optional)</span>
-                  )}
-                </FormLabel>
-                <FormControl>
-                    <Input placeholder="https://www.youtube.com/watch?v=... or embed link" {...field} />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-        )}/>
-
-        <FormField name="diagramUrl" control={form.control} render={({ field }) => (
-            <FormItem className="space-y-2">
-                <FormLabel>Diagram Image</FormLabel>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex-1">
-                      <FormControl>
-                        <Input placeholder="Paste image URL or upload one" {...field} value={field.value || ''} />
-                      </FormControl>
+              {/* Horizontal Row: Chapter (if provided & enabled) & Title */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {showChapterSelectorInside && chapters && chapters.length > 0 ? (
+                  <>
+                    <div className="md:col-span-5 space-y-2">
+                      <Label className="font-bold text-xs text-zinc-900">Destination Chapter</Label>
+                      <select
+                        value={chapterId}
+                        onChange={(e) => onChapterChange?.(e.target.value)}
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 outline-none focus:border-zinc-400 focus:bg-white transition-all h-10"
+                      >
+                        {chapters.map(ch => (
+                          <option key={ch.id} value={ch.id}>
+                            {ch.title}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <AssetPicker 
-                      onSelect={(path) => field.onChange(path)}
-                      trigger={
-                        <Button type="button" variant="outline" className="gap-1.5 h-10 cursor-pointer">
-                          <ImageIcon className="h-4 w-4" />
-                          <span>Gallery</span>
-                        </Button>
-                      }
+                    <div className="md:col-span-7">
+                      <FormField
+                        name="title"
+                        control={form.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-bold text-xs text-zinc-900">Experiment Title</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Blinking an LED, Ultrasonic Distance Sensor" className="h-10 rounded-xl text-xs" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="col-span-12">
+                    <FormField
+                      name="title"
+                      control={form.control}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold text-xs text-zinc-900">Experiment Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Blinking an LED, Ultrasonic Distance Sensor" className="h-10 rounded-xl text-xs" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="diagram-file-upload"
-                        className="hidden"
-                        onChange={(e) => handleImageUpload(e, field.onChange)}
-                        disabled={isUploadingImage}
-                      />
-                      <label htmlFor="diagram-file-upload">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="cursor-pointer gap-1.5 h-10"
-                          asChild
-                          disabled={isUploadingImage}
-                        >
-                          <span>
-                            <Upload className="h-4 w-4" />
-                            {isUploadingImage ? 'Uploading...' : 'Upload'}
-                          </span>
-                        </Button>
-                      </label>
-                    </div>
                   </div>
-                  {isUploadingImage && (
-                    <div className="text-xs text-orange-600 dark:text-orange-400 animate-pulse mt-1.5 flex items-center gap-1.5 font-medium">
-                      <span className="h-2 w-2 rounded-full bg-orange-500 animate-ping" />
-                      <span>Compressing image for database...</span>
-                    </div>
-                  )}
+                )}
+              </div>
 
-                  {field.value && (
-                    <div className="relative border border-zinc-200/80 rounded-xl overflow-hidden bg-zinc-50 max-h-48 flex items-center justify-center p-2 group">
-                      <img
-                        src={field.value}
-                        alt="Circuit Diagram Preview"
-                        className="max-h-40 object-contain rounded-lg"
-                      />
+              {/* Horizontal Row: Level, Order, Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField
+                  name="level"
+                  control={form.control}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-xs text-zinc-900">Difficulty Level</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'Beginner'}>
+                        <FormControl>
+                          <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
+                            <SelectValue placeholder="Select level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LEVEL_OPTIONS.map(lvl => (
+                            <SelectItem key={lvl} value={lvl} className="text-xs">{lvl}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  name="order"
+                  control={form.control}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-xs text-zinc-900">Display Order</FormLabel>
+                      <FormControl>
+                        <Input type="number" className="h-10 rounded-xl text-xs" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  name="duration"
+                  control={form.control}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-xs text-zinc-900">Estimated Duration</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 5 mins" className="h-10 rounded-xl text-xs" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Horizontal Row: Toggles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <FormField
+                  name="isHidden"
+                  control={form.control}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 shadow-2xs">
+                      <div className="space-y-0.5 pr-2">
+                        <FormLabel className="text-xs font-semibold text-zinc-900 flex items-center gap-1.5 cursor-pointer">
+                          {field.value ? <EyeOff className="h-3.5 w-3.5 text-zinc-900" /> : <Eye className="h-3.5 w-3.5 text-zinc-900" />}
+                          <span>Hide from Students</span>
+                        </FormLabel>
+                        <p className="text-[11px] text-zinc-500">
+                          {field.value ? 'Admin only.' : 'Visible on catalog.'}
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  name="isVideoOnly"
+                  control={form.control}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 shadow-2xs">
+                      <div className="space-y-0.5 pr-2">
+                        <FormLabel className="text-xs font-bold text-zinc-900 flex items-center gap-1.5 cursor-pointer">
+                          <Video className="h-3.5 w-3.5 text-zinc-900" />
+                          <span>Video Only (Without IDE)</span>
+                        </FormLabel>
+                        <p className="text-[11px] text-zinc-500">
+                          Intro, unboxing, or theory without code.
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Block 2: Overview & Wiring Instructions */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-sm text-zinc-900 uppercase tracking-wider pb-3 border-b border-zinc-100">
+                Project Overview & Instructions
+              </h3>
+              
+              <FormField
+                name="description"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-bold text-xs text-zinc-900">Project Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="A clear summary of what this experiment does and what students will learn..." {...field} rows={4} className="text-xs leading-relaxed" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                name="pinout"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-bold text-xs text-zinc-900">Pinout & Wiring Connections (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="e.g. Pin 9: LED positive terminal, GND: LED negative terminal..." {...field} rows={3} className="text-xs font-mono leading-relaxed" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Block 3: Required Components & Hardware (Bill of Materials) */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Cpu className="h-4 w-4 text-zinc-900" />
+                    <Label className="font-bold text-sm text-zinc-900">Required Components & Hardware</Label>
+                    {components.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] font-bold bg-zinc-100 text-zinc-900 border-zinc-300">
+                        {components.length} items
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Add parts and quantities needed. Displayed to students in tabular form inside the IDE and preview.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddComponent}
+                  className="h-8 text-xs font-bold gap-1.5 border-zinc-300 bg-white hover:bg-zinc-100 text-black cursor-pointer self-start sm:self-auto rounded-xl shadow-2xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Component</span>
+                </Button>
+              </div>
+
+              {/* Quick Add Common Parts */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-zinc-500">Quick Add Common Parts:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { name: 'Arduino Uno R3', qty: '1' },
+                    { name: 'Breadboard', qty: '1' },
+                    { name: 'Jumper Wires (M-M)', qty: '10' },
+                    { name: 'Jumper Wires (M-F)', qty: '4' },
+                    { name: 'LED (5mm)', qty: '1' },
+                    { name: '220Ω Resistor', qty: '1' },
+                    { name: '10kΩ Resistor', qty: '1' },
+                    { name: 'DHT11 Sensor', qty: '1' },
+                    { name: 'HC-SR04 Ultrasonic', qty: '1' },
+                    { name: 'Buzzer', qty: '1' },
+                    { name: 'Push Button', qty: '1' },
+                    { name: 'Servo Motor (SG90)', qty: '1' },
+                  ].map(preset => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => handleQuickAdd(preset.name, preset.qty)}
+                      className="px-2.5 py-1 text-[11px] font-semibold bg-zinc-50 hover:bg-zinc-100 hover:text-black hover:border-zinc-400 border border-zinc-200 rounded-lg text-zinc-700 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      + {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Horizontal Block Cards for Components */}
+              {components.length > 0 ? (
+                <div className="space-y-2 pt-1">
+                  {components.map((comp, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-zinc-50/70 border border-zinc-200 rounded-xl shadow-2xs">
+                      <span className="w-8 text-center text-xs font-mono font-bold text-zinc-400">
+                        #{idx + 1}
+                      </span>
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Component Name / Model (e.g. Ultrasonic Sensor HC-SR04)"
+                          value={comp.name}
+                          onChange={(e) => handleUpdateComponent(idx, 'name', e.target.value)}
+                          className="h-9 text-xs rounded-lg bg-white border-zinc-200"
+                        />
+                      </div>
+                      <div className="w-28 sm:w-32">
+                        <Input
+                          placeholder="Quantity (e.g. 1)"
+                          value={comp.quantity}
+                          onChange={(e) => handleUpdateComponent(idx, 'quantity', e.target.value)}
+                          className="h-9 text-xs text-center font-mono rounded-lg bg-white border-zinc-200"
+                        />
+                      </div>
                       <Button
                         type="button"
-                        variant="destructive"
+                        variant="ghost"
                         size="icon"
-                        className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => field.onChange('')}
+                        onClick={() => handleRemoveComponent(idx)}
+                        className="h-8 w-8 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                        title="Remove Component"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  )}
+                  ))}
                 </div>
-                <FormMessage />
-            </FormItem>
-        )}/>
+              ) : (
+                <div className="border border-dashed border-zinc-300 rounded-xl p-5 text-center bg-zinc-50/50 space-y-1.5">
+                  <p className="text-xs text-zinc-700 font-semibold">No components added yet.</p>
+                  <p className="text-[11px] text-zinc-400">
+                    Click <strong>Add Component</strong> or select from the quick parts above to add hardware.
+                  </p>
+                </div>
+              )}
+            </div>
 
-        <FormField name="pinout" control={form.control} render={({ field }) => (
-            <FormItem>
-                <FormLabel>Pinout Description (Optional)</FormLabel>
-                <FormControl>
-                    <Textarea placeholder="e.g. Pin 9: LED positive terminal, GND: LED negative terminal" {...field} rows={4} />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-        )}/>
+          </div>
 
-        {/* Components & Quantity (Bill of Materials) */}
-        <div className="space-y-3 p-4 rounded-xl border border-zinc-200 bg-zinc-50/60 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-orange-600" />
-                <Label className="font-bold text-sm text-zinc-900">Required Components & Quantity</Label>
-                {components.length > 0 && (
-                  <Badge variant="outline" className="text-[10px] font-bold bg-orange-50 text-orange-700 border-orange-200">
-                    {components.length} items
+          {/* Right Column: Media, Diagram, and Arduino Code */}
+          <div className={cn(isFullScreen ? "xl:col-span-5 space-y-6" : "space-y-4")}>
+
+            {/* Block 4: Video Guide & Tutorial */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-sm text-zinc-900 uppercase tracking-wider pb-3 border-b border-zinc-100 flex items-center gap-2">
+                <Video className="h-4 w-4 text-zinc-900" />
+                Video Guide & Tutorial
+              </h3>
+
+              <FormField
+                name="videoId"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1.5 font-bold text-xs text-zinc-900">
+                      <span>YouTube or Video URL</span>
+                      {form.watch('isVideoOnly') ? (
+                        <Badge variant="outline" className="text-[10px] bg-zinc-100 text-zinc-900 border-zinc-300 font-bold ml-1">
+                          Primary Video
+                        </Badge>
+                      ) : (
+                        <span className="text-zinc-400 font-normal text-xs">(Optional)</span>
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://www.youtube.com/watch?v=..." className="h-10 rounded-xl text-xs" {...field} />
+                    </FormControl>
+                    <p className="text-[11px] text-zinc-400">
+                      Supports YouTube links, shorts, or embeds. Duration is auto-fetched.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Block 5: Circuit Diagram Image */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-sm text-zinc-900 uppercase tracking-wider pb-3 border-b border-zinc-100 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-zinc-900" />
+                Circuit Diagram & Wiring
+              </h3>
+
+              <FormField
+                name="diagramUrl"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="font-bold text-xs text-zinc-900">Circuit Diagram Image (Optional)</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input placeholder="Paste image URL or upload" {...field} value={field.value || ''} className="h-10 rounded-xl text-xs" />
+                        </FormControl>
+                      </div>
+                      <AssetPicker 
+                        onSelect={(path) => field.onChange(path)}
+                        trigger={
+                          <Button type="button" variant="outline" className="gap-1.5 h-10 px-3 cursor-pointer rounded-xl border-zinc-300 bg-white hover:bg-zinc-100 text-black text-xs font-bold">
+                            <ImageIcon className="h-4 w-4" />
+                            <span>Gallery</span>
+                          </Button>
+                        }
+                      />
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="diagram-file-upload"
+                          className="hidden"
+                          onChange={(e) => handleImageUpload(e, field.onChange)}
+                          disabled={isUploadingImage}
+                        />
+                        <label htmlFor="diagram-file-upload">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="cursor-pointer gap-1.5 h-10 px-3 rounded-xl border-zinc-300 bg-white hover:bg-zinc-100 text-black text-xs font-bold"
+                            asChild
+                            disabled={isUploadingImage}
+                          >
+                            <span>
+                              <Upload className="h-4 w-4" />
+                              {isUploadingImage ? '...' : 'Upload'}
+                            </span>
+                          </Button>
+                        </label>
+                      </div>
+                    </div>
+
+                    {isUploadingImage && (
+                      <div className="text-xs text-zinc-700 animate-pulse flex items-center gap-1.5 font-medium">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Compressing image for database...</span>
+                      </div>
+                    )}
+
+                    {field.value && (
+                      <div className="relative border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50 max-h-56 flex items-center justify-center p-2 group">
+                        <img
+                          src={field.value}
+                          alt="Circuit Diagram Preview"
+                          className="max-h-48 object-contain rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-7 w-7 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => field.onChange('')}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Block 6: Arduino Sketch Code */}
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <h3 className="font-bold text-sm text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                  <Cpu className="h-4 w-4 text-zinc-900" />
+                  Arduino Sketch Code
+                </h3>
+                {form.watch('compiledHex') && (
+                  <Badge variant="outline" className="border-zinc-300 text-zinc-900 bg-zinc-100 text-[10px] font-bold gap-1 py-0.5">
+                    <CheckCircle2 className="h-3 w-3 text-zinc-900" />
+                    Hex Ready ({(form.watch('compiledHex')!.length / 1024).toFixed(1)} KB)
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Add parts and quantities needed for this experiment. Displayed to students in tabular form inside the IDE and experiment details.
-              </p>
+
+              <FormField
+                name="code"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="font-bold text-xs text-zinc-900">
+                      C++ / Arduino .ino Code {form.watch('isVideoOnly') ? '(Optional for Video Guides)' : ''}
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder={form.watch('isVideoOnly') ? "Optional: Leave empty if this video guide does not require Arduino sketch code." : "Paste your Arduino .ino / C++ sketch here..."}
+                        {...field}
+                        rows={isFullScreen ? 12 : 7}
+                        className="font-mono text-xs leading-relaxed bg-zinc-50 focus:bg-white"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddComponent}
-              className="h-8 text-xs font-semibold gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-100 hover:text-orange-800 cursor-pointer self-start sm:self-auto"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Component</span>
-            </Button>
           </div>
 
-          {/* Quick Add Common Parts */}
-          <div className="space-y-1.5 pt-1 border-t border-zinc-200/60">
-            <span className="text-[11px] font-semibold text-zinc-500">Quick Add Common Parts:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { name: 'Arduino Uno R3', qty: '1' },
-                { name: 'Breadboard', qty: '1' },
-                { name: 'Jumper Wires (M-M)', qty: '10' },
-                { name: 'Jumper Wires (M-F)', qty: '4' },
-                { name: 'LED (5mm)', qty: '1' },
-                { name: '220Ω Resistor', qty: '1' },
-                { name: '10kΩ Resistor', qty: '1' },
-                { name: 'DHT11 Sensor', qty: '1' },
-                { name: 'HC-SR04 Ultrasonic', qty: '1' },
-                { name: 'Buzzer', qty: '1' },
-                { name: 'Push Button', qty: '1' },
-                { name: 'Servo Motor (SG90)', qty: '1' },
-              ].map(preset => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handleQuickAdd(preset.name, preset.qty)}
-                  className="px-2 py-0.5 text-[11px] font-medium bg-white hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 border border-zinc-200 rounded-md text-zinc-700 transition-colors cursor-pointer shadow-2xs"
-                >
-                  + {preset.name}
-                </button>
-              ))}
+          {/* Full-width Bottom Action Bar */}
+          <div className={cn(isFullScreen ? "xl:col-span-12" : "", "pt-4 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3")}>
+            <p className="text-xs text-zinc-400">
+              Ensure all required fields are filled before saving.
+            </p>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Button
+                type="submit"
+                className="w-full sm:w-auto bg-zinc-900 hover:bg-black text-white font-bold h-11 px-8 rounded-xl shadow-sm transition-all cursor-pointer text-xs"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  'Saving...'
+                ) : (
+                  tutorial
+                    ? (form.watch('isVideoOnly') ? 'Update Intro / Video Guide' : 'Update Experiment')
+                    : (form.watch('isVideoOnly') ? 'Save Intro / Video Guide' : 'Save Experiment')
+                )}
+              </Button>
             </div>
           </div>
 
-          {/* Tabular Form */}
-          {components.length > 0 ? (
-            <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-xs">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead>
-                  <tr className="bg-zinc-100/80 border-b border-zinc-200 text-zinc-600">
-                    <th className="py-2.5 px-3 font-bold w-10 text-center">#</th>
-                    <th className="py-2.5 px-3 font-bold">Component Name / Model</th>
-                    <th className="py-2.5 px-3 font-bold w-32 text-center">Quantity</th>
-                    <th className="py-2.5 px-2 font-bold w-10 text-center"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {components.map((comp, idx) => (
-                    <tr key={idx} className="hover:bg-zinc-50/60 transition-colors">
-                      <td className="py-2 px-3 text-center text-zinc-400 font-mono font-bold">
-                        {idx + 1}
-                      </td>
-                      <td className="py-2 px-3">
-                        <Input
-                          placeholder="e.g. DHT11 Temperature & Humidity Sensor"
-                          value={comp.name}
-                          onChange={(e) => handleUpdateComponent(idx, 'name', e.target.value)}
-                          className="h-8 text-xs rounded-lg bg-zinc-50/50 focus:bg-white"
-                        />
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <Input
-                          placeholder="1, 4 pcs..."
-                          value={comp.quantity}
-                          onChange={(e) => handleUpdateComponent(idx, 'quantity', e.target.value)}
-                          className="h-8 text-xs text-center font-mono rounded-lg bg-zinc-50/50 focus:bg-white"
-                        />
-                      </td>
-                      <td className="py-2 px-2 text-center">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveComponent(idx)}
-                          className="h-7 w-7 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-                          title="Remove Component"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="border border-dashed border-zinc-300/80 rounded-xl p-4 text-center bg-white/70 space-y-1.5">
-              <p className="text-xs text-zinc-600 font-medium">
-                No components added yet.
-              </p>
-              <p className="text-[11px] text-zinc-400">
-                Click <strong>Add Component</strong> or select from the quick parts above to build your parts list.
-              </p>
-            </div>
-          )}
         </div>
-
-         <FormField name="code" control={form.control} render={({ field }) => (
-            <FormItem className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <FormLabel className="font-semibold text-zinc-900">
-                    Arduino Sketch Code {form.watch('isVideoOnly') ? '(Optional for Video Guide)' : '(Optional)'}
-                  </FormLabel>
-                  {form.watch('compiledHex') && (
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 bg-emerald-50 text-[11px] font-semibold gap-1 py-0.5">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                      Precompiled Binary Ready ({(form.watch('compiledHex')!.length / 1024).toFixed(1)} KB)
-                    </Badge>
-                  )}
-                </div>
-                <FormControl>
-                    <Textarea
-                      placeholder={form.watch('isVideoOnly') ? "Optional: Leave empty if this video doesn't need Arduino code." : "Paste your Arduino .ino / C++ sketch here..."}
-                      {...field}
-                      rows={form.watch('isVideoOnly') ? 5 : 9}
-                      className="font-mono text-xs leading-relaxed"
-                    />
-                </FormControl>
-
-                <FormMessage />
-            </FormItem>
-        )}/>
-
-        <Button
-          type="submit"
-          className="w-full bg-zinc-900 hover:bg-black text-white font-bold h-12 rounded-xl shadow-sm transition-all cursor-pointer text-sm"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            'Saving...'
-          ) : (
-            tutorial
-              ? (form.watch('isVideoOnly') ? 'Update Intro / Video Guide' : 'Update Experiment')
-              : (form.watch('isVideoOnly') ? 'Save Intro / Video Guide' : 'Add Experiment')
-          )}
-        </Button>
       </form>
     </Form>
   );

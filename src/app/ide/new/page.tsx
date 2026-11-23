@@ -28,6 +28,7 @@ function NewExperimentContent() {
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [isLoadingChapters, setIsLoadingChapters] = useState(true);
   const [isLoadingTutorial, setIsLoadingTutorial] = useState(Boolean(editId && chapterParam));
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
 
   // Admin validation
   const userDocRef = useMemoFirebase(
@@ -136,91 +137,131 @@ function NewExperimentContent() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 pt-28 md:pt-36 pb-20 px-4 md:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 pt-24 md:pt-28 pb-16 px-3 sm:px-6 md:px-8 xl:px-10 relative overflow-hidden">
       {/* Background Decorative Glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto space-y-6 relative z-10">
+      <div className="w-full max-w-[1920px] mx-auto space-y-6 relative z-10">
         
-        {/* Top Back Navigation Bar */}
-        <div className="flex items-center justify-between">
-          <Link href="/ide">
-            <Button
-              variant="outline"
-              className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-9 px-3.5 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Experiments
-            </Button>
-          </Link>
-        </div>
-
-        {/* Header Title Banner */}
-        <div className="space-y-1.5">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900">
-            {editingTutorial ? 'Edit Experiment' : 'Add New Experiment'}
-          </h1>
-          <p className="text-sm text-zinc-500">
-            {editingTutorial
-              ? `Update details, code, diagram, or video for "${editingTutorial.title}".`
-              : 'Configure coding experiment, introduction video, circuit diagram, hardware components, and Arduino code.'}
-          </p>
-        </div>
-
-        {/* Full-screen Form Container */}
-        <div className="bg-white border border-zinc-200/80 rounded-2xl shadow-sm p-6 md:p-8">
-          {chapters.length === 0 ? (
-            <div className="text-center py-12 space-y-3">
-              <p className="text-sm font-semibold text-zinc-700">No chapters found</p>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                Please create at least one chapter before adding experiments.
-              </p>
+        {/* Top Header Bar: utilizing marked blank space with Destination Chapter and Actions */}
+        <div className="bg-white border border-zinc-200/90 rounded-2xl p-5 md:p-6 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+          {/* Left: Back button + Title + Subtitle */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
               <Link href="/ide">
-                <Button variant="outline" className="text-xs h-9 font-bold rounded-xl border-zinc-300">
-                  Return to Experiments Page
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-8 px-3 rounded-xl gap-1.5 shadow-2xs cursor-pointer transition-all"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Back to Experiments
                 </Button>
               </Link>
+              <span className="text-zinc-300 text-xs font-semibold">/</span>
+              <span className="text-xs font-bold text-zinc-500">
+                {editingTutorial ? 'Edit Mode' : 'New Experiment'}
+              </span>
             </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Destination Chapter Selector (only shown when creating or switching) */}
-              {!editingTutorial && (
-                <div className="space-y-2 pb-5 border-b border-zinc-100">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-zinc-700">
-                    Destination Chapter <span className="text-rose-500">*</span>
-                  </Label>
-                  <select
-                    value={selectedChapter}
-                    onChange={(e) => setSelectedChapter(e.target.value)}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-zinc-800 outline-none focus:border-zinc-400 focus:bg-white transition-all h-11"
-                  >
-                    {chapters.map(ch => (
-                      <option key={ch.id} value={ch.id}>
-                        {ch.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900">
+              {editingTutorial ? 'Edit Experiment' : 'Add New Experiment'}
+            </h1>
+            <p className="text-xs text-zinc-500 max-w-2xl">
+              {editingTutorial
+                ? `Update details, code, diagram, or video for "${editingTutorial.title}".`
+                : 'Configure coding experiment, introduction video, circuit diagram, hardware components, and Arduino code.'}
+            </p>
+          </div>
 
-              {selectedChapter && (
-                <TutorialForm
-                  isFullScreen={true}
-                  onSave={() => {
-                    toast({
-                      title: editingTutorial ? 'Experiment Updated' : 'Experiment Created',
-                      description: 'Changes have been saved successfully.',
-                    });
-                    router.push('/ide');
-                  }}
-                  tutorial={editingTutorial}
-                  chapterId={selectedChapter}
-                />
+          {/* Right: Utilizes the marked blank space with Chapter Selector & Actions */}
+          <div className="flex flex-wrap items-center gap-3 self-start xl:self-center bg-zinc-50/90 p-2.5 rounded-2xl border border-zinc-200 shadow-2xs">
+            {chapters.length > 0 && (
+              <div className="flex items-center gap-2 px-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
+                  Destination Chapter:
+                </span>
+                <select
+                  value={selectedChapter}
+                  onChange={(e) => setSelectedChapter(e.target.value)}
+                  className="bg-white border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-900 outline-none focus:border-zinc-400 transition-all h-9 cursor-pointer min-w-[180px] shadow-2xs"
+                >
+                  {chapters.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {ch.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
+
+            <Link href="/ide">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 px-4 rounded-xl text-xs font-bold border-zinc-300 text-zinc-800 hover:bg-zinc-100 bg-white cursor-pointer"
+              >
+                Cancel
+              </Button>
+            </Link>
+
+            <Button
+              type="submit"
+              form="tutorial-form"
+              disabled={isFormSubmitting}
+              className="h-9 px-5 rounded-xl text-xs font-bold bg-zinc-900 hover:bg-black text-white shadow-sm cursor-pointer gap-2 transition-all"
+            >
+              {isFormSubmitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {editingTutorial ? 'Update Experiment' : 'Save Experiment'}
+                </>
               )}
-            </div>
-          )}
+            </Button>
+          </div>
         </div>
+
+        {/* Full-screen Form Content */}
+        {chapters.length === 0 ? (
+          <div className="bg-white border border-zinc-200/80 rounded-2xl shadow-sm text-center py-16 space-y-3 p-8">
+            <p className="text-sm font-semibold text-zinc-700">No chapters found</p>
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              Please create at least one chapter before adding experiments.
+            </p>
+            <Link href="/ide">
+              <Button variant="outline" className="text-xs h-9 font-bold rounded-xl border-zinc-300">
+                Return to Experiments Page
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="w-full">
+            {selectedChapter && (
+              <TutorialForm
+                isFullScreen={true}
+                onSave={() => {
+                  toast({
+                    title: editingTutorial ? 'Experiment Updated' : 'Experiment Created',
+                    description: 'Changes have been saved successfully.',
+                  });
+                  router.push('/ide');
+                }}
+                tutorial={editingTutorial}
+                chapterId={selectedChapter}
+                chapters={chapters}
+                onChapterChange={setSelectedChapter}
+                onSubmittingChange={setIsFormSubmitting}
+              />
+            )}
+          </div>
+        )}
 
       </div>
     </div>
