@@ -6,6 +6,7 @@ const COMPILER_SERVER_URL = "https://ezcirkit.onrender.com";
 // Monaco Editor and IDE State
 let editor;
 let compiledHex = null;
+let isEditorReadOnly = false;
 let activePort = null;
 let serialReader = null;
 let serialReaderActive = false;
@@ -177,43 +178,136 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Initialize precompiled experiment direct flash dropdown
-  initExperimentDropdown();
+  // Copy Code button
+  const copyCodeBtn = document.getElementById('copyCodeBtn');
+  if (copyCodeBtn) {
+    copyCodeBtn.addEventListener('click', async () => {
+      const code = editor ? editor.getValue() : pendingCode;
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        const textEl = document.getElementById('copyCodeText');
+        if (textEl) {
+          textEl.textContent = 'Copied!';
+          setTimeout(() => {
+            textEl.textContent = 'Copy Code';
+          }, 2000);
+        }
+        logToConsole('Experiment code copied to clipboard! Switch to Online Compiler to test your own modifications.', 'success');
+      } catch (err) {
+        logToConsole(`Failed to copy code: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Mode button: toggle between Online Compiler and Guided Experiments
+  const modeBtn = document.getElementById('onlineCompilerModeBtn');
+  if (modeBtn) {
+    modeBtn.addEventListener('click', () => {
+      if (currentExperimentId) {
+        switchToOnlineCompiler();
+      } else {
+        window.location.href = '/ide';
+      }
+    });
+  }
 
   // Load experiment if parameters are present in URL
   loadExperimentFromUrlParams();
 });
 
 // -------------------------------------------------------------
-// Precompiled Experiments (Direct Flash without Render/Server)
+// Read-Only & Online Compiler Helpers
 // -------------------------------------------------------------
-function initExperimentDropdown() {
-  const select = document.getElementById('experimentSelect');
-  if (!select) return;
+function setEditorReadOnly(readOnly) {
+  isEditorReadOnly = !!readOnly;
+  if (editor) {
+    editor.updateOptions({ readOnly: isEditorReadOnly });
+  }
+  const badge = document.getElementById('editorReadOnlyBadge');
+  if (badge) {
+    badge.style.display = isEditorReadOnly ? 'inline-flex' : 'none';
+  }
+  const copyBtn = document.getElementById('copyCodeBtn');
+  if (copyBtn) {
+    copyBtn.style.display = isEditorReadOnly ? 'inline-flex' : 'none';
+  }
+}
 
-  const experiments = window.PRECOMPILED_EXPERIMENTS || {};
-  const expKeys = Object.keys(experiments);
+function setExperimentTitle(title) {
+  const titleDisplay = document.getElementById('experimentTitleDisplay');
+  if (titleDisplay) {
+    if (title) {
+      titleDisplay.textContent = title;
+      titleDisplay.style.display = 'inline-block';
+      titleDisplay.title = title;
+    } else {
+      titleDisplay.style.display = 'none';
+      titleDisplay.textContent = '';
+    }
+  }
+}
 
-  if (expKeys.length === 0) return;
+function switchToOnlineCompiler() {
+  currentExperimentId = null;
+  currentExperimentInfo = null;
+  precompiledHexForCurrentExperiment = null;
+  compiledHex = null;
+  defaultExperimentCode = '';
 
-  select.innerHTML = '<option value="">⚡ Direct Flash Experiments</option>';
+  setExperimentTitle('');
+  setEditorReadOnly(false);
 
-  const sortedExps = Object.values(experiments).sort((a, b) => (a.order || 0) - (b.order || 0));
+  const starterCode = `// EZCirkit Online Arduino Compiler - Custom Experiment
+// Write your code here and click "Verify" to compile, then "Upload" to flash!
 
-  sortedExps.forEach((exp) => {
-    const opt = document.createElement('option');
-    opt.value = exp.id;
-    opt.textContent = `${exp.order ? exp.order + '. ' : ''}${exp.title}`;
-    select.appendChild(opt);
-  });
+void setup() {
+  // Put your setup code here, to run once:
+  Serial.begin(9600);
+  pinMode(LED_BUILTIN, OUTPUT);
+}
 
-  select.style.display = 'inline-block';
+void loop() {
+  // Put your main code here, to run repeatedly:
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(1000);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(1000);
+}
+`;
 
-  select.addEventListener('change', async (e) => {
-    const selectedId = e.target.value;
-    if (!selectedId) return;
-    await applyExperimentById(selectedId);
-  });
+  if (editor) {
+    editor.setValue(starterCode);
+  } else {
+    pendingCode = starterCode;
+  }
+
+  const experimentInfoBtn = document.getElementById('experimentInfoBtn');
+  if (experimentInfoBtn) experimentInfoBtn.style.display = 'none';
+
+  const modeBtnText = document.getElementById('compilerModeBtnText');
+  if (modeBtnText) modeBtnText.textContent = 'Guided Experiments';
+
+  const editorStatus = document.getElementById('editorStatus');
+  if (editorStatus) {
+    editorStatus.textContent = 'Online Compiler (Ready)';
+    editorStatus.className = 'status-indicator success';
+  }
+
+  const uploadBtn = document.getElementById('uploadBtn');
+  if (uploadBtn) uploadBtn.disabled = true;
+
+  if (typeof window.stopVideo === 'function') {
+    window.stopVideo();
+  }
+
+  if (window.history && window.history.pushState) {
+    window.history.pushState({}, '', '/editor/index.html');
+  }
+
+  logToConsole('--- ONLINE ARDUINO COMPILER ---', 'info');
+  logToConsole('You are in custom experiment mode. Write or paste your Arduino C++ code here.', 'info');
+  logToConsole('Click "Verify" to compile your sketch online, then click "Upload" to flash your Uno board.', 'success');
 }
 
 async function applyExperimentById(experimentId) {
@@ -236,6 +330,12 @@ async function applyExperimentById(experimentId) {
     experimentInfoBtn.style.display = (exp.description || exp.diagramUrl || exp.pinout || hasComponents) ? 'flex' : 'none';
   }
 
+  setExperimentTitle(exp.title || 'Official Experiment');
+  setEditorReadOnly(true);
+
+  const modeBtnText = document.getElementById('compilerModeBtnText');
+  if (modeBtnText) modeBtnText.textContent = 'Online Compiler';
+
   // Load code in Monaco Editor
   if (exp.code) {
     if (editor) {
@@ -253,6 +353,7 @@ async function applyExperimentById(experimentId) {
   }
 
   logToConsole(`Loaded experiment: ${exp.title}`, 'info');
+  logToConsole(`🔒 Experiment code is read-only. You can copy it or click "Online Compiler" to write custom code.`, 'info');
 
   // Load precompiled HEX build
   if (exp.compiledHex) {
@@ -295,12 +396,6 @@ async function applyExperimentById(experimentId) {
       logToConsole(`Error loading precompiled HEX: ${err.message}`, 'error');
     }
   }
-
-  // Sync dropdown value
-  const select = document.getElementById('experimentSelect');
-  if (select) {
-    select.value = experimentId;
-  }
 }
 
 // Monaco Editor Config
@@ -322,8 +417,13 @@ function initMonacoEditor() {
       lineHeight: 22,
       cursorBlinking: "smooth",
       cursorSmoothCaretAnimation: "on",
-      padding: { top: 12 }
+      padding: { top: 12 },
+      readOnly: isEditorReadOnly
     });
+
+    if (isEditorReadOnly) {
+      setEditorReadOnly(true);
+    }
   });
 }
 
@@ -1616,7 +1716,10 @@ async function loadExperimentFromUrlParams() {
   const experimentId = urlParams.get('experiment');
   const chapterId = urlParams.get('chapter');
   
-  if (!experimentId) return;
+  if (!experimentId) {
+    switchToOnlineCompiler();
+    return;
+  }
 
   logToConsole("Loading experiment details...", "info");
 
@@ -1657,6 +1760,12 @@ async function loadExperimentFromUrlParams() {
       currentExperimentId = experimentId;
       defaultExperimentCode = code;
 
+      setExperimentTitle(title);
+      setEditorReadOnly(true);
+
+      const modeBtnText = document.getElementById('compilerModeBtnText');
+      if (modeBtnText) modeBtnText.textContent = 'Online Compiler';
+
       const hasComponents = components.length > 0;
       const experimentInfoBtn = document.getElementById('experimentInfoBtn');
       if (experimentInfoBtn) {
@@ -1664,6 +1773,7 @@ async function loadExperimentFromUrlParams() {
       }
 
       logToConsole(`Loaded experiment: ${title}`, "success");
+      logToConsole(`🔒 Experiment code is read-only. You can copy it or click "Online Compiler" to write custom code.`, "info");
 
       // Load code in Monaco
       if (code) {
