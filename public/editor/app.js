@@ -145,6 +145,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup Event Listeners
   setupEventListeners();
 
+  // Initialize Product Tour
+  initProductTour();
+
   // Check Web Serial support
   checkWebSerialSupport();
 
@@ -1846,4 +1849,309 @@ async function loadExperimentFromUrlParams() {
       console.log('No precompiled build available:', hexErr);
     }
   }
+}
+
+// =============================================================
+// Interactive Product Tour Engine
+// =============================================================
+const IDE_TOUR_STEPS = [
+  {
+    target: null, // Center modal
+    icon: 'sparkles',
+    category: 'Getting Started',
+    title: 'Welcome to EZCirkit Web IDE',
+    purpose: 'This all-in-one browser workspace lets you write Arduino C++ code, follow hands-on video tutorials, inspect breadboard wiring diagrams, and flash sketches straight to your physical Arduino Uno board over USB.',
+    tip: 'No software installation or driver downloads required! Everything runs right in your browser via the native Web Serial API.'
+  },
+  {
+    target: '#connectPortBtn',
+    icon: 'usb',
+    category: 'Hardware Connection',
+    title: 'Connect Board (Web Serial)',
+    purpose: 'Establishes direct USB communication between your browser and the Arduino Uno. Click this button and choose your Arduino’s COM port in the browser popup.',
+    tip: 'Use a standard data-capable USB cable. When connected, the button turns green with your active port.'
+  },
+  {
+    target: '#verifyBtn',
+    icon: 'check-circle',
+    category: 'Cloud Compiler',
+    title: 'Verify & Compile Code',
+    purpose: 'Sends your Arduino C++ code to the high-speed cloud compiler. It checks for syntax errors, verifies libraries, and generates the machine-readable Intel HEX binary.',
+    tip: 'Watch the compiler logs at the bottom right to see memory usage (Flash & RAM) and compilation output.'
+  },
+  {
+    target: '#uploadBtn',
+    icon: 'arrow-right-circle',
+    category: 'Direct USB Flasher',
+    title: 'Upload to Board',
+    purpose: 'Flashes the compiled program directly into your microcontroller in seconds! For official kit experiments, precompiled binaries load in 0ms so you can flash instantly without waiting for compile servers.',
+    tip: '⚠️ Safety Best Practice: Always program your board before connecting external components or powering motors.'
+  },
+  {
+    target: '#experimentInfoBtn',
+    icon: 'info',
+    category: 'Circuit & Pinout Guide',
+    title: 'Experiment Info & Wiring Guide',
+    purpose: 'Pops up the complete experiment curriculum: exact component counts, high-resolution breadboard wiring diagrams, and detailed pin-by-pin Arduino connection tables.',
+    tip: 'Click this button whenever you need to check which pin connects where or verify resistor values.'
+  },
+  {
+    target: '.editor-panel',
+    icon: 'code-2',
+    category: 'Coding Workspace',
+    title: 'Monaco Code Editor',
+    purpose: 'Powered by the same engine as VS Code, with full C++ syntax highlighting, auto-indentation, and error markers. Official experiments are read-only to guarantee working code.',
+    tip: 'Use the "Copy Code" button in the editor header to copy the sketch and experiment with your own modifications!'
+  },
+  {
+    target: '#youtubeVideoPanel',
+    icon: 'youtube',
+    category: 'Split-Screen Learning',
+    title: 'Synchronized YouTube Tutorial',
+    purpose: 'Watch real, step-by-step video instructions side-by-side with your code and breadboard. Each official experiment pre-loads its matching high-definition video walkthrough.',
+    tip: 'You can pause, rewind, and follow each circuit assembly step without constantly toggling between different browser tabs.'
+  },
+  {
+    target: '#toolPanel',
+    icon: 'terminal-square',
+    category: 'Debugging & Serial Comms',
+    title: 'Compiler Logs & Serial Monitor',
+    purpose: 'Toggle between "Compiler Output" to inspect build logs, and "Serial Monitor" to communicate with your board in real-time. View live sensor data from Serial.println() and send test commands.',
+    tip: 'Ensure your sketch baud rate (e.g. Serial.begin(9600)) matches the Serial Monitor baud rate dropdown.'
+  }
+];
+
+let currentTourIndex = 0;
+let isTourActive = false;
+
+function initProductTour() {
+  const startTourBtn = document.getElementById('startTourBtn');
+  const tourOverlay = document.getElementById('productTourOverlay');
+  const tourCloseBtn = document.getElementById('tourCloseBtn');
+  const tourPrevBtn = document.getElementById('tourPrevBtn');
+  const tourNextBtn = document.getElementById('tourNextBtn');
+
+  const tourWelcomeModal = document.getElementById('tourWelcomeModal');
+  const tourWelcomeStartBtn = document.getElementById('tourWelcomeStartBtn');
+  const tourWelcomeSkipBtn = document.getElementById('tourWelcomeSkipBtn');
+
+  if (startTourBtn) {
+    startTourBtn.addEventListener('click', () => {
+      startProductTour(0);
+    });
+  }
+
+  if (tourCloseBtn) {
+    tourCloseBtn.addEventListener('click', stopProductTour);
+  }
+
+  if (tourPrevBtn) {
+    tourPrevBtn.addEventListener('click', () => {
+      if (currentTourIndex > 0) {
+        showTourStep(currentTourIndex - 1);
+      }
+    });
+  }
+
+  if (tourNextBtn) {
+    tourNextBtn.addEventListener('click', () => {
+      if (currentTourIndex < IDE_TOUR_STEPS.length - 1) {
+        showTourStep(currentTourIndex + 1);
+      } else {
+        stopProductTour();
+      }
+    });
+  }
+
+  // First-time welcome prompt logic
+  const hasSeenTour = localStorage.getItem('ezcirkit_ide_tour_seen');
+  if (!hasSeenTour && tourWelcomeModal) {
+    // Show welcome modal after a slight delay so Monaco finishes initial render
+    setTimeout(() => {
+      tourWelcomeModal.classList.add('show');
+    }, 1200);
+  }
+
+  if (tourWelcomeStartBtn) {
+    tourWelcomeStartBtn.addEventListener('click', () => {
+      if (tourWelcomeModal) tourWelcomeModal.classList.remove('show');
+      localStorage.setItem('ezcirkit_ide_tour_seen', 'true');
+      startProductTour(0);
+    });
+  }
+
+  if (tourWelcomeSkipBtn) {
+    tourWelcomeSkipBtn.addEventListener('click', () => {
+      if (tourWelcomeModal) tourWelcomeModal.classList.remove('show');
+      localStorage.setItem('ezcirkit_ide_tour_seen', 'true');
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    if (isTourActive) {
+      positionTourStep(currentTourIndex);
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (!isTourActive) return;
+    if (e.key === 'Escape') stopProductTour();
+    if (e.key === 'ArrowRight') {
+      if (currentTourIndex < IDE_TOUR_STEPS.length - 1) showTourStep(currentTourIndex + 1);
+      else stopProductTour();
+    }
+    if (e.key === 'ArrowLeft' && currentTourIndex > 0) {
+      showTourStep(currentTourIndex - 1);
+    }
+  });
+}
+
+function startProductTour(startIndex = 0) {
+  isTourActive = true;
+  const overlay = document.getElementById('productTourOverlay');
+  if (overlay) overlay.style.display = 'block';
+  showTourStep(startIndex);
+}
+
+function stopProductTour() {
+  isTourActive = false;
+  localStorage.setItem('ezcirkit_ide_tour_seen', 'true');
+  const overlay = document.getElementById('productTourOverlay');
+  if (overlay) overlay.style.display = 'none';
+
+  // Restore experimentInfoBtn display if it was temporarily forced visible for tour
+  const experimentInfoBtn = document.getElementById('experimentInfoBtn');
+  if (experimentInfoBtn && !currentExperimentInfo) {
+    experimentInfoBtn.style.display = 'none';
+  }
+}
+
+function showTourStep(index) {
+  currentTourIndex = index;
+  const step = IDE_TOUR_STEPS[index];
+  if (!step) return;
+
+  const stepBadge = document.getElementById('tourStepBadge');
+  const category = document.getElementById('tourCategory');
+  const title = document.getElementById('tourTitle');
+  const purpose = document.getElementById('tourPurpose');
+  const tipsBox = document.getElementById('tourTipsBox');
+  const tipText = document.getElementById('tourTipText');
+  const prevBtn = document.getElementById('tourPrevBtn');
+  const nextBtn = document.getElementById('tourNextBtn');
+  const dotsContainer = document.getElementById('tourDots');
+  const iconWrap = document.getElementById('tourIconWrap');
+
+  if (stepBadge) stepBadge.textContent = `Step ${index + 1} of ${IDE_TOUR_STEPS.length}`;
+  if (category) category.textContent = step.category;
+  if (title) title.textContent = step.title;
+  if (purpose) purpose.textContent = step.purpose;
+
+  if (step.tip && tipsBox && tipText) {
+    tipsBox.style.display = 'flex';
+    tipText.textContent = step.tip;
+  } else if (tipsBox) {
+    tipsBox.style.display = 'none';
+  }
+
+  if (prevBtn) {
+    prevBtn.style.display = index === 0 ? 'none' : 'inline-flex';
+  }
+  if (nextBtn) {
+    nextBtn.textContent = index === IDE_TOUR_STEPS.length - 1 ? 'Finish Tour 🎉' : 'Next Step →';
+  }
+
+  if (iconWrap) {
+    iconWrap.innerHTML = `<i data-lucide="${step.icon || 'sparkles'}"></i>`;
+  }
+
+  // Build dots
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    IDE_TOUR_STEPS.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = `tour-dot ${i === index ? 'active' : ''}`;
+      dot.title = `Step ${i + 1}: ${IDE_TOUR_STEPS[i].title}`;
+      dot.addEventListener('click', () => showTourStep(i));
+      dotsContainer.appendChild(dot);
+    });
+  }
+
+  // Refresh lucide icons in card
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+
+  positionTourStep(index);
+}
+
+function positionTourStep(index) {
+  const step = IDE_TOUR_STEPS[index];
+  const spotlight = document.getElementById('tourSpotlight');
+  const card = document.getElementById('tourCard');
+  if (!spotlight || !card) return;
+
+  // Handle special case where target is experimentInfoBtn and it might be hidden
+  if (step.target === '#experimentInfoBtn') {
+    const infoBtn = document.getElementById('experimentInfoBtn');
+    if (infoBtn && infoBtn.style.display === 'none') {
+      infoBtn.style.display = 'flex';
+    }
+  }
+
+  let el = step.target ? document.querySelector(step.target) : null;
+
+  if (!el) {
+    // Center spotlight & card on screen (Overview step)
+    spotlight.style.display = 'none';
+    card.style.top = '50%';
+    card.style.left = '50%';
+    card.style.transform = 'translate(-50%, -50%)';
+    return;
+  }
+
+  spotlight.style.display = 'block';
+  const rect = el.getBoundingClientRect();
+  const padding = 8;
+
+  const spotTop = Math.max(0, rect.top - padding);
+  const spotLeft = Math.max(0, rect.left - padding);
+  const spotWidth = rect.width + padding * 2;
+  const spotHeight = rect.height + padding * 2;
+
+  spotlight.style.top = `${spotTop}px`;
+  spotlight.style.left = `${spotLeft}px`;
+  spotlight.style.width = `${spotWidth}px`;
+  spotlight.style.height = `${spotHeight}px`;
+
+  // Calculate position of the tour card relative to the highlighted element
+  const cardWidth = Math.min(420, window.innerWidth - 32);
+  const cardHeight = card.offsetHeight || 280;
+
+  let top, left;
+
+  // If element is in header (e.g. top of screen), place card below it
+  if (rect.top < window.innerHeight / 2) {
+    top = rect.bottom + 16;
+    left = rect.left + rect.width / 2 - cardWidth / 2;
+  } else {
+    // Place card above element
+    top = rect.top - cardHeight - 16;
+    left = rect.left + rect.width / 2 - cardWidth / 2;
+  }
+
+  // Constrain inside viewport
+  if (left < 16) left = 16;
+  if (left + cardWidth > window.innerWidth - 16) {
+    left = window.innerWidth - cardWidth - 16;
+  }
+
+  if (top < 16) top = 16;
+  if (top + cardHeight > window.innerHeight - 16) {
+    top = window.innerHeight - cardHeight - 16;
+  }
+
+  card.style.top = `${top}px`;
+  card.style.left = `${left}px`;
+  card.style.transform = 'none';
 }

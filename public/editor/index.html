@@ -118,6 +118,11 @@
           <i data-lucide="terminal"></i>
           <span>Serial Monitor</span>
         </button>
+
+        <button class="btn btn-secondary btn-glow-blue" id="startTourBtn" title="Interactive Product Tour & Guide">
+          <i data-lucide="help-circle"></i>
+          <span>Tour</span>
+        </button>
       </div>
       <div class="header-right-placeholder"></div>
     </header>
@@ -359,6 +364,89 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" id="closeInfoModalFooterBtn" style="width: 100%;">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Tour Overlay & Floating Tooltip Card -->
+    <div id="productTourOverlay" class="tour-overlay" style="display: none;">
+      <div id="tourSpotlight" class="tour-spotlight"></div>
+      
+      <div id="tourCard" class="tour-card">
+        <div class="tour-card-header">
+          <div class="tour-step-badge" id="tourStepBadge">Step 1 of 8</div>
+          <span class="tour-category" id="tourCategory">Getting Started</span>
+          <button class="tour-close-btn" id="tourCloseBtn" title="Exit Tour">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        
+        <div class="tour-card-body">
+          <div class="tour-icon-wrap" id="tourIconWrap">
+            <i data-lucide="sparkles"></i>
+          </div>
+          <div class="tour-content">
+            <h3 class="tour-title" id="tourTitle">Welcome to EZCirkit Web IDE</h3>
+            <p class="tour-purpose" id="tourPurpose"></p>
+            <div class="tour-tips-box" id="tourTipsBox" style="display: none;">
+              <span class="tour-tip-icon">💡</span>
+              <span class="tour-tip-text" id="tourTipText"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tour-card-footer">
+          <div class="tour-dots" id="tourDots"></div>
+          <div class="tour-nav-btns">
+            <button class="btn btn-secondary btn-sm" id="tourPrevBtn">Back</button>
+            <button class="btn btn-primary btn-sm" id="tourNextBtn">Next Step →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- First-Time Visitor Tour Welcome Prompt Modal -->
+    <div id="tourWelcomeModal" class="modal-overlay">
+      <div class="modal-container tour-welcome-container">
+        <div class="tour-welcome-banner">
+          <div class="tour-welcome-badge">🚀 Interactive Guide</div>
+          <h2>Welcome to EZCirkit Web IDE</h2>
+          <p>Learn how to program your Arduino, wire circuits, compile in the cloud, and upload directly through your web browser without installing any software.</p>
+        </div>
+        <div class="tour-welcome-features-list">
+          <div class="tour-feat-item">
+            <div class="tour-feat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+              <i data-lucide="usb"></i>
+            </div>
+            <div>
+              <strong>Web Serial Hardware Connection</strong>
+              <p>Direct USB connection to Arduino Uno straight from Chrome or Edge.</p>
+            </div>
+          </div>
+          <div class="tour-feat-item">
+            <div class="tour-feat-icon" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+              <i data-lucide="zap"></i>
+            </div>
+            <div>
+              <strong>1-Click Cloud Compile & Direct Flash</strong>
+              <p>Verify code and flash binaries into microcontroller in seconds.</p>
+            </div>
+          </div>
+          <div class="tour-feat-item">
+            <div class="tour-feat-icon" style="background: rgba(249, 115, 22, 0.15); color: #f97316;">
+              <i data-lucide="youtube"></i>
+            </div>
+            <div>
+              <strong>Split-Screen Guided Video</strong>
+              <p>Follow video guides, breadboard wiring diagrams, and code simultaneously.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 0; background: transparent; border: none;">
+          <button class="btn btn-secondary" id="tourWelcomeSkipBtn">Explore on My Own</button>
+          <button class="btn btn-signup" id="tourWelcomeStartBtn" style="gap: 8px;">
+            <i data-lucide="play-circle"></i> Start 1-Minute Tour
+          </button>
         </div>
       </div>
     </div>
