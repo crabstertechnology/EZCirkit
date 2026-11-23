@@ -12,7 +12,6 @@ import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, S
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import TutorialForm from '@/components/admin/tutorial-form';
 import ChapterForm from '@/components/admin/chapter-form';
 
 export default function IdeSelectionPage() {
@@ -49,13 +48,9 @@ export default function IdeSelectionPage() {
 
   // Admin panel state
   const [isChapterFormOpen, setIsChapterFormOpen] = useState(false);
-  const [isTutorialFormOpen, setIsTutorialFormOpen] = useState(false);
   const [isManageChaptersOpen, setIsManageChaptersOpen] = useState(false);
   const [editingChapter, setEditingChapter] = useState<TutorialChapter | null>(null);
-  const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
-  const [selectedChapterForAdd, setSelectedChapterForAdd] = useState<string>('');
   const [previewTutorial, setPreviewTutorial] = useState<Tutorial | null>(null);
-  const [isAddVideoMode, setIsAddVideoMode] = useState(false);
   const [activeVideoTutorial, setActiveVideoTutorial] = useState<Tutorial | null>(null);
 
   // Firestore user doc
@@ -307,26 +302,6 @@ export default function IdeSelectionPage() {
     }
   };
 
-  const handleAddTutorial = () => {
-    setEditingTutorial(null);
-    setIsAddVideoMode(false);
-    setSelectedChapterForAdd(selectedChapter !== 'All' ? selectedChapter : (chapters[0]?.id || ''));
-    setIsTutorialFormOpen(true);
-  };
-
-  const handleAddVideoOnly = () => {
-    setEditingTutorial(null);
-    setIsAddVideoMode(true);
-    setSelectedChapterForAdd(selectedChapter !== 'All' ? selectedChapter : (chapters[0]?.id || ''));
-    setIsTutorialFormOpen(true);
-  };
-
-  const handleEditTutorial = (tutorial: Tutorial) => {
-    setEditingTutorial(tutorial);
-    setIsAddVideoMode(tutorial.isVideoOnly ?? false);
-    setIsTutorialFormOpen(true);
-  };
-
   const handleDeleteTutorial = async (tutorial: Tutorial) => {
     if (!firestore) return;
     if (confirm("Are you sure you want to delete this experiment?")) {
@@ -458,32 +433,15 @@ export default function IdeSelectionPage() {
             </Link>
 
             {isAdmin && (
-              <>
+              <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`}>
                 <Button 
-                  onClick={handleAddChapter}
-                  variant="outline" 
-                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
-                >
-                  <PlusCircle className="h-4 w-4 text-black" />
-                  Add Chapter
-                </Button>
-                <Button 
-                  onClick={handleAddTutorial}
                   variant="outline"
                   className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
                 >
                   <PlusCircle className="h-4 w-4 text-black" />
                   Add Experiment
                 </Button>
-                <Button 
-                  onClick={handleAddVideoOnly}
-                  variant="outline"
-                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
-                >
-                  <Video className="h-4 w-4 text-black" />
-                  Add Intro / Video
-                </Button>
-              </>
+              </Link>
             )}
           </div>
         </div>
@@ -531,19 +489,16 @@ export default function IdeSelectionPage() {
                       >
                         {tut.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </Button>
-                      <Button 
-                        size="icon" 
-                        variant="outline" 
-                        className="h-8 w-8 bg-white/95 hover:bg-orange-50 border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 shadow-sm transition-all rounded-lg cursor-pointer"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleEditTutorial(tut);
-                        }}
-                        title={isVideoItem ? "Edit Intro / Video" : "Edit Experiment"}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
+                      <Link href={`/ide/new?id=${tut.id}&chapter=${tut.chapterId}`}>
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          className="h-8 w-8 bg-white/95 hover:bg-zinc-100 border-zinc-200 text-zinc-700 hover:text-black shadow-sm transition-all rounded-lg cursor-pointer"
+                          title="Edit Experiment"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
                       <Button 
                         size="icon" 
                         variant="outline" 
@@ -859,67 +814,6 @@ export default function IdeSelectionPage() {
                 }}
                 chapter={editingChapter}
               />
-            </DialogContent>
-          </Dialog>
-
-          {/* Tutorial Form Dialog */}
-          <Dialog open={isTutorialFormOpen} onOpenChange={(open) => {
-            setIsTutorialFormOpen(open);
-            if (!open) {
-              setEditingTutorial(null);
-              setIsAddVideoMode(false);
-            }
-          }}>
-            <DialogContent className="bg-white border border-zinc-200 text-zinc-900 max-w-lg rounded-2xl shadow-xl p-6">
-              <DialogHeader className="pb-3 border-b border-zinc-100 mb-4">
-                <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                  {(editingTutorial?.isVideoOnly || isAddVideoMode) ? (
-                    <>
-                      <Video className="h-5 w-5 text-orange-500" />
-                      {editingTutorial ? 'Edit Introduction / Video' : 'Add Introduction / Video'}
-                    </>
-                  ) : (
-                    <>
-                      <PlusCircle className="h-5 w-5 text-orange-500" />
-                      {editingTutorial ? 'Edit Experiment' : 'Add New Experiment'}
-                    </>
-                  )}
-                </DialogTitle>
-              </DialogHeader>
-              
-              {!editingTutorial && (
-                <div className="space-y-1.5 mb-4">
-                  <label className="text-xs font-semibold text-zinc-500">Destination Chapter</label>
-                  <select
-                    value={selectedChapterForAdd}
-                    onChange={(e) => setSelectedChapterForAdd(e.target.value)}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-800 outline-none cursor-pointer focus:border-orange-500 transition-colors"
-                  >
-                    <option value="" disabled>Select a chapter...</option>
-                    {chapters.map(ch => (
-                      <option key={ch.id} value={ch.id}>
-                        {ch.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {((editingTutorial || selectedChapterForAdd) && (
-                <TutorialForm
-                  onSave={() => {
-                    setIsTutorialFormOpen(false);
-                    setEditingTutorial(null);
-                    setIsAddVideoMode(false);
-                    setSelectedChapterForAdd('');
-                  }}
-                  tutorial={editingTutorial}
-                  chapterId={editingTutorial ? editingTutorial.chapterId : selectedChapterForAdd}
-                  defaultVideoOnly={isAddVideoMode}
-                />
-              )) || (
-                <p className="text-sm text-zinc-500 py-4 text-center">Please create a chapter first before adding experiments.</p>
-              )}
             </DialogContent>
           </Dialog>
 

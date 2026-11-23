@@ -242,11 +242,12 @@ interface TutorialFormProps {
   tutorial?: Tutorial | null;
   chapterId: string;
   defaultVideoOnly?: boolean;
+  isFullScreen?: boolean;
 }
 
 const LEVEL_OPTIONS: TutorialLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
-const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId, defaultVideoOnly = false }) => {
+const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId, defaultVideoOnly = false, isFullScreen = false }) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -448,12 +449,11 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
     }
   };
 
-  return (
-    <ScrollArea className="h-[70vh] pr-6">
+  const formContent = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField name="title" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Blinking an LED" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem><FormLabel className="font-bold text-zinc-900">Experiment Title</FormLabel><FormControl><Input placeholder="e.g. Blinking an LED, Ultrasonic Distance Sensor" className="h-11 rounded-xl text-sm" {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
 
 
@@ -770,7 +770,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
 
         <Button
           type="submit"
-          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold h-11 rounded-xl shadow-sm transition-all cursor-pointer"
+          className="w-full bg-zinc-900 hover:bg-black text-white font-bold h-12 rounded-xl shadow-sm transition-all cursor-pointer text-sm"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
@@ -783,6 +783,15 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         </Button>
       </form>
     </Form>
+  );
+
+  if (isFullScreen) {
+    return formContent;
+  }
+
+  return (
+    <ScrollArea className="h-[70vh] pr-6">
+      {formContent}
     </ScrollArea>
   );
 };
