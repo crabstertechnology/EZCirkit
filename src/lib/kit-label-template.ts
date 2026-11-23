@@ -19,27 +19,26 @@ export interface KitPrintOptions {
 
 /**
  * Generates Full A4 Kit Activation Guide Sheets.
- * Each kit gets its own clean A4 page (page-break-after: always).
- * The user can print 1 or 10 or 100 kits and each comes out on its own sheet ready to place in the kit box.
+ * Each kit gets its own clean A4 page, filling the entire sheet without blank trailing pages.
  */
 export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrintOptions): string {
   const host = options?.hostName || 'shop.crabstertech.in';
-  const activateUrl = `https://${host}/activate`;
 
   const pagesHtml = kits
     .map((kit, index) => {
+      const isLast = index === kits.length - 1;
+      // Only break page after if there are more kits to follow (prevents blank trailing page)
+      const pageBreakCss = isLast ? '' : 'page-break-after: always; break-after: page;';
+
       return `
-    <div class="page">
+    <div class="page" style="${pageBreakCss}">
       <div class="card-border">
-        
-        <!-- Top Badge -->
-        <div class="corner-badge">Official Learning Kit Insert</div>
 
         <!-- Header -->
         <div class="header">
           <div class="brand-group">
             <div class="brand-title">EZCirkit</div>
-            <div class="brand-sub">Hands-On Arduino Electronics & Coding Workspace</div>
+            <div class="brand-sub">Hands-On Arduino Electronics &amp; Coding Workspace</div>
           </div>
           <div class="kit-badge-container">
             <div class="kit-badge-label">Unique Kit ID</div>
@@ -53,7 +52,7 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
             ${
               kit.qrDataUrl
                 ? `<img src="${kit.qrDataUrl}" alt="QR Code" />`
-                : `<div style="width:170px;height:170px;display:flex;align-items:center;justify-content:center;background:#f4f4f5;border-radius:8px;font-size:12px;color:#71717a;">QR Code</div>`
+                : `<div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#f4f4f5;border-radius:12px;font-size:14px;color:#71717a;">QR Code</div>`
             }
             <div class="qr-caption">Scan to Activate</div>
             <div class="qr-url">${host}/activate</div>
@@ -62,15 +61,15 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
           <div class="hero-info">
             <div class="section-title">
               <span class="icon-circle">✓</span>
-              <span>How to Use & Get Started</span>
+              <span>How to Use &amp; Get Started</span>
             </div>
             
             <ol class="steps-list">
               <li class="step-item">
                 <span class="step-num">1</span>
                 <div>
-                  <strong>Scan QR Code or Open Link:</strong>
-                  Scan the QR code on the left with your mobile camera, or visit <span class="link-highlight">${activateUrl}</span> on your computer.
+                  <strong>Scan QR Code:</strong>
+                  Scan the QR code on the left with your mobile camera to begin activation.
                 </div>
               </li>
               <li class="step-item">
@@ -84,7 +83,7 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
                 <span class="step-num">3</span>
                 <div>
                   <strong>Enter Your Kit ID:</strong>
-                  Type in <strong>${kit.kitId}</strong> to instantly unlock all 21+ step-by-step coding experiments & YouTube tutorials.
+                  Type in <strong>${kit.kitId}</strong> to instantly unlock coding experiments &amp; YouTube tutorials.
                 </div>
               </li>
               <li class="step-item">
@@ -110,7 +109,7 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
               </li>
               <li>
                 <span class="cross">✕</span>
-                <span><strong>Do NOT discard this card:</strong> Keep it safe inside this kit box for warranty & support.</span>
+                <span><strong>Do NOT discard this card:</strong> Keep it safe inside this kit box for warranty &amp; support.</span>
               </li>
               <li>
                 <span class="cross">✕</span>
@@ -129,7 +128,7 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
             <ul class="rule-list">
               <li>
                 <span class="check">✓</span>
-                <span><strong>Interactive Web IDE:</strong> No Arduino software installation required. Compiles & uploads directly in Chrome!</span>
+                <span><strong>Interactive Web IDE:</strong> No software installation needed. Compiles &amp; uploads directly in Chrome!</span>
               </li>
               <li>
                 <span class="check">✓</span>
@@ -141,41 +140,22 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
               </li>
               <li>
                 <span class="check">✓</span>
-                <span><strong>Teacher & Classroom Friendly:</strong> Ideal for robotics clubs, schools, and home STEM projects.</span>
+                <span><strong>Classroom Ready:</strong> Ideal for robotics clubs, schools, STEM labs, and home projects.</span>
               </li>
             </ul>
-          </div>
-        </div>
-
-        <!-- Experiments Overview Chips -->
-        <div class="included-section">
-          <div class="included-header">Included Learning Curriculum (21+ Hands-on Experiments)</div>
-          <div class="included-tags">
-            <span class="tag">LED Blink</span>
-            <span class="tag">Traffic Lights</span>
-            <span class="tag">IR Obstacle Sensor</span>
-            <span class="tag">Ultrasonic Distance</span>
-            <span class="tag">PIR Motion Detector</span>
-            <span class="tag">LDR Night Lamp</span>
-            <span class="tag">Servo Motor Sweep</span>
-            <span class="tag">Buzzer Melody</span>
-            <span class="tag">Digital Dice</span>
-            <span class="tag">7-Segment Display</span>
-            <span class="tag">Touch Switch</span>
-            <span class="tag">DHT11 Temp & Humidity</span>
           </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
           <div class="footer-brand">
-            <strong>EZCirkit</strong> by Crabster Technology · Made for curious minds.
+            <strong>EZCirkit</strong> by Crabster Technology · Hands-On STEM Learning.
           </div>
           <div class="footer-links">
             <span>Website: <strong>${host}</strong></span>
-            <span>Support: <strong>support@crabstertech.in</strong></span>
+            <span>Support: <strong>crabstertech@gmail.com</strong></span>
           </div>
-          <div class="cut-guide">Page ${index + 1} of ${kits.length}</div>
+          ${kits.length > 1 ? `<div class="cut-guide">Page ${index + 1} of ${kits.length}</div>` : ''}
         </div>
 
       </div>
@@ -207,49 +187,41 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      width: 210mm;
+      height: 297mm;
+      overflow: hidden;
     }
 
-    /* Page container: each kit on its own physical A4 sheet */
+    /* Page container: exact A4 sheet boundary (210mm x 297mm) */
     .page {
-      width: 100vw;
-      min-height: 100vh;
+      width: 210mm;
+      height: 297mm;
+      max-height: 297mm;
       box-sizing: border-box;
       padding: 12mm 14mm;
-      page-break-after: always;
-      break-after: page;
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
       display: flex;
       flex-direction: column;
-      justify-content: center;
     }
 
     .page:last-child {
-      page-break-after: avoid;
-      break-after: avoid;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
     }
 
-    /* Outer border card */
+    /* Outer border card: fills the full A4 page */
     .card-border {
-      border: 2px solid #e4e4e7;
-      border-radius: 14px;
-      padding: 22px 26px;
+      border: 2.5px solid #d4d4d8;
+      border-radius: 18px;
+      padding: 24px 28px;
       background: #ffffff;
       display: flex;
       flex-direction: column;
-      position: relative;
-    }
-
-    .corner-badge {
-      position: absolute;
-      top: -10px;
-      right: 24px;
-      background: #ea580c;
-      color: #ffffff;
-      font-size: 9px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      padding: 3px 10px;
-      border-radius: 6px;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
     }
 
     /* Header */
@@ -258,23 +230,22 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
       justify-content: space-between;
       align-items: center;
       border-bottom: 2px solid #f4f4f5;
-      padding-bottom: 14px;
-      margin-bottom: 16px;
+      padding-bottom: 16px;
     }
 
     .brand-title {
-      font-size: 30px;
+      font-size: 38px;
       font-weight: 900;
       color: #ea580c;
       letter-spacing: -0.5px;
-      line-height: 1;
+      line-height: 1.1;
     }
 
     .brand-sub {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 600;
-      color: #71717a;
-      margin-top: 3px;
+      color: #52525b;
+      margin-top: 4px;
     }
 
     .kit-badge-container {
@@ -282,67 +253,67 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
     }
 
     .kit-badge-label {
-      font-size: 9px;
+      font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
       color: #71717a;
     }
 
     .kit-badge-id {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 900;
       color: #09090b;
       background: #f4f4f5;
-      padding: 4px 10px;
-      border-radius: 8px;
-      border: 1px solid #d4d4d8;
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #d4d4d8;
       display: inline-block;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     /* Hero */
     .hero {
       display: flex;
-      gap: 20px;
+      gap: 24px;
       align-items: center;
       background: #fafafa;
-      border: 1.5px solid #f4f4f5;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
+      border: 1.5px solid #e4e4e7;
+      border-radius: 16px;
+      padding: 22px;
     }
 
     .qr-box {
       background: #ffffff;
-      border: 1.5px solid #e4e4e7;
-      border-radius: 10px;
-      padding: 10px;
+      border: 1.5px solid #d4d4d8;
+      border-radius: 14px;
+      padding: 12px;
       text-align: center;
       flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
     .qr-box img {
-      width: 145px;
-      height: 145px;
+      width: 190px;
+      height: 190px;
       display: block;
     }
 
     .qr-caption {
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 900;
       color: #ea580c;
-      margin-top: 6px;
+      margin-top: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
     }
 
     .qr-url {
-      font-size: 9px;
-      font-weight: 600;
-      color: #71717a;
-      margin-top: 1px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #52525b;
+      margin-top: 2px;
     }
 
     .hero-info {
@@ -350,27 +321,27 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
     }
 
     .section-title {
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 16px;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: #18181b;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .icon-circle {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       background: #ea580c;
       color: white;
       border-radius: 50%;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 900;
     }
 
@@ -378,26 +349,26 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 12px;
     }
 
     .step-item {
       display: flex;
       align-items: flex-start;
-      gap: 8px;
-      font-size: 11.5px;
-      line-height: 1.35;
-      color: #3f3f46;
+      gap: 12px;
+      font-size: 13.5px;
+      line-height: 1.45;
+      color: #27272a;
     }
 
     .step-num {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       background: #18181b;
       color: #ffffff;
       border-radius: 50%;
-      font-size: 10px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 900;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -405,23 +376,17 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
       margin-top: 1px;
     }
 
-    .link-highlight {
-      color: #ea580c;
-      font-weight: 700;
-    }
-
     /* Rules Grid */
     .rules-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 16px;
     }
 
     .rule-card {
-      border: 1px solid #e4e4e7;
-      border-radius: 10px;
-      padding: 12px 14px;
+      border: 1.5px solid #e4e4e7;
+      border-radius: 14px;
+      padding: 18px 20px;
       background: #ffffff;
     }
 
@@ -436,11 +401,11 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
     }
 
     .rule-title {
-      font-size: 11px;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 7px;
+      margin-bottom: 10px;
     }
 
     .rule-card.warning .rule-title {
@@ -455,15 +420,15 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      font-size: 10.5px;
-      line-height: 1.35;
-      color: #4b5563;
+      gap: 8px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #3f3f46;
     }
 
     .rule-list li {
       display: flex;
-      gap: 5px;
+      gap: 8px;
     }
 
     .cross {
@@ -478,54 +443,20 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
       flex-shrink: 0;
     }
 
-    /* Included Curriculum */
-    .included-section {
-      background: #fafafa;
-      border: 1px solid #f4f4f5;
-      border-radius: 10px;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-    }
-
-    .included-header {
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #71717a;
-      margin-bottom: 6px;
-    }
-
-    .included-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
-
-    .tag {
-      font-size: 9.5px;
-      font-weight: 600;
-      background: #ffffff;
-      border: 1px solid #e4e4e7;
-      border-radius: 5px;
-      padding: 2.5px 7px;
-      color: #3f3f46;
-    }
-
     /* Footer */
     .footer {
-      border-top: 1.5px solid #f4f4f5;
-      padding-top: 10px;
+      border-top: 2px solid #f4f4f5;
+      padding-top: 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 10px;
-      color: #71717a;
+      font-size: 12px;
+      color: #52525b;
     }
 
     .footer-links {
       display: flex;
-      gap: 12px;
+      gap: 18px;
       font-weight: 600;
     }
 
@@ -534,7 +465,7 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
     }
 
     .cut-guide {
-      font-size: 9px;
+      font-size: 10px;
       color: #a1a1aa;
       font-weight: 700;
       text-transform: uppercase;
@@ -545,7 +476,6 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
   ${pagesHtml}
   <script>
     window.onload = function() {
-      // Small timeout ensures QR images are fully loaded before print dialog triggers
       setTimeout(function() {
         window.print();
       }, 350);
