@@ -19,6 +19,7 @@ export interface Tutorial {
     videoId?: string;
     order: number;
     isHidden?: boolean;
+    isVideoOnly?: boolean;
     components?: ExperimentComponent[];
     code?: string;
     compiledHex?: string;

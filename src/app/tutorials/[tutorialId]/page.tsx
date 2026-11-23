@@ -24,6 +24,7 @@ interface Tutorial {
   code?: string;
   notes?: string;
   isHidden?: boolean;
+  isVideoOnly?: boolean;
   components?: Array<{ name: string; quantity: string }>;
 }
 

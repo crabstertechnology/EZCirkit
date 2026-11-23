@@ -17,7 +17,7 @@ import type { Tutorial, TutorialLevel } from '@/lib/tutorials';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Search, Cpu, CheckCircle2, AlertCircle, Loader2, Sparkles, Eye, EyeOff, Plus, Trash2, Video, Play } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -38,6 +38,7 @@ const tutorialSchema = z.object({
   diagramUrl: z.string().optional(),
   pinout: z.string().optional(),
   isHidden: z.boolean().optional(),
+  isVideoOnly: z.boolean().optional(),
 });
 
 interface Asset {
@@ -240,11 +241,12 @@ interface TutorialFormProps {
   onSave: () => void;
   tutorial?: Tutorial | null;
   chapterId: string;
+  defaultVideoOnly?: boolean;
 }
 
 const LEVEL_OPTIONS: TutorialLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
 
-const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId }) => {
+const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId, defaultVideoOnly = false }) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -312,6 +314,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       diagramUrl: '',
       pinout: '',
       isHidden: false,
+      isVideoOnly: defaultVideoOnly,
     },
   });
 
@@ -355,6 +358,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         diagramUrl: tutorial.diagramUrl || '',
         pinout: tutorial.pinout || '',
         isHidden: tutorial.isHidden ?? false,
+        isVideoOnly: tutorial.isVideoOnly ?? defaultVideoOnly,
       });
     } else {
       setComponents([]);
@@ -373,6 +377,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
         diagramUrl: '',
         pinout: '',
         isHidden: false,
+        isVideoOnly: defaultVideoOnly,
       });
 
       if (firestore && chapterId) {
@@ -417,6 +422,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
       ...data,
       components: cleanedComponents,
       isHidden: data.isHidden ?? false,
+      isVideoOnly: Boolean(data.isVideoOnly),
       compiledHex: data.compiledHex || tutorial?.compiledHex || undefined,
       imageId: data.imageId || 'tutorial-1',
       duration: data.duration || '5 mins',
@@ -480,6 +486,30 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
             </FormItem>
           )}
         />
+
+        <FormField
+          name="isVideoOnly"
+          control={form.control}
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-orange-200 bg-orange-50/60 p-3.5 shadow-sm">
+              <div className="space-y-0.5 pr-2">
+                <FormLabel className="text-sm font-bold text-zinc-900 flex items-center gap-2 cursor-pointer">
+                  <Video className="h-4 w-4 text-orange-600" />
+                  <span>Introduction / Video Guide (Without IDE)</span>
+                </FormLabel>
+                <p className="text-xs text-zinc-600">
+                  Enable for introductory videos, hardware unboxing, theory, or guides that don't need the code editor. Students can watch the video directly on the experiments page without launching the IDE.
+                </p>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
         
         <FormField name="description" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short summary of the project." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
@@ -487,9 +517,19 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
 
         <FormField name="videoId" control={form.control} render={({ field }) => (
             <FormItem>
-                <FormLabel>Video URL (YouTube, Google Drive, etc.) (Optional)</FormLabel>
+                <FormLabel className="flex items-center gap-1.5">
+                  <Video className="h-3.5 w-3.5 text-orange-600" />
+                  <span>Video URL (YouTube, Vimeo, embed, etc.)</span>
+                  {form.watch('isVideoOnly') ? (
+                    <Badge variant="outline" className="text-[10px] bg-orange-100 text-orange-800 border-orange-200 font-bold ml-1">
+                      Featured Video
+                    </Badge>
+                  ) : (
+                    <span className="text-zinc-400 font-normal text-xs">(Optional)</span>
+                  )}
+                </FormLabel>
                 <FormControl>
-                    <Input placeholder="https://www.youtube.com/embed/your_video_id" {...field} />
+                    <Input placeholder="https://www.youtube.com/watch?v=... or embed link" {...field} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -705,7 +745,9 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
          <FormField name="code" control={form.control} render={({ field }) => (
             <FormItem className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <FormLabel className="font-semibold text-zinc-900">Arduino Sketch Code (Optional)</FormLabel>
+                  <FormLabel className="font-semibold text-zinc-900">
+                    Arduino Sketch Code {form.watch('isVideoOnly') ? '(Optional for Video Guide)' : '(Optional)'}
+                  </FormLabel>
                   {form.watch('compiledHex') && (
                     <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 bg-emerald-50 text-[11px] font-semibold gap-1 py-0.5">
                       <CheckCircle2 className="h-3 w-3 text-emerald-600" />
@@ -715,9 +757,9 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
                 </div>
                 <FormControl>
                     <Textarea
-                      placeholder="Paste your Arduino .ino / C++ sketch here..."
+                      placeholder={form.watch('isVideoOnly') ? "Optional: Leave empty if this video doesn't need Arduino code." : "Paste your Arduino .ino / C++ sketch here..."}
                       {...field}
-                      rows={9}
+                      rows={form.watch('isVideoOnly') ? 5 : 9}
                       className="font-mono text-xs leading-relaxed"
                     />
                 </FormControl>
@@ -732,9 +774,11 @@ const TutorialForm: React.FC<TutorialFormProps> = ({ onSave, tutorial, chapterId
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            'Saving Experiment...'
+            'Saving...'
           ) : (
-            tutorial ? 'Update Experiment' : 'Add Experiment'
+            tutorial
+              ? (form.watch('isVideoOnly') ? 'Update Intro / Video Guide' : 'Update Experiment')
+              : (form.watch('isVideoOnly') ? 'Save Intro / Video Guide' : 'Add Experiment')
           )}
         </Button>
       </form>

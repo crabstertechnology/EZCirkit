@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2 } from 'lucide-react';
+import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2, Video } from 'lucide-react';
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -55,6 +55,8 @@ export default function IdeSelectionPage() {
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [selectedChapterForAdd, setSelectedChapterForAdd] = useState<string>('');
   const [previewTutorial, setPreviewTutorial] = useState<Tutorial | null>(null);
+  const [isAddVideoMode, setIsAddVideoMode] = useState(false);
+  const [activeVideoTutorial, setActiveVideoTutorial] = useState<Tutorial | null>(null);
 
   // Firestore user doc
   const userDocRef = useMemoFirebase(
@@ -194,13 +196,26 @@ export default function IdeSelectionPage() {
     };
   }, [firestore, toast]);
 
-  // Extract YouTube ID
-  const getYoutubeThumbnail = (url?: string) => {
-    if (!url) return '/logo.png';
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  // Extract YouTube ID & Embed Helpers
+  const extractYoutubeId = (url?: string): string | null => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    const videoId = (match && match[2].length === 11) ? match[2] : null;
-    return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '/logo.png';
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const getEmbedVideoUrl = (url?: string): string => {
+    if (!url) return '';
+    const ytId = extractYoutubeId(url);
+    if (ytId) {
+      return `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0`;
+    }
+    return url;
+  };
+
+  const getYoutubeThumbnail = (url?: string) => {
+    const ytId = extractYoutubeId(url);
+    return ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : '/logo.png';
   };
 
   // Filtered tutorials list: arrange all unhidden (visible) experiments to show at the top
@@ -241,6 +256,12 @@ export default function IdeSelectionPage() {
     if (!hasPurchased) {
       e.preventDefault();
       setIsLockDialogOpen(true);
+      return;
+    }
+    const isVideoItem = Boolean(tut.isVideoOnly || (!tut.code && tut.videoId));
+    if (isVideoItem) {
+      e.preventDefault();
+      setActiveVideoTutorial(tut);
     }
   };
 
@@ -288,12 +309,21 @@ export default function IdeSelectionPage() {
 
   const handleAddTutorial = () => {
     setEditingTutorial(null);
+    setIsAddVideoMode(false);
+    setSelectedChapterForAdd(selectedChapter !== 'All' ? selectedChapter : (chapters[0]?.id || ''));
+    setIsTutorialFormOpen(true);
+  };
+
+  const handleAddVideoOnly = () => {
+    setEditingTutorial(null);
+    setIsAddVideoMode(true);
     setSelectedChapterForAdd(selectedChapter !== 'All' ? selectedChapter : (chapters[0]?.id || ''));
     setIsTutorialFormOpen(true);
   };
 
   const handleEditTutorial = (tutorial: Tutorial) => {
     setEditingTutorial(tutorial);
+    setIsAddVideoMode(tutorial.isVideoOnly ?? false);
     setIsTutorialFormOpen(true);
   };
 
@@ -369,6 +399,14 @@ export default function IdeSelectionPage() {
                 >
                   <PlusCircle className="h-4 w-4" />
                   Add Experiment
+                </Button>
+                <Button 
+                  onClick={handleAddVideoOnly}
+                  variant="outline"
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white border-zinc-900 font-semibold text-xs h-10 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                >
+                  <Video className="h-4 w-4 text-orange-400" />
+                  Add Intro / Video
                 </Button>
               </>
             )}
@@ -468,7 +506,9 @@ export default function IdeSelectionPage() {
         {!showLoading && dataLoadedOnce && (
           filteredTutorials.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTutorials.map((tut) => (
+              {filteredTutorials.map((tut) => {
+                const isVideoItem = Boolean(tut.isVideoOnly || (!tut.code && tut.videoId));
+                return (
                 <div key={tut.id} className="relative group">
                   
                   {/* Admin action overlays on the card */}
@@ -496,7 +536,7 @@ export default function IdeSelectionPage() {
                           e.stopPropagation();
                           handleEditTutorial(tut);
                         }}
-                        title="Edit Experiment"
+                        title={isVideoItem ? "Edit Intro / Video" : "Edit Experiment"}
                       >
                         <Edit className="h-3.5 w-3.5" />
                       </Button>
@@ -516,17 +556,22 @@ export default function IdeSelectionPage() {
                     </div>
                   )}
 
-                  {/* Hidden badge top-right for Admins */}
-                  {isAdmin && tut.isHidden && (
-                    <div className="absolute top-3 right-3 z-20 pointer-events-none">
+                  {/* Top-right badges */}
+                  <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1 pointer-events-none">
+                    {isAdmin && tut.isHidden && (
                       <Badge variant="outline" className="bg-amber-500/90 backdrop-blur-sm text-white border-amber-600 text-[10px] gap-1 font-bold shadow-sm px-2 py-0.5">
                         <EyeOff className="h-3 w-3" /> Hidden
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                    {isVideoItem && (
+                      <Badge variant="outline" className="bg-orange-500/95 backdrop-blur-sm text-white border-orange-600 text-[10px] gap-1 font-bold shadow-sm px-2 py-0.5">
+                        <Video className="h-3 w-3" /> Intro / Video
+                      </Badge>
+                    )}
+                  </div>
 
                   <Link
-                    href={`/editor/index.html?experiment=${tut.id}&chapter=${tut.chapterId}`}
+                    href={isVideoItem ? '#' : `/editor/index.html?experiment=${tut.id}&chapter=${tut.chapterId}`}
                     onClick={(e) => handleTutorialClick(e, tut)}
                     className="block h-full"
                   >
@@ -557,7 +602,16 @@ export default function IdeSelectionPage() {
 
                         {/* Play overlay button on hover */}
                         {hasPurchased && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div 
+                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              if (tut.videoId) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setActiveVideoTutorial(tut);
+                              }
+                            }}
+                          >
                             <div className="w-12 h-12 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-orange-500/25 transform scale-90 group-hover:scale-100 transition-transform">
                               <Play className="h-5 w-5 fill-current ml-0.5" />
                             </div>
@@ -575,11 +629,16 @@ export default function IdeSelectionPage() {
                       </div>
 
                       <CardHeader className="space-y-1 p-3.5 flex-grow">
-                        {(!hasPurchased || (isAdmin && tut.isHidden)) && (
+                        {(!hasPurchased || (isAdmin && tut.isHidden) || isVideoItem) && (
                           <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
                             {!hasPurchased && (
                               <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
                                 <Lock className="h-2.5 w-2.5" /> Premium
+                              </Badge>
+                            )}
+                            {isVideoItem && (
+                              <Badge variant="outline" className="text-[9.5px] text-orange-700 bg-orange-50 border-orange-200 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <Video className="h-2.5 w-2.5" /> Video Only (No IDE)
                               </Badge>
                             )}
                             {isAdmin && tut.isHidden && (
@@ -600,23 +659,37 @@ export default function IdeSelectionPage() {
                       </CardHeader>
 
                       <CardFooter className="px-3.5 pb-3.5 pt-0">
-                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm">
-                          {hasPurchased ? (
-                            <>
-                              <Code2 className="h-3.5 w-3.5" /> Launch IDE
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="h-3.5 w-3.5" /> Unlock Project
-                            </>
-                          )}
-                        </Button>
+                        {isVideoItem ? (
+                          <Button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleTutorialClick(e, tut);
+                            }}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold py-1.5 gap-1.5 transition-all shadow-sm cursor-pointer"
+                          >
+                            <Play className="h-3.5 w-3.5 fill-current" /> Watch Video
+                          </Button>
+                        ) : (
+                          <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm">
+                            {hasPurchased ? (
+                              <>
+                                <Code2 className="h-3.5 w-3.5" /> Launch IDE
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-3.5 w-3.5" /> Unlock Project
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </CardFooter>
 
                     </Card>
                   </Link>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16 bg-white border border-zinc-200 rounded-2xl max-w-md mx-auto space-y-3 shadow-sm">
@@ -786,10 +859,28 @@ export default function IdeSelectionPage() {
           </Dialog>
 
           {/* Tutorial Form Dialog */}
-          <Dialog open={isTutorialFormOpen} onOpenChange={setIsTutorialFormOpen}>
+          <Dialog open={isTutorialFormOpen} onOpenChange={(open) => {
+            setIsTutorialFormOpen(open);
+            if (!open) {
+              setEditingTutorial(null);
+              setIsAddVideoMode(false);
+            }
+          }}>
             <DialogContent className="bg-white border border-zinc-200 text-zinc-900 max-w-lg rounded-2xl shadow-xl p-6">
               <DialogHeader className="pb-3 border-b border-zinc-100 mb-4">
-                <DialogTitle className="text-lg font-bold">{editingTutorial ? 'Edit Experiment' : 'Add New Experiment'}</DialogTitle>
+                <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                  {(editingTutorial?.isVideoOnly || isAddVideoMode) ? (
+                    <>
+                      <Video className="h-5 w-5 text-orange-500" />
+                      {editingTutorial ? 'Edit Introduction / Video' : 'Add Introduction / Video'}
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="h-5 w-5 text-orange-500" />
+                      {editingTutorial ? 'Edit Experiment' : 'Add New Experiment'}
+                    </>
+                  )}
+                </DialogTitle>
               </DialogHeader>
               
               {!editingTutorial && (
@@ -815,10 +906,12 @@ export default function IdeSelectionPage() {
                   onSave={() => {
                     setIsTutorialFormOpen(false);
                     setEditingTutorial(null);
+                    setIsAddVideoMode(false);
                     setSelectedChapterForAdd('');
                   }}
                   tutorial={editingTutorial}
                   chapterId={editingTutorial ? editingTutorial.chapterId : selectedChapterForAdd}
+                  defaultVideoOnly={isAddVideoMode}
                 />
               )) || (
                 <p className="text-sm text-zinc-500 py-4 text-center">Please create a chapter first before adding experiments.</p>
@@ -888,6 +981,104 @@ export default function IdeSelectionPage() {
           </Dialog>
         </>
       )}
+
+      {/* Video Player Modal (Without IDE) */}
+      <Dialog open={!!activeVideoTutorial} onOpenChange={(open) => !open && setActiveVideoTutorial(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] rounded-2xl bg-white border border-zinc-200 text-zinc-900 p-0 overflow-hidden shadow-2xl">
+          {activeVideoTutorial && (
+            <div>
+              {/* Video Player Frame */}
+              <div className="relative aspect-video w-full bg-black">
+                {activeVideoTutorial.videoId ? (
+                  <iframe
+                    src={getEmbedVideoUrl(activeVideoTutorial.videoId)}
+                    title={activeVideoTutorial.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full border-none"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-zinc-400 gap-2">
+                    <Video className="h-10 w-10 text-zinc-600" />
+                    <p className="text-sm">No video URL provided for this tutorial.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Video Information */}
+              <div className="p-6 space-y-4 max-h-[40vh] overflow-y-auto">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs font-bold gap-1 py-0.5 px-2.5">
+                      <Video className="h-3.5 w-3.5" />
+                      {activeVideoTutorial.isVideoOnly ? 'Introduction Guide' : 'Video Tutorial'}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs font-semibold">
+                      {activeVideoTutorial.level}
+                    </Badge>
+                    <span className="text-xs text-zinc-500 font-medium flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-zinc-400" /> {activeVideoTutorial.duration}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {activeVideoTutorial.code && (
+                      <Link
+                        href={`/editor/index.html?experiment=${activeVideoTutorial.id}&chapter=${activeVideoTutorial.chapterId}`}
+                      >
+                        <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5 rounded-xl border-zinc-300">
+                          <Code2 className="h-3.5 w-3.5 text-orange-500" /> Open in Web IDE
+                        </Button>
+                      </Link>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setActiveVideoTutorial(null)}
+                      className="text-xs rounded-xl"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-black text-zinc-900 tracking-tight">
+                    {activeVideoTutorial.title}
+                  </h2>
+                  <p className="text-sm text-zinc-600 mt-2 leading-relaxed whitespace-pre-line">
+                    {activeVideoTutorial.description}
+                  </p>
+                </div>
+
+                {activeVideoTutorial.components && activeVideoTutorial.components.length > 0 && (
+                  <div className="pt-3 border-t border-zinc-100 space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                      <Cpu className="h-3.5 w-3.5 text-orange-500" /> Required Components
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {activeVideoTutorial.components.map((c, i) => (
+                        <Badge key={i} variant="outline" className="bg-zinc-50 border-zinc-200 text-zinc-700 text-xs py-1 px-2.5">
+                          {c.name} {c.quantity ? `(${c.quantity})` : ''}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeVideoTutorial.pinout && (
+                  <div className="pt-3 border-t border-zinc-100 space-y-1.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700">Pinout / Connections</h4>
+                    <pre className="font-mono text-xs bg-zinc-50 border border-zinc-200 p-3 rounded-xl whitespace-pre-wrap text-zinc-700">
+                      {activeVideoTutorial.pinout}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
