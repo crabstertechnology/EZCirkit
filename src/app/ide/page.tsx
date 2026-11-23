@@ -364,29 +364,32 @@ export default function IdeSelectionPage() {
 
         {/* Filters and Search Bar */}
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4">
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* Left: Search Bar */}
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search experiments..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm text-zinc-800 outline-none focus:border-orange-500 focus:bg-white transition-all h-10"
+            />
+          </div>
+
+          {/* Center: Launch IDE */}
+          <div className="flex justify-center items-center">
             <Link href="/editor/index.html">
               <Button
                 variant="outline"
-                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-xs shrink-0 cursor-pointer transition-all"
+                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-5 rounded-xl gap-2 shadow-xs cursor-pointer transition-all"
               >
                 <Code2 className="h-4 w-4 text-black" />
                 Launch IDE
               </Button>
             </Link>
-
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search experiments..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm text-zinc-800 outline-none focus:border-orange-500 focus:bg-white transition-all h-10"
-              />
-            </div>
           </div>
 
+          {/* Right: Filters & Admin Controls */}
           <div className="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
             {/* Visibility filter for Admin */}
             {isAdmin && (
