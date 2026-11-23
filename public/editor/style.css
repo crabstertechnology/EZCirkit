@@ -402,6 +402,35 @@ body {
   color: var(--text-main);
 }
 
+.btn-back-experiments {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--bg-input, #1e1e1e);
+  border: 1px solid var(--border-color, #333);
+  color: var(--text-main, #e0e0e0);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 2px;
+}
+
+.btn-back-experiments:hover {
+  background: var(--bg-hover, #2a2a2a);
+  color: var(--color-primary, #f97316);
+  border-color: var(--color-primary, #f97316);
+  transform: translateX(-1px);
+}
+
+.btn-back-experiments i {
+  width: 14px !important;
+  height: 14px !important;
+  color: inherit !important;
+}
+
 .panel-title i {
   width: 16px;
   height: 16px;
