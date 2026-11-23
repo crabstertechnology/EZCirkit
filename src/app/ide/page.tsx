@@ -24,7 +24,6 @@ export default function IdeSelectionPage() {
   const [allTutorials, setAllTutorials] = useState<Tutorial[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataLoadedOnce, setDataLoadedOnce] = useState(false);
-  const [isSyncingPrecompiled, setIsSyncingPrecompiled] = useState(false);
 
   // Load IDE selection cache on client mount to make loading instant
   useEffect(() => {
@@ -204,9 +203,9 @@ export default function IdeSelectionPage() {
     return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '/logo.png';
   };
 
-  // Filtered tutorials list
+  // Filtered tutorials list: arrange all unhidden (visible) experiments to show at the top
   const filteredTutorials = useMemo(() => {
-    return allTutorials.filter(tut => {
+    const list = allTutorials.filter(tut => {
       // Non-admins never see hidden tutorials
       if (!isAdmin && tut.isHidden) return false;
 
@@ -221,41 +220,22 @@ export default function IdeSelectionPage() {
       const matchesChapter = selectedChapter === 'All' || tut.chapterId === selectedChapter;
       return matchesSearch && matchesChapter;
     });
+
+    // Arrange unhidden (visible) experiments to show at top, hidden ones below
+    return list.sort((a, b) => {
+      const aHidden = a.isHidden ? 1 : 0;
+      const bHidden = b.isHidden ? 1 : 0;
+      if (aHidden !== bHidden) {
+        return aHidden - bHidden;
+      }
+      return (a.order ?? 0) - (b.order ?? 0);
+    });
   }, [allTutorials, searchQuery, selectedChapter, isAdmin, visibilityFilter]);
 
   const visibleCount = useMemo(() => allTutorials.filter(t => !t.isHidden).length, [allTutorials]);
   const hiddenCount = useMemo(() => allTutorials.filter(t => t.isHidden).length, [allTutorials]);
 
   const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc || isLoadingGeneral;
-
-  const handleSyncPrecompiled = async () => {
-    try {
-      setIsSyncingPrecompiled(true);
-      toast({ title: 'Precompiling experiments...', description: 'Compiling sketches and generating 0ms USB upload binaries.' });
-      const res = await fetch('/api/admin/compile-all', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        toast({
-          title: 'Precompilation Complete!',
-          description: data.message || `All ${data.synced} experiments precompiled and ready for upload!`,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Precompilation Failed',
-          description: data.error || 'Failed to sync precompiled binaries.',
-        });
-      }
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Network Error',
-        description: err.message || 'Error syncing precompiled binaries.',
-      });
-    } finally {
-      setIsSyncingPrecompiled(false);
-    }
-  };
 
   const handleTutorialClick = (e: React.MouseEvent, tut: Tutorial) => {
     if (!hasPurchased) {
@@ -363,25 +343,6 @@ export default function IdeSelectionPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={handleSyncPrecompiled}
-                disabled={isSyncingPrecompiled}
-                variant="outline"
-                className="bg-white border-zinc-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 text-zinc-700 text-xs font-semibold py-2 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm"
-                title="Compile all experiments and generate offline binaries for 0ms USB upload"
-              >
-                {isSyncingPrecompiled ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-4 w-4 text-orange-500 fill-orange-500" />
-                    Precompile All
-                  </>
-                )}
-              </Button>
               <Button 
                 onClick={handleAddChapter}
                 variant="outline" 
