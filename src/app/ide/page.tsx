@@ -614,28 +614,20 @@ export default function IdeSelectionPage() {
                       </div>
 
                       <CardHeader className="space-y-1 p-3.5 flex-grow">
-                        <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
-                          {!hasPurchased && (
-                            <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
-                              <Lock className="h-2.5 w-2.5" /> Premium
-                            </Badge>
-                          )}
-                          {isAdmin && tut.isHidden && (
-                            <Badge variant="outline" className="text-[9.5px] text-amber-700 bg-amber-50 border-amber-300 gap-1 py-0.5 px-2 font-bold rounded-full">
-                              <EyeOff className="h-2.5 w-2.5" /> Hidden from Students
-                            </Badge>
-                          )}
-                          {tut.components && tut.components.length > 0 && (
-                            <Badge variant="outline" className="text-[9.5px] text-zinc-600 bg-zinc-50 border-zinc-200/90 gap-1 py-0.5 px-2 font-bold rounded-full">
-                              <Cpu className="h-2.5 w-2.5 text-orange-500" /> {tut.components.length} {tut.components.length === 1 ? 'Part' : 'Parts'}
-                            </Badge>
-                          )}
-                          {tut.compiledHex && (
-                            <Badge variant="outline" className="text-[9.5px] text-emerald-700 bg-emerald-50 border-emerald-200/90 gap-1 py-0.5 px-2 font-bold rounded-full" title="Precompiled Intel HEX binary ready for 0ms USB flashing">
-                              <Zap className="h-2.5 w-2.5 text-emerald-600 fill-emerald-600" /> Precompiled
-                            </Badge>
-                          )}
-                        </div>
+                        {(!hasPurchased || (isAdmin && tut.isHidden)) && (
+                          <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
+                            {!hasPurchased && (
+                              <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <Lock className="h-2.5 w-2.5" /> Premium
+                              </Badge>
+                            )}
+                            {isAdmin && tut.isHidden && (
+                              <Badge variant="outline" className="text-[9.5px] text-amber-700 bg-amber-50 border-amber-300 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <EyeOff className="h-2.5 w-2.5" /> Hidden from Students
+                              </Badge>
+                            )}
+                          </div>
+                        )}
 
                         <CardTitle className="text-[13px] font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
                           {tut.title}
@@ -647,34 +639,17 @@ export default function IdeSelectionPage() {
                       </CardHeader>
 
                       <CardFooter className="px-3.5 pb-3.5 pt-0">
-                        <div className="flex gap-2 w-full">
-                          {tut.components && tut.components.length > 0 && (
-                            <Button 
-                              type="button"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setPreviewTutorial(tut);
-                              }}
-                              className="w-1/3 bg-zinc-50 hover:bg-orange-50 hover:text-orange-600 border-zinc-200 text-[10px] font-bold py-1.5 gap-1 transition-all shadow-xs cursor-pointer"
-                              title="View Required Components & Quantity"
-                            >
-                              <Cpu className="h-3 w-3 text-orange-500" /> Parts
-                            </Button>
+                        <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm">
+                          {hasPurchased ? (
+                            <>
+                              <Code2 className="h-3.5 w-3.5" /> Launch IDE
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="h-3.5 w-3.5" /> Unlock Project
+                            </>
                           )}
-                          <Button className={`${tut.components && tut.components.length > 0 ? 'w-2/3' : 'w-full'} bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm`}>
-                            {hasPurchased ? (
-                              <>
-                                <Code2 className="h-3.5 w-3.5" /> Launch IDE
-                              </>
-                            ) : (
-                              <>
-                                <Lock className="h-3.5 w-3.5" /> Unlock Project
-                              </>
-                            )}
-                          </Button>
-                        </div>
+                        </Button>
                       </CardFooter>
 
                     </Card>
