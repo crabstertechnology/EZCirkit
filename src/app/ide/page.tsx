@@ -319,9 +319,6 @@ export default function IdeSelectionPage() {
         
         {/* Header */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <Badge className="bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200/60 px-3 py-1 text-xs gap-1.5 rounded-full shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" /> Interactive Learning
-          </Badge>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-900">
             <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">EZCirkit</span> Coding Experiments
           </h1>
@@ -330,42 +327,10 @@ export default function IdeSelectionPage() {
           </p>
         </div>
 
-        {/* Admin control panel if admin */}
-        {isAdmin && (
-          <div className="bg-orange-50 border border-orange-200/60 rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="bg-orange-500 text-white p-2 rounded-xl">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-zinc-900 text-sm">Admin Control Panel</h3>
-                <p className="text-xs text-zinc-500">Manage experiments and chapters directly on this page.</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                onClick={handleAddChapter}
-                variant="outline" 
-                className="bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 text-zinc-700 text-xs font-semibold py-2 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm"
-              >
-                <PlusCircle className="h-4 w-4 text-orange-500" />
-                Add Chapter
-              </Button>
-              <Button 
-                onClick={handleAddTutorial}
-                className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold py-2 px-3.5 gap-1.5 rounded-xl transition-all shadow-md"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Add Experiment
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Filters and Search Bar */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4">
+        {/* Filters, Actions and Search Bar */}
+        <div className="flex flex-col xl:flex-row gap-4 justify-between items-center bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4">
           {/* Left: Search Bar */}
-          <div className="relative w-full md:w-72">
+          <div className="relative w-full xl:w-72">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
               type="text"
@@ -376,21 +341,41 @@ export default function IdeSelectionPage() {
             />
           </div>
 
-          {/* Center: Launch IDE */}
-          <div className="flex justify-center items-center">
+          {/* Center: Launch IDE & Admin Action Buttons */}
+          <div className="flex flex-wrap gap-2.5 justify-center items-center">
             <Link href="/editor/index.html">
               <Button
                 variant="outline"
-                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-5 rounded-xl gap-2 shadow-xs cursor-pointer transition-all"
+                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-xs cursor-pointer transition-all"
               >
                 <Code2 className="h-4 w-4 text-black" />
                 Launch IDE
               </Button>
             </Link>
+
+            {isAdmin && (
+              <>
+                <Button 
+                  onClick={handleAddChapter}
+                  variant="outline" 
+                  className="bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 text-zinc-700 font-semibold text-xs h-10 px-3.5 gap-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                >
+                  <PlusCircle className="h-4 w-4 text-orange-500" />
+                  Add Chapter
+                </Button>
+                <Button 
+                  onClick={handleAddTutorial}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs h-10 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add Experiment
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Right: Filters & Admin Controls */}
-          <div className="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
+          <div className="flex flex-wrap gap-2 items-center justify-end w-full xl:w-auto">
             {/* Visibility filter for Admin */}
             {isAdmin && (
               <div className="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs shadow-inner">
