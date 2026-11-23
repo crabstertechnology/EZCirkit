@@ -328,14 +328,6 @@ export default function IdeSelectionPage() {
           <p className="text-zinc-500 text-sm md:text-base">
             Select one of our step-by-step coding experiments to launch the EZCirkit Web IDE. The workspace will automatically pre-load the project code and matching YouTube video tutorial.
           </p>
-          <div className="pt-2 flex items-center justify-center gap-3">
-            <Link href="/editor/index.html">
-              <Button className="bg-zinc-900 hover:bg-orange-600 text-white font-semibold text-xs px-4 py-2.5 rounded-xl gap-2 shadow-sm transition-all cursor-pointer">
-                <Code2 className="h-4 w-4 text-orange-400" />
-                Launch Online Compiler (Custom Code)
-              </Button>
-            </Link>
-          </div>
         </div>
 
         {/* Admin control panel if admin */}
