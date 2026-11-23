@@ -332,12 +332,12 @@ export default function IdeSelectionPage() {
           </p>
         </div>
 
-        {/* Filters, Actions and Search Bar */}
-        <div className="bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4 space-y-3.5">
-          {/* Top Row: Search & Filters */}
-          <div className="flex flex-col md:flex-row gap-3 justify-between items-center">
-            {/* Left: Search Bar */}
-            <div className="relative w-full md:w-80">
+        {/* Filters, Actions and Search Bar (All in One Row) */}
+        <div className="bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4 flex flex-col xl:flex-row gap-3 justify-between items-center">
+          {/* Left: Search Bar + Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-72">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <input
                 type="text"
@@ -348,101 +348,101 @@ export default function IdeSelectionPage() {
               />
             </div>
 
-            {/* Right: Filters & Admin Controls */}
-            <div className="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
-              {/* Visibility filter for Admin */}
-              {isAdmin && (
-                <div className="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => setVisibilityFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                      visibilityFilter === 'all'
-                        ? 'bg-white text-zinc-900 shadow-sm font-bold'
-                        : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
-                  >
-                    All ({allTutorials.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVisibilityFilter('visible')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                      visibilityFilter === 'visible'
-                        ? 'bg-white text-zinc-900 shadow-sm font-bold'
-                        : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
-                  >
-                    Visible ({visibleCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVisibilityFilter('hidden')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                      visibilityFilter === 'hidden'
-                        ? 'bg-zinc-900 text-white shadow-sm font-bold'
-                        : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
-                  >
-                    <EyeOff className="h-3 w-3" />
-                    Hidden ({hiddenCount})
-                  </button>
-                </div>
-              )}
-
-              {/* Chapter Filter & Edit Icon if Admin */}
-              <div className="flex items-center gap-1.5">
-                <select
-                  value={selectedChapter}
-                  onChange={(e) => setSelectedChapter(e.target.value)}
-                  className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-700 outline-none cursor-pointer focus:border-zinc-400 focus:bg-white transition-all h-10"
+            {/* Action Buttons: Launch IDE & Add Experiment */}
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <Link href="/editor/index.html" className="flex-1 sm:flex-none">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all"
                 >
-                  <option value="All">All Chapters</option>
-                  {chapters.map(ch => (
-                    <option key={ch.id} value={ch.id}>
-                      {ch.title}
-                    </option>
-                  ))}
-                </select>
-                
-                {isAdmin && (
-                  <Button
-                    size="icon"
+                  <Code2 className="h-4 w-4 text-black" />
+                  Launch IDE
+                </Button>
+              </Link>
+
+              {isAdmin && (
+                <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`} className="flex-1 sm:flex-none">
+                  <Button 
                     variant="outline"
-                    onClick={() => setIsManageChaptersOpen(true)}
-                    className="h-10 w-10 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 cursor-pointer"
-                    title="Manage Chapters"
+                    className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
                   >
-                    <Settings className="h-4 w-4" />
+                    <PlusCircle className="h-4 w-4 text-black" />
+                    Add Experiment
                   </Button>
-                )}
-              </div>
+                </Link>
+              )}
             </div>
           </div>
 
-          {/* Action Buttons Row: Neatly centered, in White and Black */}
-          <div className="pt-3 border-t border-zinc-100 flex flex-wrap gap-3 justify-center items-center">
-            <Link href="/editor/index.html">
-              <Button
-                variant="outline"
-                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all"
-              >
-                <Code2 className="h-4 w-4 text-black" />
-                Launch IDE
-              </Button>
-            </Link>
-
+          {/* Right: Filters & Admin Controls */}
+          <div className="flex flex-wrap gap-2 items-center justify-end w-full xl:w-auto">
+            {/* Visibility filter for Admin */}
             {isAdmin && (
-              <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`}>
-                <Button 
-                  variant="outline"
-                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
+              <div className="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setVisibilityFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                    visibilityFilter === 'all'
+                      ? 'bg-white text-zinc-900 shadow-sm font-bold'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
                 >
-                  <PlusCircle className="h-4 w-4 text-black" />
-                  Add Experiment
-                </Button>
-              </Link>
+                  All ({allTutorials.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibilityFilter('visible')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                    visibilityFilter === 'visible'
+                      ? 'bg-white text-zinc-900 shadow-sm font-bold'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+                >
+                  Visible ({visibleCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibilityFilter('hidden')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                    visibilityFilter === 'hidden'
+                      ? 'bg-zinc-900 text-white shadow-sm font-bold'
+                      : 'text-zinc-600 hover:text-zinc-900'
+                  }`}
+                >
+                  <EyeOff className="h-3 w-3" />
+                  Hidden ({hiddenCount})
+                </button>
+              </div>
             )}
+
+            {/* Chapter Filter & Edit Icon if Admin */}
+            <div className="flex items-center gap-1.5">
+              <select
+                value={selectedChapter}
+                onChange={(e) => setSelectedChapter(e.target.value)}
+                className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-700 outline-none cursor-pointer focus:border-zinc-400 focus:bg-white transition-all h-10"
+              >
+                <option value="All">All Chapters</option>
+                {chapters.map(ch => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.title}
+                  </option>
+                ))}
+              </select>
+              
+              {isAdmin && (
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setIsManageChaptersOpen(true)}
+                  className="h-10 w-10 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 cursor-pointer"
+                  title="Manage Chapters"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
