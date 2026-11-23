@@ -82,13 +82,6 @@ export function generateKitGuidePageHtml(kits: PrintableKit[], options?: KitPrin
               <li class="step-item">
                 <span class="step-num">3</span>
                 <div>
-                  <strong>Enter Your Kit ID:</strong>
-                  Type in <strong>${kit.kitId}</strong> to instantly unlock coding experiments &amp; YouTube tutorials.
-                </div>
-              </li>
-              <li class="step-item">
-                <span class="step-num">4</span>
-                <div>
                   <strong>Launch Web IDE:</strong>
                   Connect your Arduino Uno via USB, click <em>Launch IDE</em>, verify circuit pinouts, and flash sketches with one click!
                 </div>
