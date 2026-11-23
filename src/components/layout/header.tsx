@@ -765,20 +765,11 @@ const Header = () => {
         {/* DESKTOP VIEW (>= md): 1-Row Centered Layout */}
         {/* ========================================================= */}
         <div suppressHydrationWarning className="hidden md:flex h-20 items-center justify-between gap-4 w-full">
-          {/* Desktop Left: Brand Logo & Products Link & Launch IDE */}
-          <div className="flex items-center gap-4 xl:gap-6 shrink-0 min-w-0">
+          {/* Desktop Left: Brand Logo & Products Link */}
+          <div className="flex items-center gap-5 xl:gap-8 shrink-0 min-w-0">
             <Logo size="lg" />
-            <nav className="flex items-center gap-2 xl:gap-3">
+            <nav className="flex items-center">
               <NavLinks items={[{ href: '/products', label: 'Products' }]} />
-              <Link href="/editor/index.html">
-                <Button 
-                  variant="outline"
-                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 dark:border-zinc-700 font-semibold text-xs h-9 px-3.5 rounded-full gap-1.5 shadow-xs transition-all"
-                >
-                  <Code className="h-3.5 w-3.5 text-black" />
-                  Launch IDE
-                </Button>
-              </Link>
             </nav>
           </div>
           
@@ -787,8 +778,11 @@ const Header = () => {
             <SearchBar />
           </div>
 
-          {/* Desktop Right: Cart, Wishlist & Actions */}
+          {/* Desktop Right: Launch IDE, Cart, Wishlist & Actions */}
           <div className="flex items-center gap-2 lg:gap-3 shrink-0 justify-end min-w-0">
+            <nav className="flex items-center">
+              <NavLinks items={[{ href: '/ide', label: 'Launch IDE' }]} />
+            </nav>
 
             {/* Shopping Cart Button */}
             <Button variant="ghost" size="icon" className="relative h-10 w-10" onClick={() => setIsCartOpen(true)}>
