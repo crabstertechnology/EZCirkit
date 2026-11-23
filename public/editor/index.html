@@ -32,8 +32,7 @@
           <a href="/"><i data-lucide="home"></i> <span>Home</span></a>
           <a href="/#features"><i data-lucide="zap"></i> <span>Features</span></a>
           <a href="/#products"><i data-lucide="shopping-bag"></i> <span>Products</span></a>
-          <a href="/ide"><i data-lucide="book-open"></i> <span>EZCirkit IDE</span></a>
-          <a href="/editor/index.html"><i data-lucide="cpu"></i> <span>Online Compiler</span></a>
+          <a href="/ide"><i data-lucide="code-2"></i> <span>EZCirkit IDE</span></a>
           <a href="/#testimonials"><i data-lucide="star"></i> <span>Reviews</span></a>
         </nav>
 
@@ -112,12 +111,6 @@
           <span>Upload</span>
         </button>
 
-        <!-- Online Compiler Mode Switch -->
-        <button class="btn btn-secondary btn-glow-purple" id="onlineCompilerModeBtn" title="Write your own custom Arduino code and experiment freely">
-          <i data-lucide="cpu"></i>
-          <span id="compilerModeBtnText">Online Compiler</span>
-        </button>
-
         <button class="btn btn-secondary btn-glow-blue btn-square" id="experimentInfoBtn" title="Experiment Info, Required Components & Pinout" style="display: none;" aria-label="Experiment Info">
           <i data-lucide="info"></i>
         </button>
@@ -135,13 +128,9 @@
       <!-- Left Panel: Code Editor -->
       <section class="panel editor-panel">
         <div class="panel-header" style="position: relative;">
-          <div class="panel-title" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div class="panel-title" style="display: flex; align-items: center; gap: 8px;">
             <i data-lucide="code-2"></i>
-            <span>sketch.ino</span>
-            <span id="experimentTitleDisplay" style="font-size: 11px; font-weight: 700; color: #f97316; background: rgba(249, 115, 22, 0.12); border: 1px solid rgba(249, 115, 22, 0.3); padding: 2px 8px; border-radius: 6px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none;"></span>
-            <span id="editorReadOnlyBadge" style="font-size: 10px; font-weight: 600; color: #fb923c; background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.25); padding: 2px 6px; border-radius: 4px; display: none; align-items: center; gap: 3px;" title="Experiment code cannot be modified during the guided experiment. Click Copy Code or Online Compiler to write custom code.">
-              <i data-lucide="lock" style="width: 10px; height: 10px;"></i> Read-Only
-            </span>
+            <span id="sketchFileName" style="font-weight: 600; font-size: 12px; color: var(--text-main, #e0e0e0); max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">sketch.ino</span>
           </div>
           <div class="editor-actions" style="display: flex; align-items: center; gap: 8px;">
             <button id="copyCodeBtn" class="btn btn-secondary" style="font-size: 11px; padding: 3px 9px; height: 26px; gap: 4px; display: none; align-items: center; background: var(--bg-input, #1e1e1e); border: 1px solid var(--border-color, #333); color: var(--text-main, #e0e0e0); border-radius: 6px; cursor: pointer;" title="Copy experiment code to clipboard">

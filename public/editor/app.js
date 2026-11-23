@@ -200,33 +200,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Mode button: toggle between Online Compiler and Guided Experiments
-  const modeBtn = document.getElementById('onlineCompilerModeBtn');
-  if (modeBtn) {
-    modeBtn.addEventListener('click', () => {
-      if (currentExperimentId) {
-        switchToOnlineCompiler();
-      } else {
-        window.location.href = '/ide';
-      }
-    });
-  }
-
   // Load experiment if parameters are present in URL
   loadExperimentFromUrlParams();
 });
 
 // -------------------------------------------------------------
-// Read-Only & Online Compiler Helpers
+// Read-Only & Title Helpers
 // -------------------------------------------------------------
 function setEditorReadOnly(readOnly) {
   isEditorReadOnly = !!readOnly;
   if (editor) {
     editor.updateOptions({ readOnly: isEditorReadOnly });
-  }
-  const badge = document.getElementById('editorReadOnlyBadge');
-  if (badge) {
-    badge.style.display = isEditorReadOnly ? 'inline-flex' : 'none';
   }
   const copyBtn = document.getElementById('copyCodeBtn');
   if (copyBtn) {
@@ -235,15 +219,14 @@ function setEditorReadOnly(readOnly) {
 }
 
 function setExperimentTitle(title) {
-  const titleDisplay = document.getElementById('experimentTitleDisplay');
-  if (titleDisplay) {
-    if (title) {
-      titleDisplay.textContent = title;
-      titleDisplay.style.display = 'inline-block';
-      titleDisplay.title = title;
+  const fileNameEl = document.getElementById('sketchFileName');
+  if (fileNameEl) {
+    if (title && title.trim()) {
+      fileNameEl.textContent = `${title.trim()}.ino`;
+      fileNameEl.title = `${title.trim()}.ino`;
     } else {
-      titleDisplay.style.display = 'none';
-      titleDisplay.textContent = '';
+      fileNameEl.textContent = 'sketch.ino';
+      fileNameEl.title = 'sketch.ino';
     }
   }
 }
@@ -333,9 +316,6 @@ async function applyExperimentById(experimentId) {
   setExperimentTitle(exp.title || 'Official Experiment');
   setEditorReadOnly(true);
 
-  const modeBtnText = document.getElementById('compilerModeBtnText');
-  if (modeBtnText) modeBtnText.textContent = 'Online Compiler';
-
   // Load code in Monaco Editor
   if (exp.code) {
     if (editor) {
@@ -353,7 +333,7 @@ async function applyExperimentById(experimentId) {
   }
 
   logToConsole(`Loaded experiment: ${exp.title}`, 'info');
-  logToConsole(`🔒 Experiment code is read-only. You can copy it or click "Online Compiler" to write custom code.`, 'info');
+  logToConsole(`🔒 Experiment code is read-only. You can copy it with the Copy Code button.`, 'info');
 
   // Load precompiled HEX build
   if (exp.compiledHex) {
@@ -1763,9 +1743,6 @@ async function loadExperimentFromUrlParams() {
       setExperimentTitle(title);
       setEditorReadOnly(true);
 
-      const modeBtnText = document.getElementById('compilerModeBtnText');
-      if (modeBtnText) modeBtnText.textContent = 'Online Compiler';
-
       const hasComponents = components.length > 0;
       const experimentInfoBtn = document.getElementById('experimentInfoBtn');
       if (experimentInfoBtn) {
@@ -1773,7 +1750,7 @@ async function loadExperimentFromUrlParams() {
       }
 
       logToConsole(`Loaded experiment: ${title}`, "success");
-      logToConsole(`🔒 Experiment code is read-only. You can copy it or click "Online Compiler" to write custom code.`, "info");
+      logToConsole(`🔒 Experiment code is read-only. You can copy it with the Copy Code button.`, "info");
 
       // Load code in Monaco
       if (code) {
