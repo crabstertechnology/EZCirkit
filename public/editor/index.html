@@ -382,14 +382,11 @@
         </div>
         
         <div class="tour-card-body">
-          <div class="tour-icon-wrap" id="tourIconWrap">
-            <i data-lucide="sparkles"></i>
-          </div>
           <div class="tour-content">
             <h3 class="tour-title" id="tourTitle">Welcome to EZCirkit Web IDE</h3>
             <p class="tour-purpose" id="tourPurpose"></p>
             <div class="tour-tips-box" id="tourTipsBox" style="display: none;">
-              <span class="tour-tip-icon">💡</span>
+              <span class="tour-tip-label">Note:</span>
               <span class="tour-tip-text" id="tourTipText"></span>
             </div>
           </div>
@@ -399,7 +396,7 @@
           <div class="tour-dots" id="tourDots"></div>
           <div class="tour-nav-btns">
             <button class="btn btn-secondary btn-sm" id="tourPrevBtn">Back</button>
-            <button class="btn btn-primary btn-sm" id="tourNextBtn">Next Step →</button>
+            <button class="btn btn-primary btn-sm" id="tourNextBtn">Next Step</button>
           </div>
         </div>
       </div>
@@ -409,33 +406,24 @@
     <div id="tourWelcomeModal" class="modal-overlay">
       <div class="modal-container tour-welcome-container">
         <div class="tour-welcome-banner">
-          <div class="tour-welcome-badge">🚀 Interactive Guide</div>
+          <div class="tour-welcome-badge">Quick Overview</div>
           <h2>Welcome to EZCirkit Web IDE</h2>
-          <p>Learn how to program your Arduino, wire circuits, compile in the cloud, and upload directly through your web browser without installing any software.</p>
+          <p>Learn how to program your Arduino Uno, wire circuits, compile in the cloud, and upload directly through your web browser without installing any software.</p>
         </div>
         <div class="tour-welcome-features-list">
           <div class="tour-feat-item">
-            <div class="tour-feat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
-              <i data-lucide="usb"></i>
-            </div>
             <div>
               <strong>Web Serial Hardware Connection</strong>
-              <p>Direct USB connection to Arduino Uno straight from Chrome or Edge.</p>
+              <p>Direct USB communication to Arduino Uno straight from Google Chrome or Edge.</p>
             </div>
           </div>
           <div class="tour-feat-item">
-            <div class="tour-feat-icon" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
-              <i data-lucide="zap"></i>
-            </div>
             <div>
               <strong>1-Click Cloud Compile & Direct Flash</strong>
-              <p>Verify code and flash binaries into microcontroller in seconds.</p>
+              <p>Verify code and flash binaries into microcontroller memory in seconds.</p>
             </div>
           </div>
           <div class="tour-feat-item">
-            <div class="tour-feat-icon" style="background: rgba(249, 115, 22, 0.15); color: #f97316;">
-              <i data-lucide="youtube"></i>
-            </div>
             <div>
               <strong>Split-Screen Guided Video</strong>
               <p>Follow video guides, breadboard wiring diagrams, and code simultaneously.</p>
@@ -444,9 +432,7 @@
         </div>
         <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 0; background: transparent; border: none;">
           <button class="btn btn-secondary" id="tourWelcomeSkipBtn">Explore on My Own</button>
-          <button class="btn btn-signup" id="tourWelcomeStartBtn" style="gap: 8px;">
-            <i data-lucide="play-circle"></i> Start 1-Minute Tour
-          </button>
+          <button class="btn btn-primary" id="tourWelcomeStartBtn">Start 1-Minute Tour</button>
         </div>
       </div>
     </div>

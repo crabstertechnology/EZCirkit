@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2, Video } from 'lucide-react';
+import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2, Video, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ChapterForm from '@/components/admin/chapter-form';
+import { ExperimentsTour } from '@/components/experiments-tour';
 
 export default function IdeSelectionPage() {
   const firestore = useFirestore();
@@ -52,6 +53,22 @@ export default function IdeSelectionPage() {
   const [editingChapter, setEditingChapter] = useState<TutorialChapter | null>(null);
   const [previewTutorial, setPreviewTutorial] = useState<Tutorial | null>(null);
   const [activeVideoTutorial, setActiveVideoTutorial] = useState<Tutorial | null>(null);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Auto-launch tour for first-time visitors
+  useEffect(() => {
+    try {
+      const hasSeen = localStorage.getItem('ezcirkit_experiments_tour_seen');
+      if (!hasSeen) {
+        const timer = setTimeout(() => {
+          setIsTourOpen(true);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // Firestore user doc
   const userDocRef = useMemoFirebase(
@@ -341,7 +358,7 @@ export default function IdeSelectionPage() {
           {/* Left: Search Bar + Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
             {/* Search Bar */}
-            <div className="relative w-full sm:w-72">
+            <div id="tour-search-bar" className="relative w-full sm:w-72">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <input
                 type="text"
@@ -352,9 +369,9 @@ export default function IdeSelectionPage() {
               />
             </div>
 
-            {/* Action Buttons: Launch IDE & Add Experiment */}
+            {/* Action Buttons: Launch IDE, Add Experiment, Product Tour */}
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
-              <Link href="/editor/index.html" className="flex-1 sm:flex-none">
+              <Link id="tour-launch-ide" href="/editor/index.html" className="flex-1 sm:flex-none">
                 <Button
                   variant="outline"
                   className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all"
@@ -363,6 +380,16 @@ export default function IdeSelectionPage() {
                   Launch IDE
                 </Button>
               </Link>
+
+              <Button
+                variant="outline"
+                onClick={() => setIsTourOpen(true)}
+                className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-3.5 rounded-xl gap-1.5 shadow-2xs cursor-pointer transition-all"
+                title="Interactive Guide & Tour"
+              >
+                <HelpCircle className="h-4 w-4 text-black" />
+                Tour
+              </Button>
 
               {isAdmin && (
                 <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`} className="flex-1 sm:flex-none">
@@ -421,7 +448,7 @@ export default function IdeSelectionPage() {
             )}
 
             {/* Chapter Filter & Edit Icon if Admin */}
-            <div className="flex items-center gap-1.5">
+            <div id="tour-chapter-filter" className="flex items-center gap-1.5">
               <select
                 value={selectedChapter}
                 onChange={(e) => setSelectedChapter(e.target.value)}
@@ -472,10 +499,10 @@ export default function IdeSelectionPage() {
         {!showLoading && dataLoadedOnce && (
           filteredTutorials.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTutorials.map((tut) => {
+              {filteredTutorials.map((tut, index) => {
                 const isVideoItem = Boolean(tut.isVideoOnly || (!tut.code && tut.videoId));
                 return (
-                <div key={tut.id} className="relative group">
+                <div key={tut.id} id={index === 0 ? "tour-first-card" : undefined} className="relative group">
                   
                   {/* Admin action overlays on the card */}
                   {isAdmin && (
@@ -986,6 +1013,19 @@ export default function IdeSelectionPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Interactive Page Tour */}
+      <ExperimentsTour
+        isOpen={isTourOpen}
+        onClose={() => {
+          setIsTourOpen(false);
+          try {
+            localStorage.setItem('ezcirkit_experiments_tour_seen', 'true');
+          } catch (e) {
+            // ignore
+          }
+        }}
+      />
     </div>
   );
 }

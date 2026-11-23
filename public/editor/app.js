@@ -1852,44 +1852,39 @@ async function loadExperimentFromUrlParams() {
 }
 
 // =============================================================
-// Interactive Product Tour Engine
+// Interactive Product Tour Engine (Clean White & Black)
 // =============================================================
 const IDE_TOUR_STEPS = [
   {
     target: null, // Center modal
-    icon: 'sparkles',
     category: 'Getting Started',
     title: 'Welcome to EZCirkit Web IDE',
-    purpose: 'This all-in-one browser workspace lets you write Arduino C++ code, follow hands-on video tutorials, inspect breadboard wiring diagrams, and flash sketches straight to your physical Arduino Uno board over USB.',
-    tip: 'No software installation or driver downloads required! Everything runs right in your browser via the native Web Serial API.'
+    purpose: 'This browser workspace allows you to write Arduino C++ code, follow hands-on video tutorials, inspect breadboard wiring diagrams, and flash sketches straight to your physical Arduino Uno board over USB.',
+    tip: 'No software installation or driver downloads required. Everything runs right in your browser via the native Web Serial API.'
   },
   {
     target: '#connectPortBtn',
-    icon: 'usb',
     category: 'Hardware Connection',
     title: 'Connect Board (Web Serial)',
-    purpose: 'Establishes direct USB communication between your browser and the Arduino Uno. Click this button and choose your Arduino’s COM port in the browser popup.',
+    purpose: 'Establishes direct USB communication between your browser and the Arduino Uno. Click this button and select your Arduino’s COM port in the browser popup.',
     tip: 'Use a standard data-capable USB cable. When connected, the button turns green with your active port.'
   },
   {
     target: '#verifyBtn',
-    icon: 'check-circle',
     category: 'Cloud Compiler',
     title: 'Verify & Compile Code',
-    purpose: 'Sends your Arduino C++ code to the high-speed cloud compiler. It checks for syntax errors, verifies libraries, and generates the machine-readable Intel HEX binary.',
+    purpose: 'Sends your Arduino C++ code to the cloud compiler. It checks for syntax errors, verifies libraries, and generates the machine-readable Intel HEX binary.',
     tip: 'Watch the compiler logs at the bottom right to see memory usage (Flash & RAM) and compilation output.'
   },
   {
     target: '#uploadBtn',
-    icon: 'arrow-right-circle',
     category: 'Direct USB Flasher',
     title: 'Upload to Board',
-    purpose: 'Flashes the compiled program directly into your microcontroller in seconds! For official kit experiments, precompiled binaries load in 0ms so you can flash instantly without waiting for compile servers.',
-    tip: '⚠️ Safety Best Practice: Always program your board before connecting external components or powering motors.'
+    purpose: 'Flashes the compiled program directly into your microcontroller in seconds. For official kit experiments, precompiled binaries load in 0ms so you can flash instantly without waiting for compile servers.',
+    tip: 'Safety Rule: Always program your board before connecting external components or powering motors.'
   },
   {
     target: '#experimentInfoBtn',
-    icon: 'info',
     category: 'Circuit & Pinout Guide',
     title: 'Experiment Info & Wiring Guide',
     purpose: 'Pops up the complete experiment curriculum: exact component counts, high-resolution breadboard wiring diagrams, and detailed pin-by-pin Arduino connection tables.',
@@ -1897,15 +1892,13 @@ const IDE_TOUR_STEPS = [
   },
   {
     target: '.editor-panel',
-    icon: 'code-2',
     category: 'Coding Workspace',
     title: 'Monaco Code Editor',
     purpose: 'Powered by the same engine as VS Code, with full C++ syntax highlighting, auto-indentation, and error markers. Official experiments are read-only to guarantee working code.',
-    tip: 'Use the "Copy Code" button in the editor header to copy the sketch and experiment with your own modifications!'
+    tip: 'Use the "Copy Code" button in the editor header to copy the sketch and experiment with your own modifications.'
   },
   {
     target: '#youtubeVideoPanel',
-    icon: 'youtube',
     category: 'Split-Screen Learning',
     title: 'Synchronized YouTube Tutorial',
     purpose: 'Watch real, step-by-step video instructions side-by-side with your code and breadboard. Each official experiment pre-loads its matching high-definition video walkthrough.',
@@ -1913,7 +1906,6 @@ const IDE_TOUR_STEPS = [
   },
   {
     target: '#toolPanel',
-    icon: 'terminal-square',
     category: 'Debugging & Serial Comms',
     title: 'Compiler Logs & Serial Monitor',
     purpose: 'Toggle between "Compiler Output" to inspect build logs, and "Serial Monitor" to communicate with your board in real-time. View live sensor data from Serial.println() and send test commands.',
@@ -2058,11 +2050,7 @@ function showTourStep(index) {
     prevBtn.style.display = index === 0 ? 'none' : 'inline-flex';
   }
   if (nextBtn) {
-    nextBtn.textContent = index === IDE_TOUR_STEPS.length - 1 ? 'Finish Tour 🎉' : 'Next Step →';
-  }
-
-  if (iconWrap) {
-    iconWrap.innerHTML = `<i data-lucide="${step.icon || 'sparkles'}"></i>`;
+    nextBtn.textContent = index === IDE_TOUR_STEPS.length - 1 ? 'Finish' : 'Next Step';
   }
 
   // Build dots
