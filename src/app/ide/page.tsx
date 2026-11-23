@@ -358,25 +358,99 @@ export default function IdeSelectionPage() {
         </div>
 
         {/* Filters, Actions and Search Bar */}
-        <div className="flex flex-col xl:flex-row gap-4 justify-between items-center bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4">
-          {/* Left: Search Bar */}
-          <div className="relative w-full xl:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search experiments..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm text-zinc-800 outline-none focus:border-orange-500 focus:bg-white transition-all h-10"
-            />
+        <div className="bg-white border border-zinc-200/80 shadow-sm rounded-2xl p-4 space-y-3.5">
+          {/* Top Row: Search & Filters */}
+          <div className="flex flex-col md:flex-row gap-3 justify-between items-center">
+            {/* Left: Search Bar */}
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search experiments..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm text-zinc-800 outline-none focus:border-zinc-400 focus:bg-white transition-all h-10"
+              />
+            </div>
+
+            {/* Right: Filters & Admin Controls */}
+            <div className="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
+              {/* Visibility filter for Admin */}
+              {isAdmin && (
+                <div className="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setVisibilityFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                      visibilityFilter === 'all'
+                        ? 'bg-white text-zinc-900 shadow-sm font-bold'
+                        : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
+                  >
+                    All ({allTutorials.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibilityFilter('visible')}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                      visibilityFilter === 'visible'
+                        ? 'bg-white text-zinc-900 shadow-sm font-bold'
+                        : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
+                  >
+                    Visible ({visibleCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibilityFilter('hidden')}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                      visibilityFilter === 'hidden'
+                        ? 'bg-zinc-900 text-white shadow-sm font-bold'
+                        : 'text-zinc-600 hover:text-zinc-900'
+                    }`}
+                  >
+                    <EyeOff className="h-3 w-3" />
+                    Hidden ({hiddenCount})
+                  </button>
+                </div>
+              )}
+
+              {/* Chapter Filter & Edit Icon if Admin */}
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={selectedChapter}
+                  onChange={(e) => setSelectedChapter(e.target.value)}
+                  className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-700 outline-none cursor-pointer focus:border-zinc-400 focus:bg-white transition-all h-10"
+                >
+                  <option value="All">All Chapters</option>
+                  {chapters.map(ch => (
+                    <option key={ch.id} value={ch.id}>
+                      {ch.title}
+                    </option>
+                  ))}
+                </select>
+                
+                {isAdmin && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setIsManageChaptersOpen(true)}
+                    className="h-10 w-10 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 cursor-pointer"
+                    title="Manage Chapters"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Center: Launch IDE & Admin Action Buttons */}
-          <div className="flex flex-wrap gap-2.5 justify-center items-center">
+          {/* Action Buttons Row: Neatly centered, in White and Black */}
+          <div className="pt-3 border-t border-zinc-100 flex flex-wrap gap-3 justify-center items-center">
             <Link href="/editor/index.html">
               <Button
                 variant="outline"
-                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-xs cursor-pointer transition-all"
+                className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all"
               >
                 <Code2 className="h-4 w-4 text-black" />
                 Launch IDE
@@ -388,99 +462,29 @@ export default function IdeSelectionPage() {
                 <Button 
                   onClick={handleAddChapter}
                   variant="outline" 
-                  className="bg-white border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 text-zinc-700 font-semibold text-xs h-10 px-3.5 gap-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
                 >
-                  <PlusCircle className="h-4 w-4 text-orange-500" />
+                  <PlusCircle className="h-4 w-4 text-black" />
                   Add Chapter
                 </Button>
                 <Button 
                   onClick={handleAddTutorial}
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs h-10 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                  variant="outline"
+                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
                 >
-                  <PlusCircle className="h-4 w-4" />
+                  <PlusCircle className="h-4 w-4 text-black" />
                   Add Experiment
                 </Button>
                 <Button 
                   onClick={handleAddVideoOnly}
                   variant="outline"
-                  className="bg-zinc-900 hover:bg-zinc-800 text-white border-zinc-900 font-semibold text-xs h-10 px-3.5 gap-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                  className="bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
                 >
-                  <Video className="h-4 w-4 text-orange-400" />
+                  <Video className="h-4 w-4 text-black" />
                   Add Intro / Video
                 </Button>
               </>
             )}
-          </div>
-
-          {/* Right: Filters & Admin Controls */}
-          <div className="flex flex-wrap gap-2 items-center justify-end w-full xl:w-auto">
-            {/* Visibility filter for Admin */}
-            {isAdmin && (
-              <div className="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs shadow-inner">
-                <button
-                  type="button"
-                  onClick={() => setVisibilityFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                    visibilityFilter === 'all'
-                      ? 'bg-white text-zinc-900 shadow-sm font-bold'
-                      : 'text-zinc-600 hover:text-zinc-900'
-                  }`}
-                >
-                  All ({allTutorials.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVisibilityFilter('visible')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-                    visibilityFilter === 'visible'
-                      ? 'bg-white text-emerald-700 shadow-sm font-bold'
-                      : 'text-zinc-600 hover:text-zinc-900'
-                  }`}
-                >
-                  Visible ({visibleCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVisibilityFilter('hidden')}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                    visibilityFilter === 'hidden'
-                      ? 'bg-amber-500 text-white shadow-sm font-bold'
-                      : 'text-zinc-600 hover:text-zinc-900'
-                  }`}
-                >
-                  <EyeOff className="h-3 w-3" />
-                  Hidden ({hiddenCount})
-                </button>
-              </div>
-            )}
-
-            {/* Chapter Filter & Edit Icon if Admin */}
-            <div className="flex items-center gap-1.5">
-              <select
-                value={selectedChapter}
-                onChange={(e) => setSelectedChapter(e.target.value)}
-                className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-600 outline-none cursor-pointer focus:border-orange-500 focus:bg-white transition-all"
-              >
-                <option value="All">All Chapters</option>
-                {chapters.map(ch => (
-                  <option key={ch.id} value={ch.id}>
-                    {ch.title}
-                  </option>
-                ))}
-              </select>
-              
-              {isAdmin && (
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setIsManageChaptersOpen(true)}
-                  className="h-8 w-8 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-600"
-                  title="Manage Chapters"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
           </div>
         </div>
 
@@ -559,13 +563,13 @@ export default function IdeSelectionPage() {
                   {/* Top-right badges */}
                   <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1 pointer-events-none">
                     {isAdmin && tut.isHidden && (
-                      <Badge variant="outline" className="bg-amber-500/90 backdrop-blur-sm text-white border-amber-600 text-[10px] gap-1 font-bold shadow-sm px-2 py-0.5">
+                      <Badge variant="outline" className="bg-zinc-900/90 backdrop-blur-sm text-white border-zinc-950 text-[10px] gap-1 font-bold shadow-sm px-2 py-0.5">
                         <EyeOff className="h-3 w-3" /> Hidden
                       </Badge>
                     )}
                     {isVideoItem && (
-                      <Badge variant="outline" className="bg-orange-500/95 backdrop-blur-sm text-white border-orange-600 text-[10px] gap-1 font-bold shadow-sm px-2 py-0.5">
-                        <Video className="h-3 w-3" /> Intro / Video
+                      <Badge variant="outline" className="bg-white/95 backdrop-blur-sm text-black border-zinc-300 text-[10px] gap-1 font-bold shadow-2xs px-2 py-0.5">
+                        <Video className="h-3 w-3 text-black" /> Intro / Video
                       </Badge>
                     )}
                   </div>
@@ -612,8 +616,8 @@ export default function IdeSelectionPage() {
                               }
                             }}
                           >
-                            <div className="w-12 h-12 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-orange-500/25 transform scale-90 group-hover:scale-100 transition-transform">
-                              <Play className="h-5 w-5 fill-current ml-0.5" />
+                            <div className="w-12 h-12 bg-white text-black border border-zinc-200 rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                              <Play className="h-5 w-5 fill-current ml-0.5 text-black" />
                             </div>
                           </div>
                         )}
@@ -621,7 +625,7 @@ export default function IdeSelectionPage() {
                         {/* Lock overlay if not purchased */}
                         {!hasPurchased && (
                           <div className="absolute inset-0 bg-zinc-950/45 flex items-center justify-center backdrop-blur-[1px]">
-                            <div className="w-10 h-10 bg-white/95 text-orange-500 border border-zinc-200 rounded-full flex items-center justify-center shadow-md">
+                            <div className="w-10 h-10 bg-white/95 text-zinc-900 border border-zinc-200 rounded-full flex items-center justify-center shadow-md">
                               <Lock className="h-4 w-4" />
                             </div>
                           </div>
@@ -632,24 +636,24 @@ export default function IdeSelectionPage() {
                         {(!hasPurchased || (isAdmin && tut.isHidden) || isVideoItem) && (
                           <div className="flex items-center gap-1.5 justify-start mb-1 flex-wrap">
                             {!hasPurchased && (
-                              <Badge variant="outline" className="text-[9.5px] text-orange-600 bg-orange-50 border-orange-100 gap-1 py-0.5 px-2 font-bold rounded-full">
+                              <Badge variant="outline" className="text-[9.5px] text-zinc-800 bg-zinc-100 border-zinc-200 gap-1 py-0.5 px-2 font-bold rounded-full">
                                 <Lock className="h-2.5 w-2.5" /> Premium
                               </Badge>
                             )}
                             {isVideoItem && (
-                              <Badge variant="outline" className="text-[9.5px] text-orange-700 bg-orange-50 border-orange-200 gap-1 py-0.5 px-2 font-bold rounded-full">
-                                <Video className="h-2.5 w-2.5" /> Video Only (No IDE)
+                              <Badge variant="outline" className="text-[9.5px] text-zinc-800 bg-zinc-100 border-zinc-200 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <Video className="h-2.5 w-2.5" /> Video Guide
                               </Badge>
                             )}
                             {isAdmin && tut.isHidden && (
-                              <Badge variant="outline" className="text-[9.5px] text-amber-700 bg-amber-50 border-amber-300 gap-1 py-0.5 px-2 font-bold rounded-full">
-                                <EyeOff className="h-2.5 w-2.5" /> Hidden from Students
+                              <Badge variant="outline" className="text-[9.5px] text-zinc-800 bg-zinc-100 border-zinc-200 gap-1 py-0.5 px-2 font-bold rounded-full">
+                                <EyeOff className="h-2.5 w-2.5" /> Hidden
                               </Badge>
                             )}
                           </div>
                         )}
 
-                        <CardTitle className="text-[13px] font-bold text-zinc-900 group-hover:text-orange-500 transition-colors line-clamp-1">
+                        <CardTitle className="text-[13px] font-bold text-zinc-900 group-hover:text-black transition-colors line-clamp-1">
                           {tut.title}
                         </CardTitle>
                         
@@ -666,19 +670,19 @@ export default function IdeSelectionPage() {
                               e.stopPropagation();
                               handleTutorialClick(e, tut);
                             }}
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold py-1.5 gap-1.5 transition-all shadow-sm cursor-pointer"
+                            className="w-full bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-[11px] py-1.5 gap-1.5 transition-all shadow-2xs cursor-pointer"
                           >
-                            <Play className="h-3.5 w-3.5 fill-current" /> Watch Video
+                            <Play className="h-3.5 w-3.5 fill-current text-black" /> Watch Video
                           </Button>
                         ) : (
-                          <Button className="w-full bg-zinc-50 hover:bg-orange-500 hover:text-white text-zinc-700 border border-zinc-200 group-hover:border-orange-500/40 text-[10px] font-semibold py-1.5 gap-1.5 transition-all shadow-sm">
+                          <Button className="w-full bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-[11px] py-1.5 gap-1.5 transition-all shadow-2xs cursor-pointer">
                             {hasPurchased ? (
                               <>
-                                <Code2 className="h-3.5 w-3.5" /> Launch IDE
+                                <Code2 className="h-3.5 w-3.5 text-black" /> Launch IDE
                               </>
                             ) : (
                               <>
-                                <Lock className="h-3.5 w-3.5" /> Unlock Project
+                                <Lock className="h-3.5 w-3.5 text-black" /> Unlock Project
                               </>
                             )}
                           </Button>
@@ -1009,8 +1013,8 @@ export default function IdeSelectionPage() {
               <div className="p-6 space-y-4 max-h-[40vh] overflow-y-auto">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs font-bold gap-1 py-0.5 px-2.5">
-                      <Video className="h-3.5 w-3.5" />
+                    <Badge variant="outline" className="bg-zinc-100 text-zinc-900 border-zinc-200 text-xs font-bold gap-1 py-0.5 px-2.5">
+                      <Video className="h-3.5 w-3.5 text-zinc-800" />
                       {activeVideoTutorial.isVideoOnly ? 'Introduction Guide' : 'Video Tutorial'}
                     </Badge>
                     <Badge variant="secondary" className="text-xs font-semibold">
@@ -1026,8 +1030,8 @@ export default function IdeSelectionPage() {
                       <Link
                         href={`/editor/index.html?experiment=${activeVideoTutorial.id}&chapter=${activeVideoTutorial.chapterId}`}
                       >
-                        <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5 rounded-xl border-zinc-300">
-                          <Code2 className="h-3.5 w-3.5 text-orange-500" /> Open in Web IDE
+                        <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5 rounded-xl border-zinc-300 bg-white hover:bg-zinc-100 text-black">
+                          <Code2 className="h-3.5 w-3.5 text-black" /> Open in Web IDE
                         </Button>
                       </Link>
                     )}
@@ -1035,7 +1039,7 @@ export default function IdeSelectionPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => setActiveVideoTutorial(null)}
-                      className="text-xs rounded-xl"
+                      className="text-xs font-bold rounded-xl border-zinc-300 bg-white hover:bg-zinc-100 text-black cursor-pointer"
                     >
                       Close
                     </Button>
