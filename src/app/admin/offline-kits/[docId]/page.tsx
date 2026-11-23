@@ -25,6 +25,7 @@ import {
   QrCode, User, Calendar, MapPin, Phone, Mail, Building,
   CheckCircle2, Clock, XCircle, Shield, Copy, Check,
 } from 'lucide-react';
+import { generateKitGuidePageHtml } from '@/lib/kit-label-template';
 import { useToast } from '@/hooks/use-toast';
 
 // ---------------------------------------------------------------------------
@@ -190,40 +191,16 @@ export default function KitDetailPage() {
     }
   }
 
-  // ── Print label ──────────────────────────────────────────────────────────
+  // ── Print label (Full A4 Kit Guide Insert with zero browser headers/footers) ──
   function printLabel() {
     if (!kit || !qrDataUrl) return;
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`
-      <!DOCTYPE html><html><head>
-        <title>EZCirkit Label – ${kit.kitId}</title>
-        <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: Arial, sans-serif; }
-          .label {
-            border: 2px dashed #ccc; border-radius: 10px; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 8px; text-align: center; width: 260px;
-          }
-          .brand { font-size: 22px; font-weight: 900; color: #F97316; letter-spacing: 1px; }
-          .kit-id { font-family: monospace; font-size: 13px; font-weight: bold; color: #333; }
-          img { width: 180px; height: 180px; }
-          .scan { font-size: 11px; font-weight: bold; color: #555; }
-          .url { font-size: 10px; color: #999; }
-          @media print { body { -webkit-print-color-adjust: exact; } }
-        </style>
-      </head><body>
-        <div class="label">
-          <div class="brand">EZCirkit</div>
-          <div class="kit-id">Kit ID: ${kit.kitId}</div>
-          <img src="${qrDataUrl}" alt="QR Code" />
-          <div class="scan">Scan to Activate</div>
-          <div class="url">${getHostName()}/activate</div>
-        </div>
-        <script>window.onload = () => window.print();</script>
-      </body></html>
-    `);
+    const html = generateKitGuidePageHtml(
+      [{ kitId: kit.kitId, qrDataUrl, batchName: kit.batchName, shopName: kit.shopName }],
+      { hostName: getHostName(), baseUrl: getBaseUrl(), title: `EZCirkit Guide – ${kit.kitId}` }
+    );
+    w.document.write(html);
     w.document.close();
   }
 

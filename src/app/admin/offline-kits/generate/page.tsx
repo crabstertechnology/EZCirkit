@@ -3,6 +3,7 @@
 
 import React, { useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import { generateKitGuidePageHtml, generateKitStickerGridHtml } from '@/lib/kit-label-template';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -198,52 +199,27 @@ export default function GenerateBatchPage() {
     a.click();
   }
 
-  // ── Print all QRs as print PDF sheet (browser print) ────────────────────
-  function printAll() {
+  // ── Print Kit Guides (1 per page - for placing in kit boxes) ─────────────────
+  function printAllGuides() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+    const html = generateKitGuidePageHtml(
+      kits.map((k) => ({ kitId: k.kitId, qrDataUrl: k.qrDataUrl, batchName, shopName })),
+      { hostName: getHostName(), baseUrl: getBaseUrl(), title: `EZCirkit Kit Guides – ${batchName}` }
+    );
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
 
-    const cells = kits
-      .map(
-        (kit) => `
-      <div class="kit-card">
-        <div class="brand">EZCirkit</div>
-        <div class="kit-id">Kit ID: ${kit.kitId}</div>
-        ${kit.qrDataUrl ? `<img src="${kit.qrDataUrl}" alt="QR Code" />` : ''}
-        <div class="scan-text">Scan to Activate</div>
-        <div class="url">${getHostName()}/activate</div>
-      </div>`
-      )
-      .join('');
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>EZCirkit Activation Labels – ${batchName}</title>
-        <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; background: #fff; }
-          .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px; }
-          .kit-card {
-            border: 1.5px dashed #ccc; border-radius: 8px; padding: 12px;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 6px; text-align: center; page-break-inside: avoid;
-          }
-          .brand { font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #F97316; }
-          .kit-id { font-size: 11px; font-family: monospace; color: #333; font-weight: bold; }
-          img { width: 120px; height: 120px; }
-          .scan-text { font-size: 10px; font-weight: bold; color: #555; }
-          .url { font-size: 9px; color: #999; }
-          @media print { body { -webkit-print-color-adjust: exact; } }
-        </style>
-      </head>
-      <body>
-        <div class="grid">${cells}</div>
-        <script>window.onload = () => window.print();</script>
-      </body>
-      </html>
-    `);
+  // ── Print Mini Stickers (Grid) ──────────────────────────────────────────────
+  function printStickerGrid() {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const html = generateKitStickerGridHtml(
+      kits.map((k) => ({ kitId: k.kitId, qrDataUrl: k.qrDataUrl, batchName, shopName })),
+      { hostName: getHostName(), baseUrl: getBaseUrl(), title: `EZCirkit Sticker Labels – ${batchName}` }
+    );
+    printWindow.document.write(html);
     printWindow.document.close();
   }
 
@@ -336,12 +312,15 @@ export default function GenerateBatchPage() {
                   {shopName && <> · {shopName}</>}
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={printAll}>
-                  <Printer className="h-4 w-4 mr-2" /> Print Labels
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="default" size="sm" onClick={printAllGuides} className="bg-zinc-900 hover:bg-black text-white font-bold gap-1.5 rounded-xl cursor-pointer">
+                  <Printer className="h-4 w-4" /> Print Kit Guides (1 / Page)
                 </Button>
-                <Button variant="outline" size="sm" onClick={downloadAllPNG}>
-                  <Download className="h-4 w-4 mr-2" /> Download ZIP
+                <Button variant="outline" size="sm" onClick={printStickerGrid} className="font-bold gap-1.5 rounded-xl border-zinc-300 text-zinc-700 hover:bg-zinc-100 cursor-pointer">
+                  <QrCode className="h-4 w-4" /> Print Mini Stickers (Grid)
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadAllPNG} className="font-bold gap-1.5 rounded-xl border-zinc-300 text-zinc-700 hover:bg-zinc-100 cursor-pointer">
+                  <Download className="h-4 w-4" /> Download ZIP
                 </Button>
               </div>
             </div>

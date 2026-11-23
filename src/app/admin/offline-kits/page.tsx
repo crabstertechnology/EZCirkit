@@ -30,6 +30,7 @@ import {
   Trash2, Eye, XCircle, Loader2, X, Printer,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { generateKitGuidePageHtml, generateKitStickerGridHtml } from '@/lib/kit-label-template';
 import { useToast } from '@/hooks/use-toast';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,13 @@ const getBaseUrl = () => {
     return window.location.origin;
   }
   return 'https://shop.crabstertech.in';
+};
+
+const getHostName = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.host;
+  }
+  return 'shop.crabstertech.in';
 };
 
 interface Kit {
@@ -196,8 +204,8 @@ export default function OfflineKitsPage() {
 
 
 
-  // ── Print Selected Labels ──────────────────────────────────────────────────
-  async function handlePrintSelectedLabels() {
+  // ── Print Selected Labels as Full A4 Kit Guides (1 per page) ───────────────
+  async function handlePrintSelectedLabels(asGrid = false) {
     if (selectedIds.size === 0 || !kits) return;
     setIsPrintingLabels(true);
     try {
@@ -221,47 +229,18 @@ export default function OfflineKitsPage() {
         throw new Error('Pop-up blocked. Please allow pop-ups for this site.');
       }
 
-      const cells = kitsWithQR
-        .map(
-          (kit) => `
-        <div class="kit-card">
-          <div class="brand">EZCirkit</div>
-          <div class="kit-id">Kit ID: ${kit.kitId}</div>
-          ${kit.qrDataUrl ? `<img src="${kit.qrDataUrl}" alt="QR Code" />` : ''}
-          <div class="scan-text">Scan to Activate</div>
-          <div class="url">shop.crabstertech.in/activate</div>
-        </div>`
-        )
-        .join('');
+      const printableKits = kitsWithQR.map((k) => ({
+        kitId: k.kitId,
+        qrDataUrl: k.qrDataUrl,
+        batchName: k.batchName,
+        shopName: k.shopName,
+      }));
 
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>EZCirkit Activation Labels – Selected</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; background: #fff; }
-            .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px; }
-            .kit-card {
-              border: 1.5px dashed #ccc; border-radius: 8px; padding: 12px;
-              display: flex; flex-direction: column; align-items: center;
-              gap: 6px; text-align: center; page-break-inside: avoid;
-            }
-            .brand { font-size: 16px; font-weight: 900; letter-spacing: 1px; color: #F97316; }
-            .kit-id { font-size: 11px; font-family: monospace; color: #333; font-weight: bold; }
-            img { width: 120px; height: 120px; }
-            .scan-text { font-size: 10px; font-weight: bold; color: #555; }
-            .url { font-size: 9px; color: #999; }
-            @media print { body { -webkit-print-color-adjust: exact; } }
-          </style>
-        </head>
-        <body>
-          <div class="grid">${cells}</div>
-          <script>window.onload = () => window.print();</script>
-        </body>
-        </html>
-      `);
+      const html = asGrid
+        ? generateKitStickerGridHtml(printableKits, { hostName: getHostName(), baseUrl: getBaseUrl(), title: 'EZCirkit Stickers' })
+        : generateKitGuidePageHtml(printableKits, { hostName: getHostName(), baseUrl: getBaseUrl(), title: 'EZCirkit Kit Guides' });
+
+      printWindow.document.write(html);
       printWindow.document.close();
     } catch (err: any) {
       toast({
@@ -425,7 +404,7 @@ export default function OfflineKitsPage() {
             size="sm"
             variant="outline"
             disabled={isPrintingLabels || isDownloadingQRs}
-            onClick={handlePrintSelectedLabels}
+            onClick={() => handlePrintSelectedLabels(false)}
           >
             {isPrintingLabels ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -514,7 +493,7 @@ export default function OfflineKitsPage() {
                 )}
                 Download Labels ({selectedCount})
               </Button>
-              <Button variant="outline" onClick={handlePrintSelectedLabels} disabled={isPrintingLabels || isDownloadingQRs}>
+              <Button variant="outline" onClick={() => handlePrintSelectedLabels(false)} disabled={isPrintingLabels || isDownloadingQRs}>
                 {isPrintingLabels ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
