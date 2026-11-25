@@ -11,7 +11,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "generate:seo": "node scripts/generate-product-seo.js",
-    "compile:experiments": "node scripts/compile-all-experiments.js"
+    "compile:experiments": "node scripts/compile-experiments.js"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
