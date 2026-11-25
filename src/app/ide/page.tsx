@@ -60,6 +60,79 @@ export default function IdeSelectionPage() {
   const [draggedTutorialId, setDraggedTutorialId] = useState<string | null>(null);
   const [dragOverTutorialId, setDragOverTutorialId] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const scrollVelocityRef = useRef(0);
+  const animFrameRef = useRef<number | null>(null);
+
+  // Auto-scroll viewport when dragging near top or bottom edges
+  useEffect(() => {
+    if (!draggedTutorialId) {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      scrollVelocityRef.current = 0;
+      return;
+    }
+
+    const startAutoScroll = () => {
+      if (animFrameRef.current !== null) return;
+      const loop = () => {
+        if (scrollVelocityRef.current !== 0) {
+          window.scrollBy(0, scrollVelocityRef.current);
+        }
+        animFrameRef.current = requestAnimationFrame(loop);
+      };
+      animFrameRef.current = requestAnimationFrame(loop);
+    };
+
+    const stopAutoScroll = () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      scrollVelocityRef.current = 0;
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      const clientY = e.clientY;
+      const windowHeight = window.innerHeight;
+
+      // Top scroll zone (160px accommodates sticky top nav & headers)
+      const topZone = 160;
+      // Bottom scroll zone (150px)
+      const bottomZone = 150;
+
+      if (clientY < topZone) {
+        // Closer to top edge -> faster scroll up
+        const intensity = Math.max(0, (topZone - clientY) / topZone);
+        scrollVelocityRef.current = -Math.round(8 + intensity * 24); // -8px to -32px per frame
+        startAutoScroll();
+      } else if (clientY > windowHeight - bottomZone) {
+        // Closer to bottom edge -> faster scroll down
+        const intensity = Math.max(0, (clientY - (windowHeight - bottomZone)) / bottomZone);
+        scrollVelocityRef.current = Math.round(8 + intensity * 24); // +8px to +32px per frame
+        startAutoScroll();
+      } else {
+        scrollVelocityRef.current = 0;
+      }
+    };
+
+    const handleDragCleanup = () => {
+      stopAutoScroll();
+    };
+
+    window.addEventListener('dragover', handleWindowDragOver);
+    window.addEventListener('dragend', handleDragCleanup);
+    window.addEventListener('drop', handleDragCleanup);
+
+    return () => {
+      window.removeEventListener('dragover', handleWindowDragOver);
+      window.removeEventListener('dragend', handleDragCleanup);
+      window.removeEventListener('drop', handleDragCleanup);
+      stopAutoScroll();
+    };
+  }, [draggedTutorialId]);
 
   // Auto-launch tour for first-time visitors
   useEffect(() => {
@@ -374,6 +447,11 @@ export default function IdeSelectionPage() {
   const handleDragEnd = () => {
     setDraggedTutorialId(null);
     setDragOverTutorialId(null);
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    scrollVelocityRef.current = 0;
     setTimeout(() => {
       isDraggingCard.current = false;
     }, 150);
@@ -452,6 +530,11 @@ export default function IdeSelectionPage() {
     const sourceId = draggedTutorialId || e.dataTransfer.getData('text/plain');
     setDraggedTutorialId(null);
     setDragOverTutorialId(null);
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    scrollVelocityRef.current = 0;
     setTimeout(() => {
       isDraggingCard.current = false;
     }, 150);
