@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ duration: durationStr });
     }
 
-    return NextResponse.json({ duration: '5:00' });
+    return NextResponse.json({ error: 'Could not determine duration from YouTube' }, { status: 404 });
   } catch (error: any) {
     console.error('Error fetching YouTube duration:', error);
     return NextResponse.json({ error: error.message || 'Failed to fetch duration' }, { status: 500 });

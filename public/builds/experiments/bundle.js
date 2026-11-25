@@ -283,7 +283,7 @@ window.PRECOMPILED_EXPERIMENTS = {
     "diagramUrl": "",
     "pinout": "              ARDUINO UNO\n          +----------------------+\n          |                      |\n          |  5V ●────────────────┼── VCC (Flame)\n          |  GND ●───────────────┼── GND (Flame)\n          |  Pin 2 ●─────────────┼── DO (Flame)\n          |                      |\n          |  Pin 8 ●─────────────┼── (+) Buzzer\n          |  GND ●───────────────┼── (-) Buzzer\n          |                      |\n          |  Pin 9 ●──[330Ω]─────┼── (+) LED\n          |  GND ●───────────────┼── (-) LED\n          |                      |\n          +----------------------+",
     "videoId": "https://youtu.be/4SMZLCGLIac",
-    "duration": "5:00",
+    "duration": "2:30",
     "order": 4,
     "isHidden": false,
     "isVideoOnly": false,

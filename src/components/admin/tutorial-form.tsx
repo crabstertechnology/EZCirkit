@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -334,6 +334,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({
   });
 
   const videoIdValue = form.watch('videoId');
+  const lastHandledVideoId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!videoIdValue) return;
@@ -342,22 +343,36 @@ const TutorialForm: React.FC<TutorialFormProps> = ({
     const match = videoIdValue.match(regExp);
     const ytId = (match && match[2].length === 11) ? match[2] : null;
 
-    if (ytId) {
-      fetch(`/api/youtube-duration?videoId=${ytId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.duration) {
-            form.setValue('duration', data.duration);
-          }
-        })
-        .catch(err => {
-          console.error("Error auto-fetching duration:", err);
-        });
+    if (!ytId) return;
+
+    // Prevent re-fetching if this video was already processed
+    if (lastHandledVideoId.current === ytId) return;
+    lastHandledVideoId.current = ytId;
+
+    // NEVER overwrite an existing duration (either loaded from tutorial or typed by user)
+    const currentDuration = form.getValues('duration');
+    if (currentDuration && currentDuration.trim() !== '') {
+      return;
     }
-  }, [videoIdValue, form.setValue]);
+
+    fetch(`/api/youtube-duration?videoId=${ytId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.duration) {
+          const latestDuration = form.getValues('duration');
+          if (!latestDuration || latestDuration.trim() === '') {
+            form.setValue('duration', data.duration, { shouldDirty: true });
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Error auto-fetching duration:", err);
+      });
+  }, [videoIdValue, form]);
 
   useEffect(() => {
     if (tutorial) {
+      lastHandledVideoId.current = tutorial.videoId || null;
       setComponents(
         Array.isArray(tutorial.components) && tutorial.components.length > 0
           ? tutorial.components.map((c) => ({ name: c.name || '', quantity: c.quantity || '1' }))
@@ -441,7 +456,7 @@ const TutorialForm: React.FC<TutorialFormProps> = ({
       isVideoOnly: Boolean(data.isVideoOnly),
       compiledHex: data.compiledHex || tutorial?.compiledHex || undefined,
       imageId: data.imageId || 'tutorial-1',
-      duration: data.duration || '5 mins',
+      duration: data.duration?.trim() ? data.duration.trim() : (tutorial?.duration || '5 mins'),
       id: tutorialId,
       chapterId: chapterId,
     };

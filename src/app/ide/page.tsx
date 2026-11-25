@@ -98,16 +98,32 @@ export default function IdeSelectionPage() {
       const clientY = e.clientY;
       const windowHeight = window.innerHeight;
 
-      // Top and bottom scroll trigger zones
-      const topZone = 220;
-      const bottomZone = 200;
-      const CONSTANT_HIGH_SPEED = 45; // Fixed constant high speed with no variation (px per frame)
+      // Scroll trigger zones:
+      // Normal scroll zones (top 240px and bottom 220px)
+      // Header / Edge turbo zones (top header < 100px and bottom edge < 90px)
+      const topZone = 240;
+      const topHeaderZone = 100;
+      const bottomZone = 220;
+      const bottomEdgeZone = 90;
 
-      if (clientY < topZone) {
-        scrollVelocityRef.current = -CONSTANT_HIGH_SPEED;
+      const NORMAL_SPEED = 45;
+      const TURBO_SPEED = 90;
+
+      if (clientY < topHeaderZone) {
+        // Dragging directly into top header -> instant turbo speed
+        scrollVelocityRef.current = -TURBO_SPEED;
+        startAutoScroll();
+      } else if (clientY < topZone) {
+        // Dragging towards top -> fast constant speed
+        scrollVelocityRef.current = -NORMAL_SPEED;
+        startAutoScroll();
+      } else if (clientY > windowHeight - bottomEdgeZone) {
+        // Dragging right to bottom edge -> instant turbo speed
+        scrollVelocityRef.current = TURBO_SPEED;
         startAutoScroll();
       } else if (clientY > windowHeight - bottomZone) {
-        scrollVelocityRef.current = CONSTANT_HIGH_SPEED;
+        // Dragging towards bottom -> fast constant speed
+        scrollVelocityRef.current = NORMAL_SPEED;
         startAutoScroll();
       } else {
         scrollVelocityRef.current = 0;
