@@ -98,20 +98,16 @@ export default function IdeSelectionPage() {
       const clientY = e.clientY;
       const windowHeight = window.innerHeight;
 
-      // Top scroll zone (220px accommodates sticky top nav & header toolbar)
+      // Top and bottom scroll trigger zones
       const topZone = 220;
-      // Bottom scroll zone (200px)
       const bottomZone = 200;
+      const CONSTANT_HIGH_SPEED = 45; // Fixed constant high speed with no variation (px per frame)
 
       if (clientY < topZone) {
-        // Closer to top edge -> much faster responsive scroll up
-        const intensity = Math.min(1.6, Math.max(0, (topZone - clientY) / topZone));
-        scrollVelocityRef.current = -Math.round(18 + intensity * 46); // -18px to -90px per frame
+        scrollVelocityRef.current = -CONSTANT_HIGH_SPEED;
         startAutoScroll();
       } else if (clientY > windowHeight - bottomZone) {
-        // Closer to bottom edge -> much faster responsive scroll down
-        const intensity = Math.min(1.6, Math.max(0, (clientY - (windowHeight - bottomZone)) / bottomZone));
-        scrollVelocityRef.current = Math.round(18 + intensity * 46); // +18px to +90px per frame
+        scrollVelocityRef.current = CONSTANT_HIGH_SPEED;
         startAutoScroll();
       } else {
         scrollVelocityRef.current = 0;
