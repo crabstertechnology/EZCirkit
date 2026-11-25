@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, onSnapshot, getDocs, where, Unsubscribe, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getDocs, where, Unsubscribe, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2, Video, HelpCircle } from 'lucide-react';
+import { Search, Lock, Play, Clock, Sparkles, Code2, PlusCircle, Edit, Trash2, Settings, Eye, EyeOff, Cpu, Zap, Loader2, Video, HelpCircle, GripVertical } from 'lucide-react';
 import Link from 'next/link';
 import type { Tutorial, TutorialChapter } from '@/lib/tutorials';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -54,6 +54,12 @@ export default function IdeSelectionPage() {
   const [previewTutorial, setPreviewTutorial] = useState<Tutorial | null>(null);
   const [activeVideoTutorial, setActiveVideoTutorial] = useState<Tutorial | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Drag and drop sorting state
+  const isDraggingCard = useRef(false);
+  const [draggedTutorialId, setDraggedTutorialId] = useState<string | null>(null);
+  const [dragOverTutorialId, setDragOverTutorialId] = useState<string | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // Auto-launch tour for first-time visitors
   useEffect(() => {
@@ -269,6 +275,11 @@ export default function IdeSelectionPage() {
   const showLoading = isUserLoading || isVerifying || isLoadingData || isLoadingUserDoc || isLoadingGeneral;
 
   const handleTutorialClick = (e: React.MouseEvent, tut: Tutorial) => {
+    if (isDraggingCard.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (!hasPurchased) {
       e.preventDefault();
       setIsLockDialogOpen(true);
@@ -335,6 +346,121 @@ export default function IdeSelectionPage() {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, tut: Tutorial) => {
+    if (!isAdmin || isSavingOrder || searchQuery.trim()) return;
+    isDraggingCard.current = true;
+    setDraggedTutorialId(tut.id);
+    e.dataTransfer.setData('text/plain', tut.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, tut: Tutorial) => {
+    if (!isAdmin || isSavingOrder || searchQuery.trim()) return;
+    if (draggedTutorialId && draggedTutorialId !== tut.id) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragOverTutorialId !== tut.id) {
+        setDragOverTutorialId(tut.id);
+      }
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, tut: Tutorial) => {
+    if (dragOverTutorialId === tut.id) {
+      setDragOverTutorialId(null);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTutorialId(null);
+    setDragOverTutorialId(null);
+    setTimeout(() => {
+      isDraggingCard.current = false;
+    }, 150);
+  };
+
+  const applyAndSaveNewOrder = async (sourceId: string, targetId: string) => {
+    if (!firestore || !isAdmin) return;
+
+    const sourceIndex = filteredTutorials.findIndex(t => t.id === sourceId);
+    const targetIndex = filteredTutorials.findIndex(t => t.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    // Clone and reorder
+    const reorderedList = [...filteredTutorials];
+    const [movedItem] = reorderedList.splice(sourceIndex, 1);
+    reorderedList.splice(targetIndex, 0, movedItem);
+
+    // Map each tutorial ID to its new order number (1-based index)
+    const orderMap = new Map<string, number>();
+    reorderedList.forEach((tut, idx) => {
+      orderMap.set(tut.id, idx + 1);
+    });
+
+    // Optimistically update allTutorials state & cache immediately
+    const updatedAllTutorials = allTutorials.map(tut => {
+      if (orderMap.has(tut.id)) {
+        return { ...tut, order: orderMap.get(tut.id)! };
+      }
+      return tut;
+    });
+
+    setAllTutorials(updatedAllTutorials);
+    try {
+      localStorage.setItem('ez_ide_tutorials_cache', JSON.stringify(updatedAllTutorials));
+    } catch (e) {
+      console.error("Cache update error:", e);
+    }
+
+    // Persist changes to Firestore using batch write
+    setIsSavingOrder(true);
+    try {
+      const batch = writeBatch(firestore);
+      let changedCount = 0;
+
+      reorderedList.forEach((tut, idx) => {
+        const newOrder = idx + 1;
+        if (tut.order !== newOrder) {
+          const docRef = doc(firestore, `tutorialChapters/${tut.chapterId}/tutorials`, tut.id);
+          batch.update(docRef, { order: newOrder });
+          changedCount++;
+        }
+      });
+
+      if (changedCount > 0) {
+        await batch.commit();
+        toast({
+          title: "Order Updated",
+          description: `Saved new experiment order (${changedCount} updated).`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error saving experiment order:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Save Order",
+        description: error.message || "Could not update experiment order in Firestore.",
+      });
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetTut: Tutorial) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sourceId = draggedTutorialId || e.dataTransfer.getData('text/plain');
+    setDraggedTutorialId(null);
+    setDragOverTutorialId(null);
+    setTimeout(() => {
+      isDraggingCard.current = false;
+    }, 150);
+
+    if (!sourceId || sourceId === targetTut.id || !isAdmin) return;
+
+    await applyAndSaveNewOrder(sourceId, targetTut.id);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 pt-32 md:pt-40 pb-16 px-4 md:px-8 relative overflow-hidden">
       {/* Background Decorative Glows */}
@@ -392,15 +518,32 @@ export default function IdeSelectionPage() {
               </Button>
 
               {isAdmin && (
-                <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`} className="flex-1 sm:flex-none">
-                  <Button 
-                    variant="outline"
-                    className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
-                  >
-                    <PlusCircle className="h-4 w-4 text-black" />
-                    Add Experiment
-                  </Button>
-                </Link>
+                <>
+                  <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`} className="flex-1 sm:flex-none">
+                    <Button 
+                      variant="outline"
+                      className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
+                    >
+                      <PlusCircle className="h-4 w-4 text-black" />
+                      Add Experiment
+                    </Button>
+                  </Link>
+
+                  {isSavingOrder ? (
+                    <div className="flex items-center gap-1.5 px-3 h-10 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-xl shadow-2xs animate-pulse">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
+                      <span>Saving...</span>
+                    </div>
+                  ) : (
+                    <div 
+                      className="hidden sm:flex items-center gap-1.5 px-3 h-10 bg-zinc-50 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-xl select-none shadow-2xs"
+                      title={searchQuery.trim() ? "Clear search to reorder experiments" : "Drag cards to reorder experiments"}
+                    >
+                      <GripVertical className="h-3.5 w-3.5 text-zinc-500" />
+                      <span>{searchQuery.trim() ? 'Filter Active' : 'Drag to reorder'}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -501,15 +644,52 @@ export default function IdeSelectionPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredTutorials.map((tut, index) => {
                 const isVideoItem = Boolean(tut.isVideoOnly || (!tut.code && tut.videoId));
+                const isBeingDragged = draggedTutorialId === tut.id;
+                const isOver = dragOverTutorialId === tut.id && draggedTutorialId !== tut.id;
+
                 return (
-                <div key={tut.id} id={index === 0 ? "tour-first-card" : undefined} className="relative group">
-                  
+                <div 
+                  key={tut.id} 
+                  id={index === 0 ? "tour-first-card" : undefined}
+                  draggable={isAdmin && !isSavingOrder && !searchQuery.trim()}
+                  onDragStart={(e) => handleDragStart(e, tut)}
+                  onDragOver={(e) => handleDragOver(e, tut)}
+                  onDragLeave={(e) => handleDragLeave(e, tut)}
+                  onDrop={(e) => handleDrop(e, tut)}
+                  onDragEnd={handleDragEnd}
+                  className={`relative group transition-all duration-200 ${
+                    isBeingDragged 
+                      ? 'opacity-40 scale-[0.98] ring-2 ring-dashed ring-orange-500 rounded-2xl bg-orange-50/20' 
+                      : isOver 
+                        ? 'ring-2 ring-zinc-950 scale-[1.02] shadow-xl rounded-2xl z-10 bg-zinc-50' 
+                        : ''
+                  }`}
+                >
+                  {/* Drop indicator pill */}
+                  {isOver && (
+                    <div className="absolute inset-x-0 -top-3 z-30 flex justify-center pointer-events-none">
+                      <Badge className="bg-zinc-950 text-white border-zinc-900 text-[10px] font-bold shadow-lg px-2.5 py-0.5 animate-bounce">
+                        Move to #{index + 1}
+                      </Badge>
+                    </div>
+                  )}
+
                   {/* Admin action overlays on the card */}
                   {isAdmin && (
-                    <div className="absolute top-3 left-3 z-20 flex gap-1.5">
+                    <div className="absolute top-3 left-3 z-20 flex gap-1.5 items-center">
+                      {/* Drag handle button with order number */}
+                      <div 
+                        className="h-8 px-2 bg-white/95 hover:bg-zinc-100 border border-zinc-200 text-zinc-700 hover:text-black shadow-sm transition-all rounded-lg flex items-center gap-1 cursor-grab active:cursor-grabbing select-none"
+                        title={searchQuery.trim() ? "Clear search to reorder experiments" : "Drag to reorder experiment"}
+                      >
+                        <GripVertical className="h-3.5 w-3.5 text-zinc-500" />
+                        <span className="text-[10px] font-mono font-bold text-zinc-700">#{tut.order ?? (index + 1)}</span>
+                      </div>
                       <Button 
                         size="icon" 
                         variant="outline" 
+                        draggable={false}
+                        onDragStart={(e) => e.stopPropagation()}
                         className={`h-8 w-8 shadow-sm transition-all rounded-lg cursor-pointer ${
                           tut.isHidden 
                             ? 'bg-amber-500 text-white hover:bg-amber-600 border-amber-600' 
@@ -520,10 +700,11 @@ export default function IdeSelectionPage() {
                       >
                         {tut.isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </Button>
-                      <Link href={`/ide/new?id=${tut.id}&chapter=${tut.chapterId}`}>
+                      <Link href={`/ide/new?id=${tut.id}&chapter=${tut.chapterId}`} draggable={false} onDragStart={(e) => e.stopPropagation()}>
                         <Button 
                           size="icon" 
                           variant="outline" 
+                          draggable={false}
                           className="h-8 w-8 bg-white/95 hover:bg-zinc-100 border-zinc-200 text-zinc-700 hover:text-black shadow-sm transition-all rounded-lg cursor-pointer"
                           title="Edit Experiment"
                         >
@@ -533,6 +714,8 @@ export default function IdeSelectionPage() {
                       <Button 
                         size="icon" 
                         variant="outline" 
+                        draggable={false}
+                        onDragStart={(e) => e.stopPropagation()}
                         className="h-8 w-8 bg-white/95 hover:bg-rose-50 border-zinc-200 hover:border-rose-200 text-zinc-700 hover:text-rose-600 shadow-sm transition-all rounded-lg cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault();
@@ -562,8 +745,16 @@ export default function IdeSelectionPage() {
 
                   <Link
                     href={isVideoItem ? '#' : `/editor/index.html?experiment=${tut.id}&chapter=${tut.chapterId}`}
-                    onClick={(e) => handleTutorialClick(e, tut)}
+                    onClick={(e) => {
+                      if (isDraggingCard.current) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
+                      handleTutorialClick(e, tut);
+                    }}
                     className="block h-full"
+                    draggable={false}
                   >
                     <Card className={`bg-white hover:bg-zinc-50/50 border transition-all duration-300 overflow-hidden flex flex-col h-full rounded-2xl relative shadow-sm hover:shadow-md ${
                       tut.isHidden 
