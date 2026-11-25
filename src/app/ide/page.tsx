@@ -583,21 +583,21 @@ export default function IdeSelectionPage() {
               <Link id="tour-launch-ide" href="/editor/index.html" className="flex-1 sm:flex-none">
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all"
+                  className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black hover:text-black border border-zinc-300 hover:border-zinc-400 font-bold text-xs h-10 px-4 rounded-xl gap-2 shadow-2xs cursor-pointer transition-all group"
                 >
-                  <Code2 className="h-4 w-4 text-black" />
-                  Launch IDE
+                  <Code2 className="h-4 w-4 text-black group-hover:text-black transition-colors" />
+                  <span className="text-black group-hover:text-black transition-colors">Launch IDE</span>
                 </Button>
               </Link>
 
               <Button
                 variant="outline"
                 onClick={() => setIsTourOpen(true)}
-                className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-3.5 rounded-xl gap-1.5 shadow-2xs cursor-pointer transition-all"
+                className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black hover:text-black border border-zinc-300 hover:border-zinc-400 font-bold text-xs h-10 px-3.5 rounded-xl gap-1.5 shadow-2xs cursor-pointer transition-all group"
                 title="Interactive Guide & Tour"
               >
-                <HelpCircle className="h-4 w-4 text-black" />
-                Tour
+                <HelpCircle className="h-4 w-4 text-black group-hover:text-black transition-colors" />
+                <span className="text-black group-hover:text-black transition-colors">Tour</span>
               </Button>
 
               {isAdmin && (
@@ -605,10 +605,10 @@ export default function IdeSelectionPage() {
                   <Link href={`/ide/new${selectedChapter !== 'All' ? `?chapter=${selectedChapter}` : ''}`} className="flex-1 sm:flex-none">
                     <Button 
                       variant="outline"
-                      className="w-full sm:w-auto bg-white hover:bg-zinc-100 text-black border border-zinc-300 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all"
+                      className="w-full sm:w-auto bg-white hover:bg-orange-50 text-black hover:text-orange-600 border border-zinc-300 hover:border-orange-500 font-bold text-xs h-10 px-4 gap-2 rounded-xl shadow-2xs cursor-pointer transition-all group"
                     >
-                      <PlusCircle className="h-4 w-4 text-black" />
-                      Add Experiment
+                      <PlusCircle className="h-4 w-4 text-black group-hover:text-orange-600 transition-colors" />
+                      <span className="text-black group-hover:text-orange-600 transition-colors">Add Experiment</span>
                     </Button>
                   </Link>
 
