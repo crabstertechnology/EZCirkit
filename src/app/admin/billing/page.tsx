@@ -1178,14 +1178,14 @@ export default function AdminBillingPage() {
             {cart.length > 0 && (
               <Card className="hidden lg:flex flex-col border-border/60 shadow-sm bg-white dark:bg-zinc-900 rounded-xl p-3 space-y-2 shrink-0">
                 {/* Financial Breakdown & Grand Total */}
-                <div className="space-y-1 text-xs">
+                <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between items-center text-muted-foreground">
-                    <span className="flex items-center gap-2 text-xs">
-                      <span className="font-semibold text-foreground">
-                        Subtotal: ₹{grossSubtotal.toFixed(2)}
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">
+                        Subtotal: <span className="text-base font-black">₹{grossSubtotal.toFixed(2)}</span>
                       </span>
-                      {totalTax > 0 && <span>• Tax: ₹{totalTax.toFixed(2)}</span>}
-                      <span className="text-[11px] text-muted-foreground">
+                      {totalTax > 0 && <span className="text-xs">• Tax: ₹{totalTax.toFixed(2)}</span>}
+                      <span className="text-xs text-muted-foreground">
                         ({cart.reduce((acc, i) => acc + i.quantity, 0)} items)
                       </span>
                     </span>
@@ -1206,12 +1206,12 @@ export default function AdminBillingPage() {
                   </div>
 
                   {/* Grand Total Bar */}
-                  <div className="flex justify-between items-center pt-1.5 border-t border-zinc-100 dark:border-zinc-800">
-                    <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                  <div className="flex justify-between items-center pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-foreground">
                       {isRefundMode ? 'Net Refund to Customer' : 'Grand Total Payable'}
                     </span>
                     <span
-                      className={`text-xl font-black ${
+                      className={`text-2xl sm:text-3xl font-black tracking-tight ${
                         isRefundMode ? 'text-rose-600' : 'text-primary'
                       }`}
                     >
@@ -1248,9 +1248,9 @@ export default function AdminBillingPage() {
 
                     {/* Cash Tender & Change Calculations */}
                     {paymentMethod === 'cash' && (
-                      <div className="p-2 rounded-lg bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 space-y-1.5">
+                      <div className="p-2.5 rounded-lg bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <Label className="text-xs font-bold text-foreground whitespace-nowrap">
+                          <Label className="text-sm font-bold text-foreground whitespace-nowrap">
                             Cash Received (₹):
                           </Label>
                           <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -1259,7 +1259,7 @@ export default function AdminBillingPage() {
                               min="0"
                               value={cashReceived || ''}
                               onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
-                              className="h-6 w-20 sm:w-24 text-right font-black text-xs rounded-md bg-white dark:bg-zinc-900"
+                              className="h-8 w-24 sm:w-28 text-right font-black text-sm sm:text-base rounded-md bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 shadow-sm"
                             />
                             {/* Quick Presets */}
                             <Button
@@ -1267,7 +1267,7 @@ export default function AdminBillingPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => setCashReceived(grandTotal)}
-                              className="h-6 px-1.5 text-[10px] font-bold rounded-md"
+                              className="h-8 px-2 text-xs font-bold rounded-md"
                             >
                               Exact
                             </Button>
@@ -1278,7 +1278,7 @@ export default function AdminBillingPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setCashReceived(preset)}
-                                className="h-6 px-1.5 text-[10px] font-bold rounded-md"
+                                className="h-8 px-2 text-xs font-bold rounded-md"
                               >
                                 ₹{preset}
                               </Button>
@@ -1288,7 +1288,7 @@ export default function AdminBillingPage() {
 
                         {/* Cash Balance Status Display */}
                         <div
-                          className={`text-[11px] font-bold flex items-center justify-between px-2 py-1 rounded-md ${
+                          className={`text-xs font-bold flex items-center justify-between px-2.5 py-1.5 rounded-md ${
                             cashBalanceResult.status === 'CHANGE_TO_RETURN'
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
                               : cashBalanceResult.status === 'CUSTOMER_OWES'

@@ -143,7 +143,9 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2">
             <div className="flex justify-between items-center text-xs text-muted-foreground">
               <span className="flex items-center gap-2">
-                <span>Subtotal: ₹{grossSubtotal.toFixed(2)}</span>
+                <span className="text-sm font-bold text-foreground">
+                  Subtotal: <span className="text-base font-black">₹{grossSubtotal.toFixed(2)}</span>
+                </span>
                 {totalTax > 0 && <span>• Tax: ₹{totalTax.toFixed(2)}</span>}
               </span>
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -161,11 +163,11 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
             </div>
 
             <div className="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-800">
-              <span className="text-xs font-black uppercase tracking-wider text-foreground">
+              <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-foreground">
                 {isRefundMode ? 'NET REFUND TO CUSTOMER' : 'GRAND TOTAL PAYABLE'}
               </span>
               <span
-                className={`text-2xl font-black ${
+                className={`text-2xl sm:text-3xl font-black tracking-tight ${
                   isRefundMode ? 'text-rose-600' : 'text-primary'
                 }`}
               >
@@ -326,7 +328,7 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
               {paymentMethod === 'cash' && (
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <Label className="text-xs font-bold text-foreground whitespace-nowrap">
+                    <Label className="text-sm font-bold text-foreground whitespace-nowrap">
                       Cash Received (₹):
                     </Label>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -335,7 +337,7 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                         min="0"
                         value={cashReceived || ''}
                         onChange={(e) => setCashReceived(parseFloat(e.target.value) || 0)}
-                        className="h-7 w-20 sm:w-24 text-right font-black text-xs rounded-lg"
+                        className="h-8 w-24 sm:w-28 text-right font-black text-sm sm:text-base rounded-lg"
                       />
                       {/* Quick Presets */}
                       <Button
@@ -343,7 +345,7 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                         variant="outline"
                         size="sm"
                         onClick={() => setCashReceived(grandTotal)}
-                        className="h-7 px-2 text-[10px] font-bold rounded-md"
+                        className="h-8 px-2 text-xs font-bold rounded-md"
                       >
                         Exact
                       </Button>
@@ -354,7 +356,7 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                           variant="outline"
                           size="sm"
                           onClick={() => setCashReceived(preset)}
-                          className="h-7 px-1.5 text-[10px] font-bold rounded-md"
+                          className="h-8 px-2 text-xs font-bold rounded-md"
                         >
                           ₹{preset}
                         </Button>
