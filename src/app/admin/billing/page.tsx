@@ -883,18 +883,18 @@ export default function AdminBillingPage() {
 
               {/* Header row for cart columns (desktop only, hidden on mobile to prevent overflow) */}
               {cart.length > 0 && (
-                <div className="hidden sm:flex px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[11px] font-bold text-muted-foreground uppercase items-center justify-between gap-1.5 sm:gap-2 shrink-0">
-                  <span className="flex-1">Item Details</span>
-                  <span className="w-20 sm:w-24 text-center">Qty</span>
-                  <span className="w-14 sm:w-16 text-right">Price</span>
-                  <span className="hidden sm:inline-block w-14 text-right">Disc</span>
-                  <span className="w-16 sm:w-20 text-right">Total</span>
-                  <span className="w-6"></span>
+                <div className="hidden sm:flex px-2.5 sm:px-3 py-1 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[11px] font-bold text-muted-foreground uppercase items-center justify-between gap-1.5 sm:gap-2 shrink-0">
+                  <span className="flex-1 min-w-0">Item Details</span>
+                  <span className="w-20 sm:w-22 text-center shrink-0">Qty</span>
+                  <span className="w-14 sm:w-16 text-right shrink-0">Price</span>
+                  <span className="hidden sm:inline-block w-12 sm:w-14 text-right shrink-0">Disc</span>
+                  <span className="w-16 sm:w-18 text-right shrink-0">Total</span>
+                  <span className="w-7 sm:w-8 text-center shrink-0 text-muted-foreground" title="Delete">Del</span>
                 </div>
               )}
 
               {/* Scrollable Line Items */}
-              <ScrollArea className="flex-1 p-2 max-h-72 sm:max-h-84 lg:max-h-none overflow-x-hidden">
+              <ScrollArea className="flex-1 px-2 py-1.5 max-h-72 sm:max-h-84 lg:max-h-none">
                 {cart.length === 0 ? (
                   <div className="flex flex-col items-center justify-center min-h-[140px] text-center p-4 text-muted-foreground space-y-1">
                     <ShoppingCart className="h-7 w-7 text-muted-foreground/30 mb-0.5" />
@@ -957,8 +957,9 @@ export default function AdminBillingPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCartItem(item.id)}
-                                  className="text-zinc-400 hover:text-rose-500 p-1"
-                                  title="Remove item"
+                                  className="h-6 w-6 rounded-md flex items-center justify-center text-rose-500 hover:text-white hover:bg-rose-500 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 transition-colors shrink-0"
+                                  title="Delete item"
+                                  aria-label="Delete item"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -1036,14 +1037,14 @@ export default function AdminBillingPage() {
 
                           {/* Desktop View (>= sm): Full horizontal table row */}
                           <div
-                            className={`hidden sm:flex px-2.5 py-1.5 rounded-lg border text-xs items-center justify-between gap-2 transition-all ${
+                            className={`hidden sm:flex px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs items-center justify-between gap-1.5 sm:gap-2 transition-all w-full min-w-0 ${
                               isRet
                                 ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
                                 : 'bg-zinc-50/40 dark:bg-zinc-800/20 border-zinc-200/70 dark:border-zinc-800 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50'
                             }`}
                           >
                             {/* Item Details */}
-                            <div className="flex-1 min-w-0 pr-2">
+                            <div className="flex-1 min-w-0 pr-1.5">
                               <div className="flex items-center gap-1.5">
                                 {isRet && (
                                   <Badge className="bg-rose-600 text-white text-[8px] px-1 py-0 h-3.5 shrink-0">
@@ -1069,7 +1070,7 @@ export default function AdminBillingPage() {
                             </div>
 
                             {/* Quantity Editor Stepper */}
-                            <div className="w-20 sm:w-24 flex items-center justify-center shrink-0">
+                            <div className="w-20 sm:w-22 flex items-center justify-center shrink-0">
                               <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 overflow-hidden h-6">
                                 <button
                                   type="button"
@@ -1111,7 +1112,7 @@ export default function AdminBillingPage() {
                             </div>
 
                             {/* Line Discount */}
-                            <div className="hidden sm:block w-14 text-right shrink-0">
+                            <div className="hidden sm:block w-12 sm:w-14 text-right shrink-0">
                               {!isRet ? (
                                 <input
                                   type="number"
@@ -1121,7 +1122,7 @@ export default function AdminBillingPage() {
                                   onChange={(e) =>
                                     handleUpdateDiscount(item.id, parseFloat(e.target.value) || 0)
                                   }
-                                  className="w-14 h-6 px-1 text-xs text-right text-emerald-600 font-bold rounded border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
+                                  className="w-12 sm:w-14 h-6 px-1 text-xs text-right text-emerald-600 font-bold rounded border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-zinc-900"
                                 />
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">-</span>
@@ -1129,7 +1130,7 @@ export default function AdminBillingPage() {
                             </div>
 
                             {/* Line Total */}
-                            <div className="w-16 sm:w-20 text-right shrink-0 font-black text-xs">
+                            <div className="w-16 sm:w-18 text-right shrink-0 font-black text-xs">
                               <span
                                 className={lineTotal < 0 ? 'text-rose-600' : 'text-foreground'}
                               >
@@ -1140,11 +1141,13 @@ export default function AdminBillingPage() {
                             </div>
 
                             {/* Remove item button */}
-                            <div className="w-6 text-right shrink-0">
+                            <div className="w-7 sm:w-8 flex items-center justify-center shrink-0">
                               <button
+                                type="button"
                                 onClick={() => handleRemoveCartItem(item.id)}
-                                className="text-zinc-400 hover:text-rose-500 transition-colors p-1"
-                                title="Remove item"
+                                className="h-6 w-6 rounded-md flex items-center justify-center text-rose-500 hover:text-white hover:bg-rose-500 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 transition-colors shadow-2xs"
+                                title="Delete item"
+                                aria-label="Delete item"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
